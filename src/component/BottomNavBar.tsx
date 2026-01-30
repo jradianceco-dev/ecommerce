@@ -117,8 +117,8 @@ export default function BottomNavBar() {
         </button>
 
         {/* Navigation Bar Pill */}
-        <nav className="pointer-events-auto w-full md:w-fit bg-white/95 backdrop-blur-md border md:border border-gray-200/50 rounded-xl md:rounded-full shadow-lg">
-          <div className="flex items-center justify-around md:justify-center md:gap-6 px-2 py-2 md:px-6">
+        <nav className="pointer-events-auto w-full md:w-fit bg-white/95 backdrop-blur-md border md:border border-gray-200/50 rounded-xl md:rounded-full shadow-lg overflow-x-hidden">
+          <div className="flex items-center justify-around md:justify-center md:gap-4 px-1 py-2 md:px-6">
             {visibleNavItems.map((navItem) => {
               const isActive = pathname === navItem.href;
               const Icon = navItem.icon;
@@ -128,7 +128,7 @@ export default function BottomNavBar() {
                   key={navItem.href}
                   href={navItem.href}
                   className={`
-                    relative flex flex-col items-center gap-0.5 px-3 py-1 transition-colors 
+                    relative flex flex-col items-center gap-0.5 px-2 md:px-3 py-1 transition-colors 
                     ${isActive ? "text-radiance-goldColor" : "text-radiance-charcoalTextColor hover:text-radiance-goldColor"}
                   `}
                 >

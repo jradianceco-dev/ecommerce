@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import Script from "next/script";
 import BottomNavBar from "@/component/BottomNavBar";
+import TopBar from "@/component/TopBar";
 
 const bodyClasses = `
   min-h-screen 
@@ -45,7 +46,7 @@ export default function RootLayout({
           async
         /> 
         {/* Top Bar */}
-        {/* <TopBar/> */}
+        <TopBar/>
         
         {/* Main content */}
         <main className="pb-20 md:pb-0">

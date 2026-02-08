@@ -40,5 +40,5 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# Supabase schema
+# my Supabase schema
 .supabaseschema.txt

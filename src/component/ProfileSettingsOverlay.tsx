@@ -13,6 +13,8 @@ import {
   ChevronRight,
 } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { createClient } from "@/utils/supabase/client";
 import type { AuthUser } from "@/types";
 
 interface ProfileSettingsOverlayProps {
@@ -26,6 +28,19 @@ export default function ProfileSettingsOverlay({
   onClose,
   user,
 }: ProfileSettingsOverlayProps) {
+  const router = useRouter();
+
+  const handleLogout = async () => {
+    try {
+      const supabase = createClient();
+      await supabase.auth.signOut();
+      onClose(); 
+      router.push("/");
+    } catch (error) {
+      console.error("Logout error:", error);
+    }
+  };
+
   if (!isOpen) return null;
 
   return (
@@ -176,7 +191,10 @@ export default function ProfileSettingsOverlay({
 
         {/* Logout Button (Only visible if user exists) */}
         {user && (
-          <button className="mt-8 flex items-center gap-2 text-red-500 text-xs font-bold p-2 hover:bg-red-50 rounded-lg w-fit transition-colors">
+          <button
+            onClick={handleLogout}
+            className="mt-8 flex items-center gap-2 text-red-500 text-xs font-bold p-2 hover:bg-red-50 rounded-lg w-fit transition-colors"
+          >
             <LogOut size={16} /> Logout
           </button>
         )}

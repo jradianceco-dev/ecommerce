@@ -153,7 +153,7 @@ export default function LandingPage() {
                 <h3 className="font-medium text-sm truncate">
                   Trending Product {item}
                 </h3>
-                <p className="text-radiance-goldColor font-bold">$29.99</p>
+                <p className="text-radiance-goldColor font-bold">₦29.99</p>
                 <div className="flex items-center mt-1">
                   <Star className="h-4 w-4 text-yellow-400 fill-current" />
                   <span className="text-xs text-gray-500 ml-1">(4.5)</span>
@@ -194,7 +194,7 @@ export default function LandingPage() {
                 <h3 className="font-medium text-sm truncate">
                   Best Seller {item}
                 </h3>
-                <p className="text-radiance-goldColor font-bold">$34.99</p>
+                <p className="text-radiance-goldColor font-bold">₦34.99</p>
                 <div className="flex items-center mt-1">
                   <Star className="h-4 w-4 text-yellow-400 fill-current" />
                   <span className="text-xs text-gray-500 ml-1">(4.8)</span>
@@ -279,7 +279,7 @@ export default function LandingPage() {
                 <div className="w-full h-40 bg-gray-200 rounded-lg mb-4"></div>{" "}
                 {/* Placeholder image */}
                 <h3 className="font-medium text-sm truncate">Product {item}</h3>
-                <p className="text-radiance-goldColor font-bold">$24.99</p>
+                <p className="text-radiance-goldColor font-bold">₦24.99</p>
                 <div className="flex items-center mt-1">
                   <Star className="h-4 w-4 text-yellow-400 fill-current" />
                   <span className="text-xs text-gray-500 ml-1">(4.3)</span>

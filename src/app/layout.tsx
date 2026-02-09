@@ -21,12 +21,22 @@ export const metadata: Metadata = {
   },
   description:
     "JRADIANCE is a digital market place to shop for organic body care and beauty products",
+  icons: {
+    icon: [
+      { url: "/favicon.ico" }, 
+      { url: "/icon.png", sizes: "192x192", type: "image/png" }, 
+      { url: "/icon.png", sizes: "512x512", type: "image/png" },
+    ],
+    apple: "/icon.png",
+    shortcut: "/favicon.ico",
+  },
+  manifest: "/favicon.ico", 
   openGraph: {
     title: "JRADIANCE STORE",
     description: "Shop for organic body care and beauty products.",
     url: "https://jradianceco.com",
     siteName: "JRADIANCE",
-    images: [{ url: "/og-image.jpg", width: 1200, height: 630 }],
+    images: [{ url: "/logo-removebg.png", width: 1200, height: 630 }],
     type: "website",
   },
   alternates: { canonical: "https://jradianceco.com" },
@@ -56,7 +66,7 @@ export default function RootLayout({
             <div className="mx-auto max-w-6xl px-6 py-12">{children}</div>
           </main>
 
-          {/* Nave bar */}
+          {/* Nav bar */}
           <BottomNavBar />
         </UserProvider>
       </body>

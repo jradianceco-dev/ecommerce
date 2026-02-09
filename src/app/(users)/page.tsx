@@ -20,7 +20,7 @@ export const metadata: Metadata = {
     description: "Shop for organic body care and beauty products.",
     url: "https://jradianceco.com",
     siteName: "JRADIANCE",
-    images: [{ url: "/og-image.jpg", width: 1200, height: 630 }],
+    images: [{ url: "/logo-removebg.png", width: 1200, height: 630 }],
     type: "website",
   },
   alternates: { canonical: "https://jradianceco.com" },

@@ -9,6 +9,10 @@ import {
   ShoppingBag,
   SearchIcon,
   Play,
+  Facebook,
+  Instagram,
+  X,
+  Youtube
 } from "lucide-react"; // Added new icons
 
 // Section wrapper for consistent vertical spacing
@@ -405,25 +409,25 @@ export default function LandingPage() {
                   href="#"
                   className="text-gray-600 hover:text-radiance-goldColor"
                 >
-                  FB
+                  <Facebook size={14} className="text-radiance-goldColor" />
                 </Link>
                 <Link
                   href="#"
                   className="text-gray-600 hover:text-radiance-goldColor"
                 >
-                  IG
+                  <Instagram size={14} className="text-radiance-goldColor" />
                 </Link>
                 <Link
                   href="#"
                   className="text-gray-600 hover:text-radiance-goldColor"
                 >
-                  TW
+                  <X size={14} className="text-radiance-goldColor" />
                 </Link>
                 <Link
                   href="#"
                   className="text-gray-600 hover:text-radiance-goldColor"
                 >
-                  YT
+                  <Youtube size={14} className="text-radiance-goldColor" />
                 </Link>
               </div>
               <p className="mt-4 text-sm text-gray-600">info@jradianceco.com</p>

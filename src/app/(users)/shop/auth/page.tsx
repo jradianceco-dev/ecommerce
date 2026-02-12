@@ -1,8 +1,9 @@
 "use client";
 
-import React, { useState, useActionState } from "react";
+import React, { useState, useActionState, useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { UserRoundPen, Mail, Lock, User, Phone, Loader2 } from "lucide-react";
-import { signup, login } from "./action";
+import { signup, login, forgotPassword } from "./action";
 
 export default function CustomerAuthPage() {
   // Toggle between Login and Signup
@@ -13,6 +14,19 @@ export default function CustomerAuthPage() {
     isLogin ? login : signup,
     null,
   );
+
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const redirectTo = searchParams.get("redirect") || "/shop";
+  const isConfirmed = searchParams.get("confirmed") === "true";
+
+  // Handle successful login/signup
+  useEffect(() => {
+    if (state?.message && !state.error && !state.requiresConfirmation) {
+      // Redirect to intended page after successful auth (only if no confirmation needed)
+      router.push(redirectTo);
+    }
+  }, [state, router, redirectTo]);
 
   const inputClass =
     "w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-100 rounded-xl text-sm focus:ring-1 focus:ring-radiance-goldColor outline-none transition-all";
@@ -33,10 +47,40 @@ export default function CustomerAuthPage() {
           </p>
         </div>
 
-        {/* Display Error Message from Server Action */}
+        {/* Display Messages from Server Action */}
         {state?.error && (
           <div className="p-3 bg-red-50 border border-red-100 text-red-600 text-xs font-bold rounded-xl animate-in fade-in zoom-in duration-200">
             {state.error}
+          </div>
+        )}
+
+        {/* Email Confirmation Success Message */}
+        {isConfirmed && !state?.error && (
+          <div className="p-3 bg-green-50 border border-green-100 text-green-700 text-xs font-bold rounded-xl animate-in fade-in zoom-in duration-200">
+            <p>🎉 Your email has been successfully confirmed!</p>
+            <p className="mt-1">You can now sign in with your credentials.</p>
+          </div>
+        )}
+
+        {/* Success Message for Signup */}
+        {state?.message && !state.error && !isConfirmed && (
+          <div className="p-3 bg-green-50 border border-green-100 text-green-700 text-xs font-bold rounded-xl animate-in fade-in zoom-in duration-200">
+            {state.message}
+            {state.requiresConfirmation && state.email && (
+              <div className="mt-2 text-xs">
+                <p>
+                  We&apos;ve sent a confirmation link to:{" "}
+                  <strong>{state.email}</strong>
+                </p>
+                <p className="mt-1">
+                  Please check your email and click the link to complete your
+                  registration.
+                </p>
+                <p className="mt-1 text-orange-600">
+                  Note: The confirmation link will expire in 1 hour.
+                </p>
+              </div>
+            )}
           </div>
         )}
 
@@ -105,6 +149,20 @@ export default function CustomerAuthPage() {
             {isLogin ? "LogIn" : "Create Account"}
           </button>
         </form>
+
+        {/* Forgot Password Link (only show on login) */}
+        {isLogin && (
+          <div className="text-center pt-2">
+            <button
+              type="button"
+              disabled={isPending}
+              onClick={() => router.push("/shop/auth/forgot-password")}
+              className="text-xs font-bold text-radiance-goldColor hover:underline underline-offset-4"
+            >
+              Forgot your password?
+            </button>
+          </div>
+        )}
 
         {/* Toggle between Signup and Login */}
         <div className="text-center pt-4 border-t border-gray-50">

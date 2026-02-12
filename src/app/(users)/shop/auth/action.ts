@@ -1,12 +1,7 @@
 "use server";
 
 import { createClient } from "@/utils/supabase/server";
-import { redirect } from "next/navigation";
-
-export interface AuthState {
-  error: string | null;
-  message?: string;
-}
+import { AuthState } from "@/types/index";
 
 /**
  * Handle user signup
@@ -42,7 +37,7 @@ export async function signup(
       return { error: "Please enter a valid email address" };
     }
 
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
@@ -51,6 +46,7 @@ export async function signup(
           phone: phone,
           role: "customer", // Always customer on signup
         },
+        emailRedirectTo: `${process.env.NEXT_PUBLIC_SITE_URL || "http://jradianceco.com"}/shop/auth/confirm`,
       },
     });
 
@@ -58,8 +54,19 @@ export async function signup(
       return { error: error.message };
     }
 
-    // Redirect to success page or home
-    redirect("/");
+    // Check if user needs email confirmation
+    if (data.user && !data.session) {
+      return {
+        error: null,
+        message:
+          "Please check your email and click the confirmation link to complete your registration.",
+        requiresConfirmation: true,
+        email: email,
+      };
+    }
+
+    // Client handle success
+    return { error: null, message: "Signup successful" };
   } catch (error) {
     console.error("Signup error:", error);
     return {
@@ -102,28 +109,8 @@ export async function login(
       return { error: error.message };
     }
 
-    // Redirect to appropriate dashboard
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (user) {
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("role")
-        .eq("id", user.id)
-        .single();
-
-      if (
-        profile?.role &&
-        ["admin", "agent", "chief_admin"].includes(profile.role)
-      ) {
-        redirect("/admin");
-      } else {
-        redirect("/shop");
-      }
-    }
-
-    redirect("/");
+    // Don't redirect here - let the client handle success
+    return { error: null, message: "Login successful" };
   } catch (error) {
     console.error("Login error:", error);
     return {
@@ -131,6 +118,99 @@ export async function login(
         error instanceof Error
           ? error.message
           : "An error occurred during login",
+    };
+  }
+}
+
+/**
+ * Handle forgot password request
+ * Sends password reset email to user
+ */
+export async function forgotPassword(
+  prevState: AuthState | null,
+  formData: FormData,
+): Promise<AuthState | null> {
+  try {
+    const supabase = await createClient();
+
+    const email = formData.get("email") as string;
+
+    // Validation
+    if (!email) {
+      return { error: "Email is required" };
+    }
+
+    if (!email.includes("@")) {
+      return { error: "Please enter a valid email address" };
+    }
+
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL || "http://jradianceco.com"}/shop/auth/reset-password`,
+    });
+
+    if (error) {
+      return { error: error.message };
+    }
+
+    return {
+      error: null,
+      message: "Password reset email sent successfully",
+      email: email,
+    };
+  } catch (error) {
+    console.error("Forgot password error:", error);
+    return {
+      error:
+        error instanceof Error
+          ? error.message
+          : "An error occurred while sending reset email",
+    };
+  }
+}
+
+/**
+ * Handle password reset
+ * Updates user password with new one
+ */
+export async function resetPassword(
+  prevState: AuthState | null,
+  formData: FormData,
+): Promise<AuthState | null> {
+  try {
+    const supabase = await createClient();
+
+    const password = formData.get("password") as string;
+    const confirmPassword = formData.get("confirm_password") as string;
+
+    // Validation
+    if (!password) {
+      return { error: "Password is required" };
+    }
+
+    if (password.length < 6) {
+      return { error: "Password must be at least 6 characters" };
+    }
+
+    if (password !== confirmPassword) {
+      return { error: "Passwords do not match" };
+    }
+
+    const { error } = await supabase.auth.updateUser({
+      password: password,
+    });
+
+    if (error) {
+      return { error: error.message };
+    }
+
+    return { error: null, message: "Password updated successfully" };
+  } catch (error) {
+    console.error("Reset password error:", error);
+    return {
+      error:
+        error instanceof Error
+          ? error.message
+          : "An error occurred while updating password",
     };
   }
 }

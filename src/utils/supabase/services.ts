@@ -4,7 +4,7 @@
  * All queries go through these functions
  */
 
-import { createClient } from "./server";
+import { createClient } from "./client";
 import type {
   UserProfile,
   Product,
@@ -15,7 +15,6 @@ import type {
   ProductFilters,
   CreateOrderInput,
   ProductReview,
-
 } from "@/types";
 
 /* Profile Services */
@@ -481,6 +480,97 @@ export async function getProductReviews(
   } catch (error) {
     console.error("Error fetching reviews:", error);
     return [];
+  }
+}
+
+// Get trending products (based on recent orders in last 7 days)
+export async function getTrendingProducts(
+  limit: number = 8,
+): Promise<Product[]> {
+  try {
+    const supabase = await createClient();
+
+    // Get products ordered in the last 7 days, grouped by product_id with count
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+    const { data: orderItems, error } = await supabase
+      .from("order_items")
+      .select(
+        `
+        product_id,
+        quantity,
+        orders!inner(created_at)
+      `,
+      )
+      .gte("orders.created_at", sevenDaysAgo.toISOString())
+      .order("orders.created_at", { ascending: false });
+
+    if (error) throw error;
+
+    // Count orders per product
+    const productCounts: { [key: string]: number } = {};
+    orderItems?.forEach((item) => {
+      productCounts[item.product_id] =
+        (productCounts[item.product_id] || 0) + item.quantity;
+    });
+
+    // Get top products by order count
+    const topProductIds = Object.entries(productCounts)
+      .sort(([, a], [, b]) => b - a)
+      .slice(0, limit)
+      .map(([productId]) => productId);
+
+    if (topProductIds.length === 0) {
+      // Fallback to recent products if no orders
+      return getProducts({ limit });
+    }
+
+    return getProductsByIds(topProductIds);
+  } catch (error) {
+    console.error("Error fetching trending products:", error);
+    // Fallback to regular products
+    return getProducts({ limit });
+  }
+}
+
+// Get best seller products (based on total quantity sold)
+export async function getBestSellerProducts(
+  limit: number = 8,
+): Promise<Product[]> {
+  try {
+    const supabase = await createClient();
+
+    // Get all order items grouped by product_id with total quantity
+    const { data: orderItems, error } = await supabase
+      .from("order_items")
+      .select("product_id, quantity");
+
+    if (error) throw error;
+
+    // Count total quantity sold per product
+    const productCounts: { [key: string]: number } = {};
+    orderItems?.forEach((item) => {
+      productCounts[item.product_id] =
+        (productCounts[item.product_id] || 0) + item.quantity;
+    });
+
+    // Get top products by total sales
+    const topProductIds = Object.entries(productCounts)
+      .sort(([, a], [, b]) => b - a)
+      .slice(0, limit)
+      .map(([productId]) => productId);
+
+    if (topProductIds.length === 0) {
+      // Fallback to regular products if no orders
+      return getProducts({ limit });
+    }
+
+    return getProductsByIds(topProductIds);
+  } catch (error) {
+    console.error("Error fetching best seller products:", error);
+    // Fallback to regular products
+    return getProducts({ limit });
   }
 }
 

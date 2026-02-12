@@ -2,7 +2,8 @@
 import React, { useActionState } from "react";
 import Link from "next/link";
 import { Lock, ShieldCheck, Mail, Loader2, UserPlus } from "lucide-react";
-import { login, AuthState } from "@/app/(users)/shop/auth/action";
+import { login } from "@/app/(users)/shop/auth/action";
+import {AuthState} from "@/types"
 
 export default function AdminLogInPage() {
   const [state, formAction, isPending] = useActionState<

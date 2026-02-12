@@ -80,13 +80,13 @@ export default function TopBar() {
             <>
               <Link
                 href="/shop/history"
-                className="text-xs font-semibold text-gray-600 hover:text-radiance-goldColor transition-colors"
+                className="text-xs font-semibold text-gray-600 hover:text-radiance-goldColor transition-colors hidden"
               >
                 Orders
               </Link>
               <Link
-                href="/shop/wish-list"
-                className="text-xs font-semibold text-gray-600 hover:text-radiance-goldColor transition-colors"
+                href="/shop/wishlist"
+                className="text-xs font-semibold text-gray-600 hover:text-radiance-goldColor transition-colors hidden"
               >
                 Wishlist
               </Link>

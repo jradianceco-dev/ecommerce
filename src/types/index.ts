@@ -1,8 +1,8 @@
+import { JSONContent } from "@tiptap/core";
 /**
  * Type definitions for JRADIANCE E-Commerce Application
  * Ensures type safety across the entire application
  */
-
 
 /* User & Authentication Types */
 export type UserRole = "customer" | "admin" | "agent" | "chief_admin";
@@ -40,6 +40,13 @@ export interface AuthUser {
   id: string;
   email: string;
   role: UserRole;
+}
+
+export interface AuthState {
+  error?: string | null;
+  message?: string | null;
+  requiresConfirmation?: boolean;
+  email?: string | null;
 }
 
 /* Product Types */
@@ -195,3 +202,5 @@ export interface UserContextType {
   isChiefAdmin: boolean;
   refetch: () => Promise<void>;
 }
+
+export type RichTextContent = JSONContent;

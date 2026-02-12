@@ -12,8 +12,9 @@ import {
   Facebook,
   Instagram,
   X,
-  Youtube
-} from "lucide-react"; // Added new icons
+  Youtube,
+} from "lucide-react";
+import ProductFeeds from "@/components/products/ProductFeeds";
 
 // Section wrapper for consistent vertical spacing
 const sectionClass = `
@@ -30,12 +31,12 @@ export const metadata: Metadata = {
   openGraph: {
     title: "JRADIANCE STORE",
     description: "Shop for organic body care and beauty products.",
-    url: "https://jradianceco.com",
+    url: `${process.env.NEXT_PUBLIC_SITE_URL}`,
     siteName: "JRADIANCE",
     images: [{ url: "/logo-removebg.png", width: 1200, height: 630 }],
     type: "website",
   },
-  alternates: { canonical: "https://jradianceco.com" },
+  alternates: { canonical: `${process.env.NEXT_PUBLIC_SITE_URL}` },
 };
 
 export default function LandingPage() {
@@ -140,27 +141,14 @@ export default function LandingPage() {
               View all trending
             </Link>
           </div>
-          {/* Placeholder for Trending Products - replace later with ProductList component */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-            {/* Example product card - repeat for each trending product */}
-            {[1, 2, 3, 4].map((item) => (
-              <div
-                key={item}
-                className="bg-white p-4 rounded-xl shadow-sm hover:shadow-md transition-shadow"
-              >
-                <div className="w-full h-40 bg-gray-200 rounded-lg mb-4"></div>{" "}
-                {/* Placeholder image */}
-                <h3 className="font-medium text-sm truncate">
-                  Trending Product {item}
-                </h3>
-                <p className="text-radiance-goldColor font-bold">₦29.99</p>
-                <div className="flex items-center mt-1">
-                  <Star className="h-4 w-4 text-yellow-400 fill-current" />
-                  <span className="text-xs text-gray-500 ml-1">(4.5)</span>
-                </div>
-              </div>
-            ))}
-          </div>
+          {/* ProductFeeds component for trending products */}
+          <ProductFeeds
+            initialFilters={{ limit: 4 }}
+            showSearch={false}
+            showFilters={false}
+            title=""
+            subtitle=""
+          />
         </section>
 
         {/* Best Seller section */}
@@ -181,27 +169,14 @@ export default function LandingPage() {
               View all best sellers
             </Link>
           </div>
-          {/* Placeholder for Best Seller Products - replace later with ProductList component */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-            {/* Example product card - repeat for each best seller */}
-            {[1, 2, 3, 4].map((item) => (
-              <div
-                key={item}
-                className="bg-white p-4 rounded-xl shadow-sm hover:shadow-md transition-shadow"
-              >
-                <div className="w-full h-40 bg-gray-200 rounded-lg mb-4"></div>{" "}
-                {/* Placeholder image */}
-                <h3 className="font-medium text-sm truncate">
-                  Best Seller {item}
-                </h3>
-                <p className="text-radiance-goldColor font-bold">₦34.99</p>
-                <div className="flex items-center mt-1">
-                  <Star className="h-4 w-4 text-yellow-400 fill-current" />
-                  <span className="text-xs text-gray-500 ml-1">(4.8)</span>
-                </div>
-              </div>
-            ))}
-          </div>
+          {/* ProductFeeds component for best seller products */}
+          <ProductFeeds
+            initialFilters={{ limit: 4 }}
+            showSearch={false}
+            showFilters={false}
+            title=""
+            subtitle=""
+          />
         </section>
 
         {/* Product Demonstration Videos Slides */}
@@ -253,7 +228,7 @@ export default function LandingPage() {
                   type="submit"
                   className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-radiance-goldColor"
                 >
-                  <SearchIcon size={14} className="text-radiance-goldColor"/>
+                  <SearchIcon size={14} className="text-radiance-goldColor" />
                 </button>
               </form>
             </div>

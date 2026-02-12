@@ -59,7 +59,7 @@ export default function BottomNavBar() {
     { href: "/", label: "Home", icon: Home, hideOnSpecial: true },
     { href: "/shop", label: "Shop", icon: ShoppingBag },
     { href: "/shop/history", label: "History", icon: GalleryVerticalEnd },
-    { href: "/shop/wish-list", label: "Wish", icon: Heart },
+    { href: "/shop/wishlist", label: "Wish", icon: Heart },
     {
       href: "/about-us",
       label: "AboutUs",

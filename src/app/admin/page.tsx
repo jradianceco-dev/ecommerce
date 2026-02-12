@@ -1,6 +1,6 @@
 "use client";
 
-import AdminSidePanel from "@/component/AdminSidePanel";
+import AdminSidePanel from "@/components/AdminSidePanel";
 import { useUser, useIsAdmin } from "@/context/UserContext";
 import { redirect } from "next/navigation";
 

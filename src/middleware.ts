@@ -72,9 +72,13 @@ export async function middleware(req: NextRequest) {
   }
 
   // Protect Customer Account Routes
-  const protectedCustomerRoutes = ["/shop/history", "/shop/wish-list"];
+  const protectedCustomerRoutes = ["/shop/history", "/shop/wishlist"];
   if (protectedCustomerRoutes.some((path) => url.pathname.startsWith(path))) {
-    if (!user) return NextResponse.redirect(new URL("/shop/auth", req.url));
+    if (!user) {
+      const redirectUrl = new URL("/shop/auth", req.url);
+      redirectUrl.searchParams.set("redirect", url.pathname);
+      return NextResponse.redirect(redirectUrl);
+    }
   }
 
   return res;
@@ -87,5 +91,5 @@ export async function middleware(req: NextRequest) {
 // };
 
 export const config = {
-  matcher: ["/admin/:path*", "/shop/history", "/shop/wish-list"],
+  matcher: ["/admin/:path*", "/shop/history", "/shop/wishlist"],
 };

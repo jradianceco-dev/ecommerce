@@ -39,7 +39,7 @@ export const metadata: Metadata = {
     images: [{ url: "/logo-removebg.png", width: 1200, height: 630 }],
     type: "website",
   },
-  alternates: { canonical: `${process.env.NEXT_PUBLIC_SITE_URL}` },
+  alternates: { canonical: `${process.env.NEXT_PUBLIC_SITE_URL}` || "http://jradianceco.com"},
 };
 
 export default function RootLayout({

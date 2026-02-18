@@ -14,6 +14,11 @@ import {
   Youtube,
 } from "lucide-react";
 import ProductFeeds from "@/components/products/ProductFeeds";
+import {
+  getTrendingProducts,
+  getBestSellerProducts,
+  getProducts,
+} from "@/utils/supabase/services-server";
 
 // Section wrapper for consistent vertical spacing
 const sectionClass = `
@@ -38,7 +43,14 @@ export const metadata: Metadata = {
   alternates: { canonical: `${process.env.NEXT_PUBLIC_SITE_URL}` },
 };
 
-export default function LandingPage() {
+export default async function LandingPage() {
+  const [trendingProducts, bestSellerProducts, initialMainProducts] =
+    await Promise.all([
+      getTrendingProducts(4),
+      getBestSellerProducts(4),
+      getProducts({ limit: 8 }),
+    ]);
+
   return (
     <div className="min-h-screen bg-radiance-creamBackgroundColor text-radiance-charcoalTextColor">
       <main className="mx-auto max-w-7xl px-4 md:px-8">
@@ -142,7 +154,9 @@ export default function LandingPage() {
           </div>
           {/* ProductFeeds component for trending products */}
           <ProductFeeds
+            initialProducts={trendingProducts}
             initialFilters={{ limit: 4 }}
+            feedType="trending"
             showSearch={false}
             showFilters={false}
             title=""
@@ -170,7 +184,9 @@ export default function LandingPage() {
           </div>
           {/* ProductFeeds component for best seller products */}
           <ProductFeeds
+            initialProducts={bestSellerProducts}
             initialFilters={{ limit: 4 }}
+            feedType="best-sellers"
             showSearch={false}
             showFilters={false}
             title=""
@@ -205,62 +221,15 @@ export default function LandingPage() {
 
         {/* Product Feeds section - Updated to include search functionality*/}
         <section className={`product-list-section ${sectionClass}`}>
-          <div className="mb-10">
-            <div className="space-y-1 mb-6">
-              <h2 className="text-3xl font-black tracking-tight">
-                JRADIANCE Product Feeds
-              </h2>
-              <p className="text-gray-500 text-sm">
-                Hand-picked organic solutions for your skin.
-              </p>
-            </div>
-
-            {/* Search Box for Product Feeds */}
-            <div className="max-w-md mx-auto mb-8">
-              <form className="relative">
-                <input
-                  type="text"
-                  placeholder="Search products..."
-                  className="w-full px-4 py-3 pr-12 rounded-full border border-gray-300 focus:outline-none focus:ring-2 focus:ring-radiance-goldColor focus:border-transparent"
-                />
-                <button
-                  type="submit"
-                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-radiance-goldColor"
-                >
-                  <SearchIcon size={14} className="text-radiance-goldColor" />
-                </button>
-              </form>
-            </div>
-
-            <div className="flex justify-between items-end">
-              <Link
-                href="/shop"
-                className="text-radiance-goldColor font-bold text-sm underline underline-offset-4"
-              >
-                View all products
-              </Link>
-            </div>
-          </div>
-
-          {/* Grid placeholder for Product list components - this is the main feed */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-            {/* Example product card - repeat for each product in feed */}
-            {[1, 2, 3, 4, 5, 6, 7, 8].map((item) => (
-              <div
-                key={item}
-                className="bg-white p-4 rounded-xl shadow-sm hover:shadow-md transition-shadow"
-              >
-                <div className="w-full h-40 bg-gray-200 rounded-lg mb-4"></div>{" "}
-                {/* Placeholder image */}
-                <h3 className="font-medium text-sm truncate">Product {item}</h3>
-                <p className="text-radiance-goldColor font-bold">₦24.99</p>
-                <div className="flex items-center mt-1">
-                  <Star className="h-4 w-4 text-yellow-400 fill-current" />
-                  <span className="text-xs text-gray-500 ml-1">(4.3)</span>
-                </div>
-              </div>
-            ))}
-          </div>
+          <ProductFeeds
+            initialProducts={initialMainProducts}
+            initialFilters={{ limit: 8 }}
+            feedType="all"
+            showSearch={true}
+            showFilters={true}
+            title="JRADIANCE Product Feeds"
+            subtitle="Hand-picked organic solutions for your skin."
+          />
         </section>
 
         {/* Partner Brands section */}

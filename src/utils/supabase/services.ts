@@ -1,6 +1,6 @@
 /**
- * Database Services Layer
- * Centralized database operations following DRY principle
+ * Client-Side Database Services Layer
+ * Used in client components and browser context
  * All queries go through these functions
  */
 
@@ -22,7 +22,7 @@ export async function getUserProfile(
   userId: string,
 ): Promise<UserProfile | null> {
   try {
-    const supabase = await createClient();
+    const supabase = createClient();
     const { data, error } = await supabase
       .from("profiles")
       .select("*")
@@ -42,7 +42,7 @@ export async function updateUserProfile(
   updates: Partial<UserProfile>,
 ): Promise<UserProfile | null> {
   try {
-    const supabase = await createClient();
+    const supabase = createClient();
     const { data, error } = await supabase
       .from("profiles")
       .update(updates)
@@ -63,7 +63,7 @@ export async function getProducts(
   filters?: ProductFilters,
 ): Promise<Product[]> {
   try {
-    const supabase = await createClient();
+    const supabase = createClient();
     let query = supabase
       .from("products")
       .select("*")
@@ -102,7 +102,7 @@ export async function getProductById(
   productId: string,
 ): Promise<Product | null> {
   try {
-    const supabase = await createClient();
+    const supabase = createClient();
     const { data, error } = await supabase
       .from("products")
       .select("*")
@@ -121,7 +121,7 @@ export async function getProductsByIds(
   productIds: string[],
 ): Promise<Product[]> {
   try {
-    const supabase = await createClient();
+    const supabase = createClient();
     const { data, error } = await supabase
       .from("products")
       .select("*")
@@ -130,15 +130,125 @@ export async function getProductsByIds(
     if (error) throw error;
     return data || [];
   } catch (error) {
-    console.error("Error fetching products by IDs:", error);
+    console.error("Error fetching products by ids:", error);
     return [];
+  }
+}
+
+// Get trending products (based on recent orders)
+export async function getTrendingProducts(
+  limit: number = 8,
+): Promise<Product[]> {
+  try {
+    const supabase = createClient();
+
+    // Get recent order items (last 30 days)
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+    const { data: orderItems, error } = await supabase
+      .from("order_items")
+      .select("product_id, quantity")
+      .gte("created_at", thirtyDaysAgo.toISOString());
+
+    if (error) throw error;
+
+    // Count total quantity sold per product
+    const productCounts: { [key: string]: number } = {};
+    orderItems?.forEach((item) => {
+      productCounts[item.product_id] =
+        (productCounts[item.product_id] || 0) + item.quantity;
+    });
+
+    // Get top products by order count
+    const topProductIds = Object.entries(productCounts)
+      .sort(([, a], [, b]) => b - a)
+      .slice(0, limit)
+      .map(([productId]) => productId);
+
+    if (topProductIds.length === 0) {
+      // Fallback to recent products if no orders
+      return getProducts({ limit });
+    }
+
+    return getProductsByIds(topProductIds);
+  } catch (error) {
+    console.error("Error fetching trending products:", error);
+    // Fallback to regular products
+    return getProducts({ limit });
+  }
+}
+
+// Get best seller products (based on total quantity sold)
+export async function getBestSellerProducts(
+  limit: number = 8,
+): Promise<Product[]> {
+  try {
+    const supabase = createClient();
+
+    // Get all order items grouped by product_id with total quantity
+    const { data: orderItems, error } = await supabase
+      .from("order_items")
+      .select("product_id, quantity");
+
+    if (error) throw error;
+
+    // Count total quantity sold per product
+    const productCounts: { [key: string]: number } = {};
+    orderItems?.forEach((item) => {
+      productCounts[item.product_id] =
+        (productCounts[item.product_id] || 0) + item.quantity;
+    });
+
+    // Get top products by total sales
+    const topProductIds = Object.entries(productCounts)
+      .sort(([, a], [, b]) => b - a)
+      .slice(0, limit)
+      .map(([productId]) => productId);
+
+    if (topProductIds.length === 0) {
+      // Fallback to regular products if no orders
+      return getProducts({ limit });
+    }
+
+    return getProductsByIds(topProductIds);
+  } catch (error) {
+    console.error("Error fetching best seller products:", error);
+    // Fallback to regular products
+    return getProducts({ limit });
+  }
+}
+
+export async function addProductReview(
+  productId: string,
+  userId: string,
+  rating: number,
+  title: string | null,
+  review_text: string | null,
+): Promise<boolean> {
+  try {
+    const supabase = createClient();
+    const { error } = await supabase.from("product_reviews").insert({
+      product_id: productId,
+      user_id: userId,
+      rating,
+      title,
+      review_text,
+      is_verified_purchase: false,
+    });
+
+    if (error) throw error;
+    return true;
+  } catch (error) {
+    console.error("Error adding review:", error);
+    return false;
   }
 }
 
 /* Cart Services */
 export async function getCartItems(userId: string): Promise<CartItem[]> {
   try {
-    const supabase = await createClient();
+    const supabase = createClient();
     const { data, error } = await supabase
       .from("cart_items")
       .select("*, products(*)")
@@ -159,7 +269,7 @@ export async function addToCart(
   quantity: number,
 ): Promise<CartItem | null> {
   try {
-    const supabase = await createClient();
+    const supabase = createClient();
 
     // Check if item already in cart
     const { data: existingItem } = await supabase
@@ -206,7 +316,7 @@ export async function updateCartItemQuantity(
   quantity: number,
 ): Promise<boolean> {
   try {
-    const supabase = await createClient();
+    const supabase = createClient();
     const { error } = await supabase
       .from("cart_items")
       .update({ quantity })
@@ -222,7 +332,7 @@ export async function updateCartItemQuantity(
 
 export async function removeFromCart(cartItemId: string): Promise<boolean> {
   try {
-    const supabase = await createClient();
+    const supabase = createClient();
     const { error } = await supabase
       .from("cart_items")
       .delete()
@@ -238,7 +348,7 @@ export async function removeFromCart(cartItemId: string): Promise<boolean> {
 
 export async function clearCart(userId: string): Promise<boolean> {
   try {
-    const supabase = await createClient();
+    const supabase = createClient();
     const { error } = await supabase
       .from("cart_items")
       .delete()
@@ -256,7 +366,7 @@ export async function clearCart(userId: string): Promise<boolean> {
 
 export async function getWishlist(userId: string): Promise<WishlistItem[]> {
   try {
-    const supabase = await createClient();
+    const supabase = createClient();
     const { data, error } = await supabase
       .from("wishlist")
       .select("*, products(*)")
@@ -276,7 +386,7 @@ export async function addToWishlist(
   productId: string,
 ): Promise<boolean> {
   try {
-    const supabase = await createClient();
+    const supabase = createClient();
     const { error } = await supabase.from("wishlist").insert({
       user_id: userId,
       product_id: productId,
@@ -295,7 +405,7 @@ export async function removeFromWishlist(
   productId: string,
 ): Promise<boolean> {
   try {
-    const supabase = await createClient();
+    const supabase = createClient();
     const { error } = await supabase
       .from("wishlist")
       .delete()
@@ -315,7 +425,7 @@ export async function isInWishlist(
   productId: string,
 ): Promise<boolean> {
   try {
-    const supabase = await createClient();
+    const supabase = createClient();
     const { data, error } = await supabase
       .from("wishlist")
       .select("id")
@@ -335,7 +445,7 @@ export async function isInWishlist(
 
 export async function getUserOrders(userId: string): Promise<Order[]> {
   try {
-    const supabase = await createClient();
+    const supabase = createClient();
     const { data, error } = await supabase
       .from("orders")
       .select("*")
@@ -352,7 +462,7 @@ export async function getUserOrders(userId: string): Promise<Order[]> {
 
 export async function getOrderById(orderId: string): Promise<Order | null> {
   try {
-    const supabase = await createClient();
+    const supabase = createClient();
     const { data, error } = await supabase
       .from("orders")
       .select("*")
@@ -369,7 +479,7 @@ export async function getOrderById(orderId: string): Promise<Order | null> {
 
 export async function getOrderItems(orderId: string): Promise<OrderItem[]> {
   try {
-    const supabase = await createClient();
+    const supabase = createClient();
     const { data, error } = await supabase
       .from("order_items")
       .select("*")
@@ -389,7 +499,7 @@ export async function createOrder(
   orderData: CreateOrderInput,
 ): Promise<Order | null> {
   try {
-    const supabase = await createClient();
+    const supabase = createClient();
 
     // Create order
     const { data: order, error: orderError } = await supabase
@@ -448,7 +558,7 @@ export async function updateOrderStatus(
   status: string,
 ): Promise<boolean> {
   try {
-    const supabase = await createClient();
+    const supabase = createClient();
     const { error } = await supabase
       .from("orders")
       .update({ status })
@@ -468,7 +578,7 @@ export async function getProductReviews(
   productId: string,
 ): Promise<ProductReview[]> {
   try {
-    const supabase = await createClient();
+    const supabase = createClient();
     const { data, error } = await supabase
       .from("product_reviews")
       .select("*")
@@ -480,122 +590,5 @@ export async function getProductReviews(
   } catch (error) {
     console.error("Error fetching reviews:", error);
     return [];
-  }
-}
-
-// Get trending products (based on recent orders in last 7 days)
-export async function getTrendingProducts(
-  limit: number = 8,
-): Promise<Product[]> {
-  try {
-    const supabase = await createClient();
-
-    // Get products ordered in the last 7 days, grouped by product_id with count
-    const sevenDaysAgo = new Date();
-    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-
-    const { data: orderItems, error } = await supabase
-      .from("order_items")
-      .select(
-        `
-        product_id,
-        quantity,
-        orders!inner(created_at)
-      `,
-      )
-      .gte("orders.created_at", sevenDaysAgo.toISOString())
-      .order("orders.created_at", { ascending: false });
-
-    if (error) throw error;
-
-    // Count orders per product
-    const productCounts: { [key: string]: number } = {};
-    orderItems?.forEach((item) => {
-      productCounts[item.product_id] =
-        (productCounts[item.product_id] || 0) + item.quantity;
-    });
-
-    // Get top products by order count
-    const topProductIds = Object.entries(productCounts)
-      .sort(([, a], [, b]) => b - a)
-      .slice(0, limit)
-      .map(([productId]) => productId);
-
-    if (topProductIds.length === 0) {
-      // Fallback to recent products if no orders
-      return getProducts({ limit });
-    }
-
-    return getProductsByIds(topProductIds);
-  } catch (error) {
-    console.error("Error fetching trending products:", error);
-    // Fallback to regular products
-    return getProducts({ limit });
-  }
-}
-
-// Get best seller products (based on total quantity sold)
-export async function getBestSellerProducts(
-  limit: number = 8,
-): Promise<Product[]> {
-  try {
-    const supabase = await createClient();
-
-    // Get all order items grouped by product_id with total quantity
-    const { data: orderItems, error } = await supabase
-      .from("order_items")
-      .select("product_id, quantity");
-
-    if (error) throw error;
-
-    // Count total quantity sold per product
-    const productCounts: { [key: string]: number } = {};
-    orderItems?.forEach((item) => {
-      productCounts[item.product_id] =
-        (productCounts[item.product_id] || 0) + item.quantity;
-    });
-
-    // Get top products by total sales
-    const topProductIds = Object.entries(productCounts)
-      .sort(([, a], [, b]) => b - a)
-      .slice(0, limit)
-      .map(([productId]) => productId);
-
-    if (topProductIds.length === 0) {
-      // Fallback to regular products if no orders
-      return getProducts({ limit });
-    }
-
-    return getProductsByIds(topProductIds);
-  } catch (error) {
-    console.error("Error fetching best seller products:", error);
-    // Fallback to regular products
-    return getProducts({ limit });
-  }
-}
-
-export async function addProductReview(
-  productId: string,
-  userId: string,
-  rating: number,
-  title: string | null,
-  review_text: string | null,
-): Promise<boolean> {
-  try {
-    const supabase = await createClient();
-    const { error } = await supabase.from("product_reviews").insert({
-      product_id: productId,
-      user_id: userId,
-      rating,
-      title,
-      review_text,
-      is_verified_purchase: false,
-    });
-
-    if (error) throw error;
-    return true;
-  } catch (error) {
-    console.error("Error adding review:", error);
-    return false;
   }
 }

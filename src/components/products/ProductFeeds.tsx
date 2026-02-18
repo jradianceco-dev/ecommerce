@@ -1,31 +1,40 @@
 "use client";
 
 import { useState, useEffect, useMemo, useCallback } from "react";
-import { Search, Filter, Grid, List } from "lucide-react";
+import { SearchIcon, Filter, Grid, List } from "lucide-react";
 import { Product, ProductFilters } from "@/types";
-import { getProducts } from "@/utils/supabase/services-client";
+import {
+  getProducts,
+  getTrendingProducts,
+  getBestSellerProducts,
+} from "@/utils/supabase/services";
 import ProductCard from "./ProductCard";
 import ProductDetail from "./ProductDetail";
 
 interface ProductFeedsProps {
+  initialProducts?: Product[];
   initialFilters?: ProductFilters;
   showSearch?: boolean;
   showFilters?: boolean;
   title?: string;
   subtitle?: string;
   className?: string;
+  feedType?: "trending" | "best-sellers" | "all";
 }
 
 export default function ProductFeeds({
+  initialProducts,
   initialFilters = {},
   showSearch = true,
   showFilters = true,
   title = "Products",
   subtitle,
   className = "",
+  feedType = "all",
 }: ProductFeedsProps) {
-  const [products, setProducts] = useState<Product[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [products, setProducts] = useState<Product[]>(initialProducts || []);
+  const [loading, setLoading] = useState(!initialProducts);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [searchQuery, setSearchQuery] = useState(initialFilters.search || "");
@@ -34,110 +43,109 @@ export default function ProductFeeds({
   );
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [sortBy, setSortBy] = useState<
-    | "newest"
-    | "price-low"
-    | "price-high"
-    | "rating"
-    | "trending"
-    | "best-sellers"
+    "newest" | "price-low" | "price-high" | "rating"
   >("newest");
 
-  // Fetch products
-  const fetchProducts = useCallback(async (filters: ProductFilters = {}) => {
-    setLoading(true);
-    setError(null);
-    try {
-      const data = await getProducts(filters);
-      setProducts(data);
-    } catch (err) {
-      setError("Failed to load products");
-      console.error("Error fetching products:", err);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
+  const BATCH_SIZE = initialFilters.limit || 8;
+
+  // Generic product fetcher
+  const fetchProductsCallback = useCallback(
+    async (filters: ProductFilters, nextPage = 1) => {
+      if (nextPage > 1) {
+        setLoadingMore(true);
+      } else {
+        setLoading(true);
+      }
+      setError(null);
+
+      const offset = (nextPage - 1) * BATCH_SIZE;
+
+      try {
+        let newProducts: Product[] = [];
+        if (feedType === "trending") {
+          newProducts = await getTrendingProducts(BATCH_SIZE);
+        } else if (feedType === "best-sellers") {
+          newProducts = await getBestSellerProducts(BATCH_SIZE);
+        } else {
+          newProducts = await getProducts({
+            ...filters,
+            limit: BATCH_SIZE,
+            offset,
+          });
+        }
+
+        if (nextPage > 1) {
+          setProducts((prev) => [...prev, ...newProducts]);
+        } else {
+          setProducts(newProducts);
+        }
+
+        setHasMore(newProducts.length === BATCH_SIZE);
+        setPage(nextPage);
+      } catch (err) {
+        setError("Failed to load products");
+        console.error("Error fetching products:", err);
+      } finally {
+        setLoading(false);
+        setLoadingMore(false);
+      }
+    },
+    [BATCH_SIZE, feedType],
+  );
 
   // Initial load
   useEffect(() => {
-    fetchProducts(initialFilters);
-  }, [initialFilters, fetchProducts]);
-
-  // Filtered and sorted products
-  const filteredProducts = useMemo(() => {
-    let filtered = products;
-
-    // Apply search
-    if (searchQuery.trim()) {
-      const query = searchQuery.toLowerCase();
-      filtered = filtered.filter(
-        (product) =>
-          product.name.toLowerCase().includes(query) ||
-          product.description?.toLowerCase().includes(query) ||
-          product.category.toLowerCase().includes(query),
-      );
+    if (!initialProducts) {
+      fetchProductsCallback(initialFilters, 1);
+    } else {
+      setHasMore(products.length >= BATCH_SIZE);
     }
+  }, [
+    initialFilters,
+    fetchProductsCallback,
+    initialProducts,
+    products.length,
+    BATCH_SIZE,
+  ]);
 
-    // Apply category filter
-    if (selectedCategory) {
-      filtered = filtered.filter(
-        (product) => product.category === selectedCategory,
-      );
-    }
-
-    // Apply sorting
-    filtered.sort((a, b) => {
-      switch (sortBy) {
-        case "price-low":
-          return (a.discount_price || a.price) - (b.discount_price || b.price);
-        case "price-high":
-          return (b.discount_price || b.price) - (a.discount_price || a.price);
-        case "rating":
-          // For now, sort by creation date as rating sort placeholder
-          return (
-            new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-          );
-        case "trending":
-          // For trending, prioritize recently created products (placeholder)
-          return (
-            new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-          );
-        case "best-sellers":
-          // For best sellers, sort by stock quantity (higher = more popular)
-          return b.stock_quantity - a.stock_quantity;
-        case "newest":
-        default:
-          return (
-            new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-          );
-      }
-    });
-
-    return filtered;
-  }, [products, searchQuery, selectedCategory, sortBy]);
-
-  // Get unique categories
+  // Get unique categories from the initial set of products
   const categories = useMemo(() => {
-    const cats = new Set(products.map((p) => p.category));
+    const allProducts = initialProducts ? initialProducts : products;
+    const cats = new Set(allProducts.map((p) => p.category));
     return Array.from(cats).sort();
-  }, [products]);
+  }, [products, initialProducts]);
 
-  // Handle search
+  // Handle search submission
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    // Search is applied in real-time via filteredProducts
+    fetchProductsCallback(
+      { search: searchQuery, category: selectedCategory },
+      1,
+    );
   };
 
   // Handle category change
   const handleCategoryChange = (category: string) => {
     setSelectedCategory(category);
+    fetchProductsCallback({ search: searchQuery, category: category }, 1);
   };
 
-  // Handle product click
+  // Load more products
+  const handleLoadMore = () => {
+    if (!loadingMore && hasMore) {
+      fetchProductsCallback(
+        { search: searchQuery, category: selectedCategory },
+        page + 1,
+      );
+    }
+  };
+
   const handleProductClick = (product: Product) => {
     setSelectedProduct(product);
   };
 
-  // Handle close product detail
   const handleCloseProductDetail = () => {
     setSelectedProduct(null);
   };
@@ -159,7 +167,7 @@ export default function ProductFeeds({
         <div className="text-center py-12">
           <p className="text-red-600">{error}</p>
           <button
-            onClick={() => fetchProducts(initialFilters)}
+            onClick={() => fetchProductsCallback(initialFilters, 1)}
             className="mt-4 px-4 py-2 bg-radiance-goldColor text-white rounded-lg hover:bg-radiance-charcoalTextColor transition-colors"
           >
             Try Again
@@ -199,7 +207,7 @@ export default function ProductFeeds({
                   type="submit"
                   className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-radiance-goldColor"
                 >
-                  <Search size={16} />
+                  <SearchIcon size={16} />
                 </button>
               </div>
             </form>
@@ -225,7 +233,7 @@ export default function ProductFeeds({
                 </select>
               </div>
 
-              {/* Sort */}
+              {/* Sort - Note: Sorting is now handled by the backend for 'getProducts'. UI for sorting might need to pass params to fetch. */}
               <div className="flex items-center gap-2">
                 <span className="text-sm text-gray-600">Sort by:</span>
                 <select
@@ -237,8 +245,6 @@ export default function ProductFeeds({
                   <option value="price-low">Price: Low to High</option>
                   <option value="price-high">Price: High to Low</option>
                   <option value="rating">Rating</option>
-                  <option value="trending">Trending</option>
-                  <option value="best-sellers">Best Sellers</option>
                 </select>
               </div>
 
@@ -264,12 +270,12 @@ export default function ProductFeeds({
 
       {/* Results Count */}
       <div className="text-center text-sm text-gray-600">
-        {filteredProducts.length} product
-        {filteredProducts.length !== 1 ? "s" : ""} found
+        {products.length} product
+        {products.length !== 1 ? "s" : ""} found
       </div>
 
       {/* Products Grid */}
-      {filteredProducts.length > 0 ? (
+      {products.length > 0 ? (
         <div
           className={`grid gap-6 ${
             viewMode === "grid"
@@ -277,7 +283,7 @@ export default function ProductFeeds({
               : "grid-cols-1 md:grid-cols-2"
           }`}
         >
-          {filteredProducts.map((product) => (
+          {products.map((product) => (
             <ProductCard
               key={product.id}
               product={product}
@@ -290,6 +296,19 @@ export default function ProductFeeds({
           <p className="text-gray-600">
             No products found matching your criteria.
           </p>
+        </div>
+      )}
+
+      {/* "See More" Button */}
+      {hasMore && (
+        <div className="text-center mt-8">
+          <button
+            onClick={handleLoadMore}
+            disabled={loadingMore}
+            className="bg-radiance-charcoalTextColor text-white px-8 py-3 rounded-full font-bold text-sm hover:bg-radiance-goldColor transition-all shadow-lg disabled:bg-gray-400"
+          >
+            {loadingMore ? "Loading..." : "See More"}
+          </button>
         </div>
       )}
 

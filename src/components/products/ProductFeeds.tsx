@@ -206,7 +206,7 @@ export default function ProductFeeds({
                   placeholder="Search products..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full px-4 py-1.5 pr-12 rounded-full border border-gray-300 focus:outline-none focus:ring-2 focus:ring-radiance-goldColor focus:border-transparent text-sm md:text-base"
+                  className="w-full bg-gray-30 px-4 py-1.5 pr-12 rounded-full border border-gray-300 focus:outline-none focus:ring-2 focus:ring-radiance-goldColor focus:border-transparent text-sm md:text-base"
                 />
                 <button
                   type="submit"
@@ -229,9 +229,18 @@ export default function ProductFeeds({
                   onChange={(e) => handleCategoryChange(e.target.value)}
                   className=" bg-transparent border-none outline-none text-sm text-gray-700 w-full  "
                 >
-                  <option value="">All Categories</option>
+                  <option
+                    className="bg-transparent border-none text-sm text-gray-500 w-full"
+                    value=""
+                  >
+                    All Categories
+                  </option>
                   {categories.map((category) => (
-                    <option key={category} value={category}>
+                    <option
+                      className="bg-transparent border-none text-sm text-gray-500 w-full"
+                      key={category}
+                      value={category}
+                    >
                       {category}
                     </option>
                   ))}
@@ -248,10 +257,30 @@ export default function ProductFeeds({
                   onChange={(e) => setSortBy(e.target.value as typeof sortBy)}
                   className="bg-transparent border-none outline-none text-sm text-gray-700 w-full"
                 >
-                  <option value="newest">Newest</option>
-                  <option value="price-low">Price: Low to High</option>
-                  <option value="price-high">Price: High to Low</option>
-                  <option value="rating">Rating</option>
+                  <option
+                    className="bg-radiance-creamBackgroundColor border-none text-sm text-gray-500 w-full"
+                    value="newest"
+                  >
+                    Newest
+                  </option>
+                  <option
+                    className="bg-radiance-creamBackgroundColor border-none text-sm text-gray-500 w-full"
+                    value="price-low"
+                  >
+                    Price: Low to High
+                  </option>
+                  <option
+                    className="bg-radiance-creamBackgroundColor border-none text-sm text-gray-500 w-full"
+                    value="price-high"
+                  >
+                    Price: High to Low
+                  </option>
+                  <option
+                    className="bg-radiance-creamBackgroundColor border-none text-sm text-gray-500 w-full"
+                    value="rating"
+                  >
+                    Rating
+                  </option>
                 </select>
               </div>
 
@@ -321,13 +350,13 @@ export default function ProductFeeds({
             >
               {/* {loadingMore ? "Loading..." : "See More"} */}
               {loadingMore ? (
-              <span className="flex items-center justify-center gap-2">
-                <span className="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin"></span>
-                Loading...
-              </span>
-            ) : (
-              "See More"
-            )}
+                <span className="flex items-center justify-center gap-2">
+                  <span className="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin"></span>
+                  Loading...
+                </span>
+              ) : (
+                "See More"
+              )}
             </button>
           </div>
         )}

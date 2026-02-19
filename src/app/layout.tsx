@@ -16,11 +16,40 @@ const bodyClasses = `
 
 export const metadata: Metadata = {
   title: {
-    default: "JRADIANCE STORE | Organic body care and beauty products ",
-    template: "%s | JRADIANCE STORE",
+    default: "JRADIANCE | Premium Cosmetics & Skincare",
+    template: "%s | JRADIANCE",
   },
   description:
-    "JRADIANCE is a digital market place to shop for organic body care and beauty products",
+    "Authentic skincare and cosmetics for the radiant Nigerian soul.",
+  keywords: [
+    "skincare",
+    "cosmetics",
+    "Nigeria",
+    "beauty products",
+    "Jradiance",
+    "organic",
+    "Jradianceco",
+    "America",
+    "UK",
+    "Africa",
+  ],
+  authors: [{ name: "Philip Depaytez" }],
+  openGraph: {
+    type: "website",
+    locale: "en_NG",
+    url: "https://jradianceco.com",
+    siteName: "JRADIANCE",
+    title: "JRADIANCE | Premium Cosmetics & Skincare",
+    description:
+      "Authentic skincare and cosmetics for the radiant Nigerian soul.",
+    images: [{ url: "/logo-removebg.png", width: 1200, height: 630 }],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "JRADIANCE",
+    description:
+      "Premium Skincare and cosmetics for the radiant Nigerian soul.",
+  },
   icons: {
     icon: [
       { url: "/favicon.ico" },
@@ -31,15 +60,7 @@ export const metadata: Metadata = {
     shortcut: "/favicon.ico",
   },
   manifest: "/favicon.ico",
-  openGraph: {
-    title: "JRADIANCE STORE",
-    description: "Shop for organic body care and beauty products.",
-    url: `${process.env.NEXT_PUBLIC_SITE_URL}`,
-    siteName: "JRADIANCE",
-    images: [{ url: "/logo-removebg.png", width: 1200, height: 630 }],
-    type: "website",
-  },
-  alternates: { canonical: `${process.env.NEXT_PUBLIC_SITE_URL}` || "http://jradianceco.com"},
+  alternates: { canonical: "https://jradianceco.com" },
 };
 
 export default function RootLayout({

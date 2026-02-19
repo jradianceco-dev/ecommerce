@@ -8,7 +8,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { getAllOrders, updateOrderStatus, checkPermission } from "../actions";
+import { getAllOrders, updateOrderStatus, checkPermission } from "../action";
 import { ShoppingBag, Package, CheckCircle, Clock, Truck, XCircle } from "lucide-react";
 
 type OrderStatus = "pending" | "confirmed" | "shipped" | "delivered" | "cancelled" | "returned";

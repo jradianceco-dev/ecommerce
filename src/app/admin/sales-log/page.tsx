@@ -8,7 +8,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { getSalesStats, checkPermission } from "../actions";
+import { getSalesStats, checkPermission } from "../action";
 import { DollarSign, ShoppingCart, CheckCircle, TrendingUp } from "lucide-react";
 
 export default function SalesLogPage() {

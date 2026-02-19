@@ -9,7 +9,7 @@
 
 import { useState, useEffect, useActionState } from "react";
 import { getProducts } from "@/utils/supabase/services";
-import { createProduct, updateProduct, deleteProduct, toggleProductStatus, checkPermission } from "../actions";
+import { createProduct, updateProduct, deleteProduct, toggleProductStatus, checkPermission } from "../action";
 import { Package, Plus, Edit, Trash2, ToggleLeft, Image as ImageIcon } from "lucide-react";
 import type { Product } from "@/types";
 

@@ -9,7 +9,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import AdminSidePanel from "@/components/AdminSidePanel";
-import { getSalesStats, getActivityLogs, checkPermission } from "../actions";
+import { getSalesStats, getActivityLogs, checkPermission } from "../action";
 import { ShoppingBag, DollarSign, TrendingUp, Users, Package, Clock } from "lucide-react";
 
 export default function AdminDashboard() {

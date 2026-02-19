@@ -8,7 +8,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { checkPermission } from "../actions";
+import { checkPermission } from "../action";
 import { AlertTriangle, Bug, MessageSquare, CheckCircle, Clock, AlertCircle } from "lucide-react";
 
 interface Issue {

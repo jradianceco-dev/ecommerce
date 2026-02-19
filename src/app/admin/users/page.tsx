@@ -20,7 +20,7 @@ import {
   deleteUser,
   toggleUserStatus,
   checkPermission,
-} from "../actions";
+} from "../action";
 import { User, Shield, Trash2, ToggleLeft, ArrowUpCircle, ArrowDownCircle } from "lucide-react";
 
 type UserRole = "customer" | "admin" | "agent" | "chief_admin";

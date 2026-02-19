@@ -1,17 +1,25 @@
 "use client";
-import React, { useActionState } from "react";
+import React, { useActionState, useEffect } from "react";
 import Link from "next/link";
 import { Lock, ShieldCheck, Mail, Loader2, UserPlus } from "lucide-react";
-import { login } from "@/app/(users)/shop/auth/action";
-import {AuthState} from "@/types"
+import { login } from "../action";
+import { AuthState } from "@/types";
+import { useRouter } from "next/navigation";
 
 export default function AdminLogInPage() {
   const [state, formAction, isPending] = useActionState<
     AuthState | null,
     FormData
   >(login, null);
+  const router = useRouter();
   const inputClass =
     "w-full pl-10 pr-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white text-sm outline-none focus:border-radiance-goldColor transition-colors";
+
+  useEffect(() => {
+    if (state?.message === "Login successful") {
+      router.push("/admin/dashboard");
+    }
+  }, [state, router]);
 
   return (
     <div className="min-h-screen bg-radiance-charcoalTextColor flex items-center justify-center px-6">

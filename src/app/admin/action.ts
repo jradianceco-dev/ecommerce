@@ -8,6 +8,60 @@
 
 import { createClient } from "@/utils/supabase/server";
 import type { UserRole } from "@/types";
+import { AuthState } from "@/types/index";
+
+export async function login(
+  prevState: AuthState | null,
+  formData: FormData,
+): Promise<AuthState | null> {
+  try {
+    const supabase = await createClient();
+
+    const email = formData.get("email") as string;
+    const password = formData.get("password") as string;
+
+    // Validation
+    if (!email || !password) {
+      return { error: "Email and password are required" };
+    }
+
+    const data = {
+      email,
+      password,
+    };
+
+    const { error } = await supabase.auth.signInWithPassword(data);
+
+    if (error) {
+      return { error: error.message };
+    }
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) {
+      return { error: "Not authenticated" };
+    }
+
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("role")
+      .eq("id", user.id)
+      .single();
+
+    if (!["admin", "agent", "chief_admin"].includes(profile?.role || "")) {
+      return { error: "Unauthorized" };
+    }
+    return { error: null, message: "Login successful" };
+  } catch (error) {
+    console.error("Login error:", error);
+    return {
+      error:
+        error instanceof Error
+          ? error.message
+          : "An error occurred during login",
+    };
+  }
+}
 
 export interface AdminActionResult {
   success: boolean;

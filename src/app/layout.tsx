@@ -4,72 +4,67 @@ import Script from "next/script";
 import BottomNavBar from "@/components/BottomNavBar";
 import TopBar from "@/components/TopBar";
 import { UserProvider } from "@/context/UserContext";
+import { createBaseMetadata } from "@/utils/seo/metadata-factory";
 
 const bodyClasses = `
-  min-h-screen 
-  bg-radiance-creamBackgroundColor 
-  text-radiance-charcoalTextColor 
+  min-h-screen
+  bg-radiance-creamBackgroundColor
+  text-radiance-charcoalTextColor
   font-sans
   antialiased
-  pt-20 
+  pt-20
 `;
 
-export const metadata: Metadata = {
-  title: {
-    default: "JRADIANCE | Premium Cosmetics & Skincare",
-    template: "%s | JRADIANCE",
-  },
-  description:
-    "Authentic skincare and cosmetics for the radiant Nigerian soul.",
-  keywords: [
-    "skincare",
-    "cosmetics",
-    "Nigeria",
-    "beauty products",
-    "Jradiance",
-    "organic",
-    "Jradianceco",
-    "America",
-    "UK",
-    "Africa",
-  ],
-  authors: [{ name: "Philip Depaytez" }],
-  openGraph: {
-    type: "website",
-    locale: "en_NG",
-    url: "https://jradianceco.com",
-    siteName: "JRADIANCE",
-    title: "JRADIANCE | Premium Cosmetics & Skincare",
-    description:
-      "Authentic skincare and cosmetics for the radiant Nigerian soul.",
-    images: [{ url: "/logo-removebg.png", width: 1200, height: 630 }],
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: "JRADIANCE",
-    description:
-      "Premium Skincare and cosmetics for the radiant Nigerian soul.",
-  },
-  icons: {
-    icon: [
-      { url: "/favicon.ico" },
-      { url: "/icon.png", sizes: "192x192", type: "image/png" },
-      { url: "/icon.png", sizes: "512x512", type: "image/png" },
-    ],
-    apple: "/icon.png",
-    shortcut: "/favicon.ico",
-  },
-  manifest: "/favicon.ico",
-  alternates: { canonical: "https://jradianceco.com" },
-};
+// Use the metadata factory for consistent SEO configuration
+export const metadata: Metadata = createBaseMetadata({
+  baseUrl: process.env.NEXT_PUBLIC_BASE_URL || "https://jradianceco.com",
+  siteName: "JRADIANCE",
+  defaultTitle: "JRADIANCE | Premium Cosmetics & Skincare",
+  defaultDescription: "Authentic skincare and cosmetics for the radiant Nigerian soul.",
+  locale: "en_NG",
+});
 
 export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  // Organization structured data for SEO
+  const organizationJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    name: "JRADIANCE",
+    url: process.env.NEXT_PUBLIC_BASE_URL || "https://jradianceco.com",
+    logo: `${process.env.NEXT_PUBLIC_BASE_URL || "https://jradianceco.com"}/logo-removebg.png`,
+    description: "Authentic skincare and cosmetics for the radiant Nigerian soul.",
+    founder: "Philip Depaytez",
+    foundingDate: "2024",
+    areaServed: ["NG", "US", "GB", "ZA"],
+    brand: {
+      "@type": "Brand",
+      name: "JRADIANCE",
+    },
+    contactPoint: {
+      "@type": "ContactPoint",
+      contactType: "customer service",
+      availableLanguage: ["English"],
+    },
+    sameAs: [
+      "https://www.facebook.com/jradianceco",
+      "https://www.instagram.com/jradianceco",
+      "https://twitter.com/jradianceco",
+    ],
+  };
+
   return (
     <html lang="en">
+      <head>
+        {/* Organization Structured Data */}
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationJsonLd) }}
+        />
+      </head>
       <body className={`${bodyClasses}`}>
         {/* Load Paystack inline script globally */}
         <Script

@@ -9,7 +9,6 @@ import {
   getBestSellerProducts,
 } from "@/utils/supabase/services";
 import ProductCard from "./ProductCard";
-import ProductDetail from "./ProductDetail";
 
 interface ProductFeedsProps {
   initialProducts?: Product[];
@@ -36,7 +35,6 @@ export default function ProductFeeds({
   const [loading, setLoading] = useState(!initialProducts);
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [searchQuery, setSearchQuery] = useState(initialFilters.search || "");
   const [selectedCategory, setSelectedCategory] = useState<string>(
     initialFilters.category || "",
@@ -140,14 +138,6 @@ export default function ProductFeeds({
         page + 1,
       );
     }
-  };
-
-  const handleProductClick = (product: Product) => {
-    setSelectedProduct(product);
-  };
-
-  const handleCloseProductDetail = () => {
-    setSelectedProduct(null);
   };
 
   if (loading) {
@@ -327,7 +317,6 @@ export default function ProductFeeds({
               <ProductCard
                 key={product.id}
                 product={product}
-                onProductClick={handleProductClick}
               />
             ))}
           </div>
@@ -359,14 +348,6 @@ export default function ProductFeeds({
               )}
             </button>
           </div>
-        )}
-
-        {/* Product Detail Modal */}
-        {selectedProduct && (
-          <ProductDetail
-            product={selectedProduct}
-            onClose={handleCloseProductDetail}
-          />
         )}
       </div>
     </div>

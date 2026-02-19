@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import { Star, Heart, ShoppingCart, Plus, Minus } from "lucide-react";
 import { Product } from "@/types";
 import {
@@ -14,14 +15,12 @@ import { useUser } from "@/context/UserContext";
 
 interface ProductCardProps {
   product: Product;
-  onProductClick?: (product: Product) => void;
   showQuickAdd?: boolean;
   className?: string;
 }
 
 export default function ProductCard({
   product,
-  onProductClick,
   showQuickAdd = true,
   className = "",
 }: ProductCardProps) {
@@ -107,17 +106,10 @@ export default function ProductCard({
     setQuantity(newQuantity);
   };
 
-  // Handle product click
-  const handleClick = () => {
-    if (onProductClick) {
-      onProductClick(product);
-    }
-  };
-
   return (
-    <div
-      className={`bg-white rounded-xl shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer group ${className}`}
-      onClick={handleClick}
+    <Link
+      href={`/products/${product.slug}`}
+      className={`bg-white rounded-xl shadow-sm hover:shadow-md transition-all duration-300 group block ${className}`}
     >
       {/* Product Image */}
       <div className="relative aspect-square w-full rounded-t-xl overflow-hidden bg-gray-100">
@@ -256,6 +248,6 @@ export default function ProductCard({
             : "Out of stock"}
         </div>
       </div>
-    </div>
+    </Link>
   );
 }

@@ -1,10 +1,17 @@
 /**
  * Server-Side Database Services Layer
+ * 
  * Used in server components, API routes, and server actions
  * All queries go through these functions
+ * 
+ * Follows SOLID principles:
+ * - SRP: Each function handles one database operation
+ * - CQS: Separates queries (get) from commands (add, update)
+ * - DIP: Depends on Supabase abstraction
  */
 
 import { createClient } from "./server";
+import { createStaticClient } from "./static-client";
 import type { UserProfile, Product, ProductFilters } from "@/types";
 
 /* Profile Services */
@@ -232,5 +239,50 @@ export async function addProductReview(
   } catch (error) {
     console.error("Error adding review:", error);
     return false;
+  }
+}
+
+/**
+ * Get product by slug for SEO-optimized product pages
+ * CQS: Query method - only retrieves data without modifying state
+ * Uses static client to avoid cookie issues during static generation
+ */
+export async function getProductBySlug(slug: string): Promise<Product | null> {
+  try {
+    const supabase = createStaticClient();
+    const { data, error } = await supabase
+      .from("products")
+      .select("*")
+      .eq("slug", slug)
+      .eq("is_active", true)
+      .single();
+
+    if (error) throw error;
+    return data;
+  } catch (error) {
+    console.error("Error fetching product by slug:", error);
+    return null;
+  }
+}
+
+/**
+ * Get all product slugs for sitemap generation
+ * CQS: Query method - only retrieves data for sitemap
+ * Uses static client to avoid cookie issues during static generation
+ */
+export async function getAllProductSlugs(): Promise<Array<{ slug: string; updated_at: string }>> {
+  try {
+    const supabase = createStaticClient();
+    const { data, error } = await supabase
+      .from("products")
+      .select("slug, updated_at")
+      .eq("is_active", true)
+      .order("created_at", { ascending: false });
+
+    if (error) throw error;
+    return data || [];
+  } catch (error) {
+    console.error("Error fetching product slugs:", error);
+    return [];
   }
 }

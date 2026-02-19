@@ -41,7 +41,7 @@ export default function AdminLogInPage() {
                 size={18}
               />
               <input
-                name="name"
+                name="email"
                 type="email"
                 placeholder="Admin Email"
                 className={inputClass}

@@ -27,14 +27,14 @@ export default function TopBar() {
             <Image
               src="/logo-removebg.png"
               alt="JRADIANCE logo"
-              fill
+              // fill
               priority
               className="object-contain object-left"
               loading="eager"
-              // width="170"
-              // height="56"
+              width="170"
+              height="56"
             />
-            <div className="absolute -bottom-1 left-0 w-0 h-0.5 bg-radiance-goldColor transition-all duration-300 group-hover:w-1/2" />
+            <div className="absolute -bottom-1 left-5 w-0 h-0.5 bg-radiance-goldColor transition-all duration-300 group-hover:w-2/3" />
           </Link>
 
           {/* Admin info */}
@@ -69,14 +69,14 @@ export default function TopBar() {
           <Image
             src="/logo-removebg.png"
             alt="JRADIANCE logo"
-            fill
+            // fill
             priority
             className="object-contain object-left"
             loading="eager"
-            // width="170"
-            // height="56"
+            width="170"
+            height="56"
           />
-          <div className="absolute -bottom-1 left-0 w-0 h-0.5 bg-radiance-goldColor transition-all duration-300 group-hover:w-1/2" />
+          <div className="absolute -bottom-1 left-5 w-0 h-0.5 bg-radiance-goldColor transition-all duration-300 group-hover:w-2/3" />
         </Link>
 
         {/* Navigation and profile */}

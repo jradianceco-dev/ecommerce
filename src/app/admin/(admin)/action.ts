@@ -2,10 +2,10 @@
  * =============================================================================
  * JRADIANCE Admin Actions
  * =============================================================================
- * 
+ *
  * Server-side functions for all administrative operations.
  * These actions are only accessible by authorized admin users.
- * 
+ *
  * Features:
  * - Authentication (login)
  * - User Management (promote/demote/delete/toggle)
@@ -14,7 +14,7 @@
  * - Order Management
  * - Activity Logs (Audit Trail)
  * - Sales Reports
- * 
+ *
  * @author Philip Depaytez
  * @version 2.0.0
  */
@@ -69,7 +69,10 @@ export async function login(
         password,
       }),
       new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error("Authentication service timeout")), 10000)
+        setTimeout(
+          () => reject(new Error("Authentication service timeout")),
+          10000,
+        ),
       ),
     ]);
 
@@ -87,13 +90,9 @@ export async function login(
 
     // Verify admin role with timeout
     const { data: profile } = await Promise.race([
-      supabase
-        .from("profiles")
-        .select("role")
-        .eq("id", user.id)
-        .single(),
+      supabase.from("profiles").select("role").eq("id", user.id).single(),
       new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error("Profile fetch timeout")), 5000)
+        setTimeout(() => reject(new Error("Profile fetch timeout")), 5000),
       ),
     ]);
 
@@ -102,17 +101,24 @@ export async function login(
       return { error: "Unauthorized" };
     }
 
+    // Activate user profile on successful admin login
+    await supabase
+      .from("profiles")
+      .update({ is_active: true })
+      .eq("id", user.id);
+
     return { error: null, message: "Login successful" };
   } catch (error) {
     console.error("Login error:", error);
-    
+
     // Check if it's a connection/timeout error
     if (error instanceof Error && error.message.includes("timeout")) {
       return {
-        error: "Authentication service is temporarily unavailable. Please try again in a moment.",
+        error:
+          "Authentication service is temporarily unavailable. Please try again in a moment.",
       };
     }
-    
+
     return {
       error:
         error instanceof Error
@@ -142,18 +148,20 @@ export interface AdminActionResult {
 
 /**
  * Check Permission
- * 
+ *
  * Verifies if the current user has the required role or higher.
  * Uses role hierarchy: customer (0) < agent (1) < admin (2) < chief_admin (3)
- * 
+ *
  * @param requiredRole - Minimum role required for access
  * @returns true if user has permission, false otherwise
- * 
+ *
  * @example
  * const hasAccess = await checkPermission("admin");
  * if (!hasAccess) return { error: "Access denied" };
  */
-export async function checkPermission(requiredRole: UserRole): Promise<boolean> {
+export async function checkPermission(
+  requiredRole: UserRole,
+): Promise<boolean> {
   try {
     const supabase = await createClient();
     const {
@@ -189,12 +197,12 @@ export async function checkPermission(requiredRole: UserRole): Promise<boolean> 
 
 /**
  * Get Admin Permissions
- * 
+ *
  * Returns detailed permission flags based on user's role.
  * Useful for conditionally rendering UI elements.
- * 
+ *
  * @returns Permission object with boolean flags for each capability
- * 
+ *
  * @example
  * const perms = await getAdminPermissions();
  * if (perms?.canManageProducts) { /* Show product management UI *\/ }
@@ -250,12 +258,12 @@ export async function getAdminPermissions(): Promise<{
 
 /**
  * Get All Users
- * 
+ *
  * Retrieves all user profiles with their roles.
  * Uses static client to avoid cookie issues during static generation.
- * 
+ *
  * @returns List of all users with basic profile information
- * 
+ *
  * @security Chief Admin only
  */
 export async function getAllUsers() {
@@ -276,14 +284,14 @@ export async function getAllUsers() {
 
 /**
  * Promote User
- * 
+ *
  * Elevates a user to a higher role (e.g., customer → agent → admin).
  * Creates admin_staff record if promoting to admin/agent.
- * 
+ *
  * @param targetUserId - ID of user to promote
  * @param newRole - New role to assign
  * @returns Result of promotion operation
- * 
+ *
  * @security Chief Admin only
  * @audit Logs promotion action for accountability
  */
@@ -359,17 +367,19 @@ export async function promoteUser(
 
 /**
  * Demote User
- * 
+ *
  * Removes admin/agent privileges and reverts user to customer role.
  * Deletes admin_staff record.
- * 
+ *
  * @param targetUserId - ID of user to demote
  * @returns Result of demotion operation
- * 
+ *
  * @security Chief Admin only
  * @audit Logs demotion action for accountability
  */
-export async function demoteUser(targetUserId: string): Promise<AdminActionResult> {
+export async function demoteUser(
+  targetUserId: string,
+): Promise<AdminActionResult> {
   try {
     const supabase = await createClient();
 
@@ -431,18 +441,20 @@ export async function demoteUser(targetUserId: string): Promise<AdminActionResul
 
 /**
  * Delete User
- * 
+ *
  * Permanently removes a user from the system.
  * Cascades to related tables (cart_items, orders, etc.) via foreign keys.
- * 
+ *
  * @param targetUserId - ID of user to delete
  * @returns Result of deletion operation
- * 
+ *
  * @security Chief Admin only
  * @warning This action cannot be undone
  * @audit Logs deletion action for accountability
  */
-export async function deleteUser(targetUserId: string): Promise<AdminActionResult> {
+export async function deleteUser(
+  targetUserId: string,
+): Promise<AdminActionResult> {
   try {
     const supabase = await createClient();
 
@@ -495,17 +507,19 @@ export async function deleteUser(targetUserId: string): Promise<AdminActionResul
 
 /**
  * Toggle User Status
- * 
+ *
  * Activates or deactivates a user account without deleting data.
  * Deactivated users cannot log in.
- * 
+ *
  * @param targetUserId - ID of user to toggle
  * @returns Result of toggle operation
- * 
+ *
  * @security Chief Admin only
  * @audit Logs toggle action for accountability
  */
-export async function toggleUserStatus(targetUserId: string): Promise<AdminActionResult> {
+export async function toggleUserStatus(
+  targetUserId: string,
+): Promise<AdminActionResult> {
   try {
     const supabase = await createClient();
 
@@ -523,7 +537,10 @@ export async function toggleUserStatus(targetUserId: string): Promise<AdminActio
       .single();
 
     if (callerProfile?.role !== "chief_admin") {
-      return { success: false, error: "Only chief admin can toggle user status" };
+      return {
+        success: false,
+        error: "Only chief admin can toggle user status",
+      };
     }
 
     // Get current status
@@ -558,19 +575,20 @@ export async function toggleUserStatus(targetUserId: string): Promise<AdminActio
     console.error("Error toggling user status:", error);
     return {
       success: false,
-      error: error instanceof Error ? error.message : "Failed to toggle user status",
+      error:
+        error instanceof Error ? error.message : "Failed to toggle user status",
     };
   }
 }
 
 /**
  * Get All Agents
- * 
+ *
  * Retrieves all users with agent role.
  * Used in Agents Manager page.
- * 
+ *
  * @returns List of all agents
- * 
+ *
  * @security Chief Admin only
  */
 export async function getAllAgents() {
@@ -596,13 +614,13 @@ export async function getAllAgents() {
 
 /**
  * Create Product
- * 
+ *
  * Adds a new product to the catalog.
  * Associates product with creating admin for audit trail.
- * 
+ *
  * @param productData - Product information including name, price, images, etc.
  * @returns Result with created product ID
- * 
+ *
  * @security Agent, Admin, Chief Admin only
  * @audit Logs product creation
  * @revalidates /admin/catalog, /shop, /sitemap.xml
@@ -669,21 +687,22 @@ export async function createProduct(productData: {
     console.error("Error creating product:", error);
     return {
       success: false,
-      error: error instanceof Error ? error.message : "Failed to create product",
+      error:
+        error instanceof Error ? error.message : "Failed to create product",
     };
   }
 }
 
 /**
  * Update Product
- * 
+ *
  * Modifies existing product information.
  * Updates timestamp for cache invalidation.
- * 
+ *
  * @param productId - ID of product to update
  * @param updates - Fields to update
  * @returns Result of update operation
- * 
+ *
  * @security Agent, Admin, Chief Admin only
  * @audit Logs product update
  * @revalidates affected pages
@@ -701,7 +720,7 @@ export async function updateProduct(
     sku: string | null;
     images: string[];
     attributes: Record<string, string | number | boolean | null>;
-  }>
+  }>,
 ): Promise<AdminActionResult> {
   try {
     const supabase = await createClient();
@@ -737,25 +756,28 @@ export async function updateProduct(
     console.error("Error updating product:", error);
     return {
       success: false,
-      error: error instanceof Error ? error.message : "Failed to update product",
+      error:
+        error instanceof Error ? error.message : "Failed to update product",
     };
   }
 }
 
 /**
  * Delete Product
- * 
+ *
  * Removes a product from the catalog.
  * Soft delete recommended for production (set is_active = false).
- * 
+ *
  * @param productId - ID of product to delete
  * @returns Result of deletion operation
- * 
+ *
  * @security Agent, Admin, Chief Admin only
  * @audit Logs product deletion
  * @revalidates affected pages
  */
-export async function deleteProduct(productId: string): Promise<AdminActionResult> {
+export async function deleteProduct(
+  productId: string,
+): Promise<AdminActionResult> {
   try {
     const supabase = await createClient();
 
@@ -789,24 +811,27 @@ export async function deleteProduct(productId: string): Promise<AdminActionResul
     console.error("Error deleting product:", error);
     return {
       success: false,
-      error: error instanceof Error ? error.message : "Failed to delete product",
+      error:
+        error instanceof Error ? error.message : "Failed to delete product",
     };
   }
 }
 
 /**
  * Toggle Product Status
- * 
+ *
  * Activates or deactivates a product.
  * Deactivated products are hidden from customers but remain in database.
- * 
+ *
  * @param productId - ID of product to toggle
  * @returns Result of toggle operation
- * 
+ *
  * @security Agent, Admin, Chief Admin only
  * @audit Logs product status change
  */
-export async function toggleProductStatus(productId: string): Promise<AdminActionResult> {
+export async function toggleProductStatus(
+  productId: string,
+): Promise<AdminActionResult> {
   try {
     const supabase = await createClient();
 
@@ -848,7 +873,10 @@ export async function toggleProductStatus(productId: string): Promise<AdminActio
     console.error("Error toggling product status:", error);
     return {
       success: false,
-      error: error instanceof Error ? error.message : "Failed to toggle product status",
+      error:
+        error instanceof Error
+          ? error.message
+          : "Failed to toggle product status",
     };
   }
 }
@@ -871,7 +899,7 @@ export async function toggleProductStatus(productId: string): Promise<AdminActio
  */
 export async function uploadProductMedia(
   formData: FormData,
-  folder: string = "products"
+  folder: string = "products",
 ): Promise<{
   success: boolean;
   results?: Array<{ filename: string; url: string }>;
@@ -895,7 +923,7 @@ export async function uploadProductMedia(
 
     // Extract files from FormData
     const files = formData.getAll("files") as File[];
-    
+
     if (!files || files.length === 0) {
       return { success: false, error: "No files provided" };
     }
@@ -911,14 +939,17 @@ export async function uploadProductMedia(
       "video/quicktime",
     ];
 
-    const validFiles = files.filter((file) => 
-      allowedTypes.includes(file.type) || file.type.startsWith("image/") || file.type.startsWith("video/")
+    const validFiles = files.filter(
+      (file) =>
+        allowedTypes.includes(file.type) ||
+        file.type.startsWith("image/") ||
+        file.type.startsWith("video/"),
     );
 
     if (validFiles.length === 0) {
-      return { 
-        success: false, 
-        error: "Invalid file types. Only images and videos are allowed." 
+      return {
+        success: false,
+        error: "Invalid file types. Only images and videos are allowed.",
       };
     }
 
@@ -927,8 +958,9 @@ export async function uploadProductMedia(
 
     // Process results
     const successfulUploads = uploadResults
-      .filter((result): result is { success: true; url: string; filename: string } => 
-        result.success && !!result.url
+      .filter(
+        (result): result is { success: true; url: string; filename: string } =>
+          result.success && !!result.url,
       )
       .map((result) => ({
         filename: result.filename!,
@@ -936,9 +968,9 @@ export async function uploadProductMedia(
       }));
 
     if (successfulUploads.length === 0) {
-      return { 
-        success: false, 
-        error: "Failed to upload any files. Please check FTP configuration." 
+      return {
+        success: false,
+        error: "Failed to upload any files. Please check FTP configuration.",
       };
     }
 
@@ -975,9 +1007,7 @@ export async function uploadProductMedia(
  * @param file - File object to upload
  * @returns Upload result with URL
  */
-export async function uploadProductImage(
-  file: File
-): Promise<{
+export async function uploadProductImage(file: File): Promise<{
   success: boolean;
   url?: string;
   error?: string;
@@ -994,9 +1024,7 @@ export async function uploadProductImage(
  * @param file - File object to upload
  * @returns Upload result with URL
  */
-export async function uploadProductVideo(
-  file: File
-): Promise<{
+export async function uploadProductVideo(file: File): Promise<{
   success: boolean;
   url?: string;
   error?: string;
@@ -1011,12 +1039,12 @@ export async function uploadProductVideo(
 
 /**
  * Get All Orders
- * 
+ *
  * Retrieves all orders with customer and item details.
  * Uses static client to avoid cookie issues.
- * 
+ *
  * @returns List of all orders with related data
- * 
+ *
  * @security Agent, Admin, Chief Admin only
  */
 export async function getAllOrders() {
@@ -1024,7 +1052,8 @@ export async function getAllOrders() {
     const supabase = createStaticClient();
     const { data, error } = await supabase
       .from("orders")
-      .select(`
+      .select(
+        `
         *,
         profiles (email, full_name),
         order_items (
@@ -1034,7 +1063,8 @@ export async function getAllOrders() {
           quantity,
           unit_price
         )
-      `)
+      `,
+      )
       .order("created_at", { ascending: false });
 
     if (error) throw error;
@@ -1047,21 +1077,21 @@ export async function getAllOrders() {
 
 /**
  * Update Order Status
- * 
+ *
  * Changes order status through the fulfillment pipeline:
  * pending → confirmed → shipped → delivered
- * 
+ *
  * @param orderId - ID of order to update
  * @param status - New order status
  * @returns Result of update operation
- * 
+ *
  * @security Agent, Admin, Chief Admin only
  * @audit Logs status change
  * @revalidates /admin/orders
  */
 export async function updateOrderStatus(
   orderId: string,
-  status: OrderStatus
+  status: OrderStatus,
 ): Promise<AdminActionResult> {
   try {
     const supabase = await createClient();
@@ -1075,9 +1105,9 @@ export async function updateOrderStatus(
 
     const { error } = await supabase
       .from("orders")
-      .update({ 
+      .update({
         status,
-        updated_at: new Date().toISOString()
+        updated_at: new Date().toISOString(),
       })
       .eq("id", orderId);
 
@@ -1098,7 +1128,10 @@ export async function updateOrderStatus(
     console.error("Error updating order status:", error);
     return {
       success: false,
-      error: error instanceof Error ? error.message : "Failed to update order status",
+      error:
+        error instanceof Error
+          ? error.message
+          : "Failed to update order status",
     };
   }
 }
@@ -1109,13 +1142,13 @@ export async function updateOrderStatus(
 
 /**
  * Get Activity Logs
- * 
+ *
  * Retrieves admin activity logs for audit and accountability.
  * Includes admin details and changes made.
- * 
+ *
  * @param limit - Maximum number of logs to retrieve (default: 100)
  * @returns List of activity logs with admin details
- * 
+ *
  * @security Admin, Chief Admin only
  */
 export async function getActivityLogs(limit: number = 100) {
@@ -1123,7 +1156,8 @@ export async function getActivityLogs(limit: number = 100) {
     const supabase = createStaticClient();
     const { data, error } = await supabase
       .from("admin_activity_logs")
-      .select(`
+      .select(
+        `
         *,
         admin_staff (
           profile_id,
@@ -1133,7 +1167,8 @@ export async function getActivityLogs(limit: number = 100) {
           email,
           full_name
         )
-      `)
+      `,
+      )
       .order("created_at", { ascending: false })
       .limit(limit);
 
@@ -1141,7 +1176,11 @@ export async function getActivityLogs(limit: number = 100) {
     return { success: true, data };
   } catch (error) {
     console.error("Error fetching activity logs:", error);
-    return { success: false, error: "Failed to fetch activity logs", data: null };
+    return {
+      success: false,
+      error: "Failed to fetch activity logs",
+      data: null,
+    };
   }
 }
 
@@ -1151,17 +1190,17 @@ export async function getActivityLogs(limit: number = 100) {
 
 /**
  * Get Sales Statistics
- * 
+ *
  * Calculates revenue, order counts, and completion rates.
  * Supports filtering by time period.
- * 
+ *
  * @param period - Time period: "day", "week", "month", or "all"
  * @returns Sales statistics and order data
- * 
+ *
  * @security Admin, Chief Admin only
  */
 export async function getSalesStats(
-  period: "day" | "week" | "month" | "all" = "all"
+  period: "day" | "week" | "month" | "all" = "all",
 ) {
   try {
     const supabase = createStaticClient();
@@ -1175,9 +1214,11 @@ export async function getSalesStats(
     if (error) throw error;
 
     // Calculate statistics
-    const totalRevenue = orders?.reduce((sum, order) => sum + order.total_amount, 0) || 0;
+    const totalRevenue =
+      orders?.reduce((sum, order) => sum + order.total_amount, 0) || 0;
     const totalOrders = orders?.length || 0;
-    const completedOrders = orders?.filter((o) => o.status === "delivered").length || 0;
+    const completedOrders =
+      orders?.filter((o) => o.status === "delivered").length || 0;
 
     return {
       success: true,
@@ -1190,7 +1231,11 @@ export async function getSalesStats(
     };
   } catch (error) {
     console.error("Error fetching sales stats:", error);
-    return { success: false, error: "Failed to fetch sales statistics", data: null };
+    return {
+      success: false,
+      error: "Failed to fetch sales statistics",
+      data: null,
+    };
   }
 }
 
@@ -1200,19 +1245,19 @@ export async function getSalesStats(
 
 /**
  * Get System Issues
- * 
+ *
  * Retrieves bugs and customer complaints.
  * Currently returns mock data - implement issues table for production.
- * 
+ *
  * @returns List of system issues
- * 
+ *
  * @security Admin, Chief Admin only
  * @todo Create issues table in Supabase for production
  */
 export async function getSystemIssues() {
   try {
     const supabase = createStaticClient();
-    
+
     // TODO: Implement issues table
     // For now, return empty array
     return { success: true, data: [] };

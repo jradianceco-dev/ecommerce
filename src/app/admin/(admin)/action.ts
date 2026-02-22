@@ -34,14 +34,14 @@ import { uploadFileToFTP, uploadMultipleFilesToFTP } from "@/utils/ftp-upload";
 
 /**
  * Admin Login
- * 
+ *
  * Authenticates admin users and verifies their role.
  * Only users with admin, agent, or chief_admin roles can access admin panel.
- * 
+ *
  * @param prevState - Previous authentication state
  * @param formData - Form data containing email and password
  * @returns Authentication result with error or success message
- * 
+ *
  * @example
  * // In a login form:
  * const [state, formAction] = useActionState(login, null);
@@ -62,14 +62,19 @@ export async function login(
       return { error: "Email and password are required" };
     }
 
-    // Attempt sign in
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
+    // Attempt sign in with timeout
+    const signInResult = await Promise.race([
+      supabase.auth.signInWithPassword({
+        email,
+        password,
+      }),
+      new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error("Authentication service timeout")), 10000)
+      ),
+    ]);
 
-    if (error) {
-      return { error: error.message };
+    if ((signInResult as any)?.error) {
+      return { error: (signInResult as any).error.message };
     }
 
     // Get authenticated user
@@ -80,21 +85,34 @@ export async function login(
       return { error: "Not authenticated" };
     }
 
-    // Verify admin role
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("role")
-      .eq("id", user.id)
-      .single();
+    // Verify admin role with timeout
+    const { data: profile } = await Promise.race([
+      supabase
+        .from("profiles")
+        .select("role")
+        .eq("id", user.id)
+        .single(),
+      new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error("Profile fetch timeout")), 5000)
+      ),
+    ]);
 
     const allowedRoles = ["admin", "agent", "chief_admin"];
-    if (!allowedRoles.includes(profile?.role || "")) {
+    if (!allowedRoles.includes((profile as any)?.role || "")) {
       return { error: "Unauthorized" };
     }
 
     return { error: null, message: "Login successful" };
   } catch (error) {
     console.error("Login error:", error);
+    
+    // Check if it's a connection/timeout error
+    if (error instanceof Error && error.message.includes("timeout")) {
+      return {
+        error: "Authentication service is temporarily unavailable. Please try again in a moment.",
+      };
+    }
+    
     return {
       error:
         error instanceof Error

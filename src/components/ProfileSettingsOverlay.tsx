@@ -82,21 +82,19 @@ export default function ProfileSettingsOverlay({
                 <span className="font-bold text-radiance-charcoalTextColor text-sm">
                   {user.email || "User"}
                 </span>
-                <div className="flex items-center gap-2">
-                  <span className="text-[10px] text-gray-500 uppercase font-medium">
-                    {user.role}
-                  </span>
-                  {["admin", "agent", "chief_admin", "customer"].includes(
-                    user.role,
-                  ) && <Shield size={12} className="text-radiance-goldColor" />}
-                </div>
+                {["admin", "agent", "chief_admin", "customer"].includes(user.role) && (
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] text-gray-500 uppercase font-medium">
+                      {user.role}
+                    </span>
+                    <Shield size={12} className="text-radiance-goldColor" />
+                  </div>
+                )}
               </div>
             </div>
 
-            {/* Admin Dashboard Link */}
-            {["admin", "agent", "chief_admin", "customer"].includes(
-              user.role,
-            ) && (
+            {/* Admin Dashboard Link - Only for admin roles */}
+            {["admin", "agent", "chief_admin"].includes(user.role) && (
               <Link
                 href="/admin/dashboard"
                 className="flex items-center justify-between w-full bg-radiance-goldColor/10 border border-radiance-goldColor/20 text-radiance-goldColor text-xs font-bold py-3 px-4 rounded-lg hover:bg-radiance-goldColor/20 transition-colors"
@@ -116,9 +114,7 @@ export default function ProfileSettingsOverlay({
                   {user.email}
                 </span>
               </p>
-              {["admin", "agent", "chief_admin", "customer"].includes(
-                user.role,
-              ) && (
+              {["admin", "agent", "chief_admin"].includes(user.role) && (
                 <p>
                   <strong>Role: </strong>{" "}
                   <span className="capitalize text-radiance-goldColor font-semibold">

@@ -8,7 +8,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { checkPermission, getAdminPermissions } from "../action";
+import { checkPermission, getAdminPermissions } from "../admin-actions";
 import { Shield, Lock, Check, X } from "lucide-react";
 
 interface PermissionMatrix {

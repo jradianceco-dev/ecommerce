@@ -47,6 +47,181 @@ export interface AuthState {
   message?: string | null;
   requiresConfirmation?: boolean;
   email?: string | null;
+  code?: AuthErrorCode;
+}
+
+/*
+  Enhanced Authentication Types
+*/
+/**
+ * Authenticated user with profile information
+ */
+export interface AuthenticatedUser {
+  id: string;
+  email: string;
+  role: UserRole;
+  is_active: boolean;
+  full_name?: string | null;
+}
+
+/**
+ * Admin-specific user with extended info
+ */
+export interface AdminUser extends AuthenticatedUser {
+  role: Extract<UserRole, "admin" | "agent" | "chief_admin">;
+  staff_id?: string | null;
+  department?: string | null;
+  position?: string | null;
+}
+
+/**
+ * Customer-specific user
+ */
+export interface CustomerUser extends AuthenticatedUser {
+  role: Extract<UserRole, "customer">;
+  phone?: string | null;
+}
+
+/**
+ * Authentication error codes for consistent handling
+ */
+export enum AuthErrorCode {
+  // General errors
+  UNKNOWN_ERROR = "UNKNOWN_ERROR",
+  TIMEOUT = "TIMEOUT",
+  
+  // Credential errors
+  INVALID_CREDENTIALS = "INVALID_CREDENTIALS",
+  EMAIL_NOT_FOUND = "EMAIL_NOT_FOUND",
+  WRONG_PASSWORD = "WRONG_PASSWORD",
+  
+  // Account status errors
+  ACCOUNT_INACTIVE = "ACCOUNT_INACTIVE",
+  ACCOUNT_NOT_CONFIRMED = "ACCOUNT_NOT_CONFIRMED",
+  
+  // Authorization errors
+  UNAUTHORIZED_ROLE = "UNAUTHORIZED_ROLE",
+  ACCESS_DENIED = "ACCESS_DENIED",
+  
+  // Session errors
+  SESSION_EXPIRED = "SESSION_EXPIRED",
+  SESSION_INVALID = "SESSION_INVALID",
+  
+  // Operation errors
+  SIGNUP_FAILED = "SIGNUP_FAILED",
+  LOGIN_FAILED = "LOGIN_FAILED",
+  LOGOUT_FAILED = "LOGOUT_FAILED",
+  PASSWORD_RESET_FAILED = "PASSWORD_RESET_FAILED",
+}
+
+/**
+ * Standard authentication result
+ */
+export interface AuthResult<T = unknown> {
+  success: boolean;
+  data?: T;
+  error?: string;
+  code?: AuthErrorCode;
+}
+
+/**
+ * Result from authentication guard checks
+ */
+export interface GuardResult {
+  success: boolean;
+  isAuthenticated: boolean;
+  isAdmin?: boolean;
+  isChiefAdmin?: boolean;
+  error?: string;
+  redirectUrl?: string;
+  user?: AuthenticatedUser;
+}
+
+/**
+ * Role check result for RBAC
+ */
+export interface RoleCheckResult {
+  hasRole: boolean;
+  userRole?: UserRole;
+  requiredRoles: UserRole[];
+}
+
+/**
+ * Session persistence options
+ */
+export enum SessionPersistence {
+  /** Session lasts until explicitly logged out */
+  PERSISTENT = "persistent",
+  /** Session expires after browser close */
+  SESSION_ONLY = "session_only",
+}
+
+/**
+ * Session configuration
+ */
+export interface SessionConfig {
+  /** How long to remember the user (in seconds) */
+  expiresIn: number;
+  /** Whether to persist session across browser restarts */
+  persistence: SessionPersistence;
+}
+
+/**
+ * Default session configurations
+ */
+export const SESSION_CONFIGS = {
+  /** Admin sessions: 30 days persistent */
+  ADMIN: {
+    expiresIn: 30 * 24 * 60 * 60, // 30 days
+    persistence: SessionPersistence.PERSISTENT,
+  },
+  /** Customer sessions: 7 days persistent */
+  CUSTOMER: {
+    expiresIn: 7 * 24 * 60 * 60, // 7 days
+    persistence: SessionPersistence.PERSISTENT,
+  },
+  /** Temporary sessions: 1 hour */
+  TEMPORARY: {
+    expiresIn: 60 * 60, // 1 hour
+    persistence: SessionPersistence.SESSION_ONLY,
+  },
+} as const;
+
+/*
+  Auth Action Input Types
+*/
+/**
+ * Login form input
+ */
+export interface LoginInput {
+  email: string;
+  password: string;
+  rememberMe?: boolean;
+}
+
+/**
+ * Signup form input
+ */
+export interface SignupInput {
+  email: string;
+  password: string;
+  fullName: string;
+  phone: string;
+}
+
+/**
+ * Password reset input
+ */
+export interface PasswordResetInput {
+  password: string;
+  confirmPassword: string;
+}
+
+/**
+ * Email input for forgot password
+ */
+export interface EmailInput {
+  email: string;
 }
 
 /* Product Types */

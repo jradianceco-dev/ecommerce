@@ -1,14 +1,28 @@
+/**
+ * =============================================================================
+ * Email Confirmation Page
+ * =============================================================================
+ * 
+ * Handles email confirmation for customer signup.
+ * Uses CustomerAuthService via server actions.
+ * 
+ * Features:
+ * - Token verification
+ * - Automatic redirect on success
+ * - Clear error messages
+ */
+
 "use client";
 
 import React, { useEffect, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { createClient } from "@/utils/supabase/client";
 import { CheckCircle, XCircle, Loader2, Mail } from "lucide-react";
+import { verifyEmailConfirmation } from "../actions";
 
 // Inner component that uses useSearchParams - wrapped in Suspense
 function EmailConfirmationContent() {
   const [status, setStatus] = useState<"loading" | "success" | "error">(
-    "loading",
+    "loading"
   );
   const [message, setMessage] = useState("");
   const router = useRouter();
@@ -17,27 +31,18 @@ function EmailConfirmationContent() {
   useEffect(() => {
     const handleEmailConfirmation = async () => {
       try {
-        const supabase = createClient();
-
         // Get the tokens from URL parameters
         const tokenHash = searchParams.get("token_hash");
         const type = searchParams.get("type");
 
         if (type === "signup" && tokenHash) {
-          // Verify the confirmation tokens
-          const { data, error } = await supabase.auth.verifyOtp({
-            token_hash: tokenHash,
-            type: "email",
-          });
+          // Verify the confirmation token using our service
+          const result = await verifyEmailConfirmation(tokenHash);
 
-          if (error) {
-            throw error;
-          }
-
-          if (data.user) {
+          if (result.success) {
             setStatus("success");
             setMessage(
-              "Your email has been successfully confirmed! You can now sign in with your credentials.",
+              "Your email has been successfully confirmed! You can now sign in with your credentials."
             );
 
             // Redirect to login page after 3 seconds with success message
@@ -45,13 +50,13 @@ function EmailConfirmationContent() {
               router.push("/shop/auth?confirmed=true");
             }, 3000);
           } else {
-            throw new Error("Failed to confirm email");
+            throw new Error(result.error || "Failed to confirm email");
           }
         } else if (type === "recovery") {
           // Handle password reset if needed
           setStatus("success");
           setMessage(
-            "Password reset link processed. Please check your email for further instructions.",
+            "Password reset link processed. Please check your email for further instructions."
           );
         } else {
           throw new Error("Invalid confirmation link");
@@ -62,7 +67,7 @@ function EmailConfirmationContent() {
         setMessage(
           error instanceof Error
             ? error.message
-            : "Failed to confirm email. The link may have expired.",
+            : "Failed to confirm email. The link may have expired."
         );
       }
     };

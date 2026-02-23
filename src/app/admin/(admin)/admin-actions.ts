@@ -6,17 +6,16 @@
  * Server-side functions for all administrative operations.
  * These actions are only accessible by authorized admin users.
  *
+ * NOTE: Authentication actions (login/logout) are now in:
+ * - src/app/admin/(admin-auth)/login/actions.ts
+ *
  * Features:
- * - Authentication (login)
  * - User Management (promote/demote/delete/toggle)
  * - Permission & Access Control
  * - Product Management (CRUD)
  * - Order Management
  * - Activity Logs (Audit Trail)
  * - Sales Reports
- *
- * @author Philip Depaytez
- * @version 2.0.0
  */
 
 "use server";
@@ -24,113 +23,12 @@
 import { createClient } from "@/utils/supabase/server";
 import { createStaticClient } from "@/utils/supabase/static-client";
 import type { UserRole, OrderStatus } from "@/types";
-import { AuthState } from "@/types/index";
 import { revalidatePath } from "next/cache";
 import { uploadFileToFTP, uploadMultipleFilesToFTP } from "@/utils/ftp-upload";
 
-/* =============================================================================
-   Authentication Actions
-   ============================================================================= */
-
-/**
- * Admin Login
- *
- * Authenticates admin users and verifies their role.
- * Only users with admin, agent, or chief_admin roles can access admin panel.
- *
- * @param prevState - Previous authentication state
- * @param formData - Form data containing email and password
- * @returns Authentication result with error or success message
- *
- * @example
- * // In a login form:
- * const [state, formAction] = useActionState(login, null);
- * <form action={formAction}>...</form>
- */
-export async function login(
-  prevState: AuthState | null,
-  formData: FormData,
-): Promise<AuthState | null> {
-  try {
-    const supabase = await createClient();
-
-    // Extract and validate form data
-    const email = formData.get("email") as string;
-    const password = formData.get("password") as string;
-
-    if (!email || !password) {
-      return { error: "Email and password are required" };
-    }
-
-    // Attempt sign in with timeout
-    const signInResult = await Promise.race([
-      supabase.auth.signInWithPassword({
-        email,
-        password,
-      }),
-      new Promise<never>((_, reject) =>
-        setTimeout(
-          () => reject(new Error("Authentication service timeout")),
-          10000,
-        ),
-      ),
-    ]);
-
-    if ((signInResult as any)?.error) {
-      return { error: (signInResult as any).error.message };
-    }
-
-    // Get authenticated user
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) {
-      return { error: "Not authenticated" };
-    }
-
-    // Verify admin role with timeout
-    const { data: profile } = await Promise.race([
-      supabase.from("profiles").select("role").eq("id", user.id).single(),
-      new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error("Profile fetch timeout")), 5000),
-      ),
-    ]);
-
-    const allowedRoles = ["admin", "agent", "chief_admin"];
-    if (!allowedRoles.includes((profile as any)?.role || "")) {
-      return { error: "Unauthorized" };
-    }
-
-    // Activate user profile on successful admin login
-    await supabase
-      .from("profiles")
-      .update({ is_active: true })
-      .eq("id", user.id);
-
-    return { error: null, message: "Login successful" };
-  } catch (error) {
-    console.error("Login error:", error);
-
-    // Check if it's a connection/timeout error
-    if (error instanceof Error && error.message.includes("timeout")) {
-      return {
-        error:
-          "Authentication service is temporarily unavailable. Please try again in a moment.",
-      };
-    }
-
-    return {
-      error:
-        error instanceof Error
-          ? error.message
-          : "An error occurred during login",
-    };
-  }
-}
-
-/* =============================================================================
-   Common Response Types
-   ============================================================================= */
+/* 
+   Common Response Types 
+   */
 
 /**
  * Standard response interface for admin actions
@@ -142,9 +40,9 @@ export interface AdminActionResult {
   message?: string;
 }
 
-/* =============================================================================
-   Permission & Access Control
-   ============================================================================= */
+/* 
+  Permission & Access Control
+*/
 
 /**
  * Check Permission
@@ -252,9 +150,9 @@ export async function getAdminPermissions(): Promise<{
   }
 }
 
-/* =============================================================================
-   User Management (Chief Admin Only)
-   ============================================================================= */
+/* 
+  User Management (Chief Admin Only)
+*/
 
 /**
  * Get All Users
@@ -608,9 +506,9 @@ export async function getAllAgents() {
   }
 }
 
-/* =============================================================================
+/* 
    Product Management (Agent+ Access)
-   ============================================================================= */
+*/
 
 /**
  * Create Product
@@ -881,9 +779,9 @@ export async function toggleProductStatus(
   }
 }
 
-/* =============================================================================
-   Media Upload (Agent+ Access)
-   ============================================================================= */
+/* 
+  Media Upload (Agent+ Access)
+*/
 
 /**
  * Upload Product Media
@@ -1033,9 +931,9 @@ export async function uploadProductVideo(file: File): Promise<{
   return result;
 }
 
-/* =============================================================================
-   Order Management (Agent+ Access)
-   ============================================================================= */
+/* 
+  Order Management (Agent+ Access)
+*/
 
 /**
  * Get All Orders
@@ -1136,9 +1034,9 @@ export async function updateOrderStatus(
   }
 }
 
-/* =============================================================================
-   Activity Logs & Audit Trail (Admin+ Access)
-   ============================================================================= */
+/* 
+  Activity Logs & Audit Trail (Admin+ Access)
+*/
 
 /**
  * Get Activity Logs
@@ -1184,9 +1082,9 @@ export async function getActivityLogs(limit: number = 100) {
   }
 }
 
-/* =============================================================================
-   Sales Reports & Analytics (Admin+ Access)
-   ============================================================================= */
+/*
+  Sales Reports & Analytics (Admin+ Access)
+*/
 
 /**
  * Get Sales Statistics
@@ -1239,9 +1137,9 @@ export async function getSalesStats(
   }
 }
 
-/* =============================================================================
-   Issues & Bug Tracking (Admin+ Access)
-   ============================================================================= */
+/*
+  Issues & Bug Tracking (Admin+ Access)
+*/
 
 /**
  * Get System Issues

@@ -1,5 +1,7 @@
 /**
+ * =============================================================================
  * Admin Login Page
+ * =============================================================================
  * 
  * Secure authentication portal for admin users.
  * Only users with admin, agent, or chief_admin roles can access the admin panel.
@@ -9,29 +11,26 @@
  * - Role verification after login
  * - Connection error handling
  * - Loading states
- * 
- * @author Philip Depaytez
- * @version 3.0.0
  */
 
 "use client";
 
 import React, { useActionState, useEffect } from "react";
 import Link from "next/link";
-import { Lock, ShieldCheck, Mail, Loader2, UserPlus, WifiOff } from "lucide-react";
-import { login } from "../../(admin)/action";
-import { AuthState } from "@/types";
 import { useRouter } from "next/navigation";
+import { Lock, ShieldCheck, Mail, Loader2, UserPlus, WifiOff } from "lucide-react";
+import { adminLogin } from "./actions";
+import type { AuthState } from "@/types";
 
 /**
  * Admin Login Page Component
  */
-export default function AdminLogInPage() {
+export default function AdminLoginPage() {
   const [state, formAction, isPending] = useActionState<
     AuthState | null,
     FormData
-  >(login, null);
-  
+  >(adminLogin, null);
+
   const router = useRouter();
 
   // Input field styling
@@ -46,7 +45,7 @@ export default function AdminLogInPage() {
   }, [state, router]);
 
   // Check if error is connection-related
-  const isConnectionError = 
+  const isConnectionError =
     state?.error?.includes("timeout") ||
     state?.error?.includes("unavailable") ||
     state?.error?.includes("fetch failed");
@@ -56,9 +55,9 @@ export default function AdminLogInPage() {
       <div className="w-full max-w-sm space-y-6">
         {/* Header */}
         <div className="text-center space-y-3">
-          <ShieldCheck 
-            className="mx-auto text-radiance-goldColor" 
-            size={48} 
+          <ShieldCheck
+            className="mx-auto text-radiance-goldColor"
+            size={48}
             aria-hidden="true"
           />
           <h1 className="text-xl font-black text-white tracking-[0.2em] uppercase">
@@ -71,7 +70,7 @@ export default function AdminLogInPage() {
 
         {/* Connection Error Banner */}
         {isConnectionError && (
-          <div 
+          <div
             className="p-4 bg-orange-500/10 border border-orange-500/20 text-orange-400 text-xs font-bold rounded-xl text-center flex items-center justify-center gap-2"
             role="alert"
           >
@@ -82,7 +81,7 @@ export default function AdminLogInPage() {
 
         {/* Display Error */}
         {state?.error && !isConnectionError && (
-          <div 
+          <div
             className="p-3 bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-bold rounded-xl text-center"
             role="alert"
           >
@@ -161,7 +160,7 @@ export default function AdminLogInPage() {
 
         {/* Security Badge */}
         <p className="text-center text-[9px] text-white/20 font-medium">
-          SECURED BY SUPABASE AUTH
+          CHECK YOUR EMAIL AND CLICK ON THE LINK TO COMPLETE SIGNUP
         </p>
       </div>
     </div>

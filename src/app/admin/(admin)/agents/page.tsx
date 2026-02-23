@@ -8,7 +8,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { getAllAgents, promoteUser, demoteUser, checkPermission } from "../action";
+import { getAllAgents, promoteUser, demoteUser, checkPermission } from "../admin-actions";
 import { User, Shield, ArrowUpCircle, ArrowDownCircle } from "lucide-react";
 
 type UserRole = "customer" | "admin" | "agent" | "chief_admin";

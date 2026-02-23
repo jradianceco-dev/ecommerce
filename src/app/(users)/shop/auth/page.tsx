@@ -1,11 +1,27 @@
+/**
+ * =============================================================================
+ * Customer Auth Page
+ * =============================================================================
+ * 
+ * Unified authentication page for customers (login/signup).
+ * Uses CustomerAuthService via server actions.
+ * 
+ * Features:
+ * - Toggle between login and signup
+ * - Email confirmation support
+ * - Password reset link
+ * - Loading states
+ */
+
 "use client";
 
 import React, { useState, useActionState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { UserRoundPen, Mail, Lock, User, Phone, Loader2 } from "lucide-react";
-import { signup, login } from "./action";
+import { customerSignup, customerLogin } from "./actions";
+import type { AuthState } from "@/types";
 
-// LOADING FALLBACK for Suspense
+// Loading fallback for Suspense
 function AuthLoadingFallback() {
   return (
     <div className="min-h-[80vh] flex items-center justify-center px-6 py-12">
@@ -29,24 +45,21 @@ function AuthLoadingFallback() {
 }
 
 function AuthContent() {
-  // Toggle between Login and Signup
   const [isLogin, setIsLogin] = useState(true);
-
-  // useActionState handles the server response (errors/success) automatically
-  const [state, formAction, isPending] = useActionState(
-    isLogin ? login : signup,
-    null,
-  );
-
   const router = useRouter();
   const searchParams = useSearchParams();
   const redirectTo = searchParams.get("redirect") || "/shop";
   const isConfirmed = searchParams.get("confirmed") === "true";
 
+  // Use appropriate action based on mode
+  const [state, formAction, isPending] = useActionState<
+    AuthState | null,
+    FormData
+  >(isLogin ? customerLogin : customerSignup, null);
+
   // Handle successful login/signup
   useEffect(() => {
     if (state?.message && !state.error && !state.requiresConfirmation) {
-      // Redirect to intended page after successful auth (only if no confirmation needed)
       router.push(redirectTo);
     }
   }, [state, router, redirectTo]);
@@ -173,41 +186,39 @@ function AuthContent() {
           </button>
         </form>
 
-        <div>
-          {/* Forgot Password Link (only show on login) */}
-          {isLogin && (
-            <div className="text-center pt-1">
-              <button
-                type="button"
-                disabled={isPending}
-                onClick={() => router.push("/shop/auth/forgot-password")}
-                className="text-xs font-bold text-radiance-goldColor hover:underline underline-offset-4"
-              >
-                Forgot your password?
-              </button>
-            </div>
-          )}
-
-          {/* Toggle between Signup and Login */}
-          <div className="text-center pt-2 border-t border-gray-50">
+        {/* Forgot Password Link (only show on login) */}
+        {isLogin && (
+          <div className="text-center pt-1">
             <button
               type="button"
               disabled={isPending}
-              onClick={() => setIsLogin(!isLogin)}
+              onClick={() => router.push("/shop/auth/forgot-password")}
               className="text-xs font-bold text-radiance-goldColor hover:underline underline-offset-4"
             >
-              {isLogin
-                ? "New to JRADIANCE? SignUp"
-                : "Already have an account? LogIn"}
+              Forgot your password?
             </button>
           </div>
+        )}
+
+        {/* Toggle between Signup and Login */}
+        <div className="text-center pt-2 border-t border-gray-50">
+          <button
+            type="button"
+            disabled={isPending}
+            onClick={() => setIsLogin(!isLogin)}
+            className="text-xs font-bold text-radiance-goldColor hover:underline underline-offset-4"
+          >
+            {isLogin
+              ? "New to JRADIANCE? SignUp"
+              : "Already have an account? LogIn"}
+          </button>
         </div>
       </div>
     </div>
   );
 }
 
-// MAIN EXPORT WITH SUSPENSE BOUNDARY
+// Main export with Suspense boundary
 export default function CustomerAuthPage() {
   return (
     <Suspense fallback={<AuthLoadingFallback />}>

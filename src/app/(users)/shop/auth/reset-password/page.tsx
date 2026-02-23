@@ -1,9 +1,19 @@
+/**
+ * =============================================================================
+ * Reset Password Page
+ * =============================================================================
+ * 
+ * Password reset completion page for customers.
+ * Uses CustomerAuthService via server actions.
+ */
+
 "use client";
 
 import React, { useActionState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { UserRoundPen, Lock, Loader2 } from "lucide-react";
-import { resetPassword } from "../action";
+import { resetPassword } from "../actions";
+import type { AuthState } from "@/types";
 
 export default function ResetPasswordPage() {
   const [state, formAction, isPending] = useActionState(resetPassword, null);
@@ -12,7 +22,6 @@ export default function ResetPasswordPage() {
   // Handle successful password reset
   useEffect(() => {
     if (state?.message && !state.error) {
-      // Redirect to login after successful password reset
       setTimeout(() => {
         router.push("/shop/auth");
       }, 3000);

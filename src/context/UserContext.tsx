@@ -1,7 +1,12 @@
 /**
+ * =============================================================================
  * User Context Provider
- * Manages authentication state (client-side only)
- * Database operations should use Server Actions
+ * =============================================================================
+ * 
+ * Manages authentication state (client-side only).
+ * FIXED: Now fetches role from profiles table instead of user_metadata.
+ * 
+ * Note: For server-side operations, use the auth services instead.
  */
 
 "use client";
@@ -22,10 +27,17 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         const { data } = await supabase.auth.getUser();
 
         if (data.user) {
+          // Fetch role from profiles table (NOT user_metadata)
+          const { data: profile } = await supabase
+            .from("profiles")
+            .select("role")
+            .eq("id", data.user.id)
+            .single();
+
           setAuthUser({
             id: data.user.id,
             email: data.user.email || "",
-            role: (data.user.user_metadata?.role as UserRole) || "customer",
+            role: (profile?.role as UserRole) || "customer",
           });
         } else {
           setAuthUser(undefined);
@@ -43,15 +55,22 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     const { data: authListener } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         if (session?.user) {
+          // Fetch role from profiles table on auth change
+          const { data: profile } = await supabase
+            .from("profiles")
+            .select("role")
+            .eq("id", session.user.id)
+            .single();
+
           setAuthUser({
             id: session.user.id,
             email: session.user.email || "",
-            role: (session.user.user_metadata?.role as UserRole) || "customer",
+            role: (profile?.role as UserRole) || "customer",
           });
         } else {
           setAuthUser(undefined);
         }
-      },
+      }
     );
 
     return () => {
@@ -63,6 +82,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     <UserContext.Provider value={authUser}>{children}</UserContext.Provider>
   );
 }
+
 /**
  * Hook to get current authenticated user
  * Returns AuthUser with id, email, and role, or null if not authenticated

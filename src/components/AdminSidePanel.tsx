@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import {
   LayoutDashboard,
   Settings2,
@@ -17,7 +17,10 @@ import {
   LogOut,
   ChevronDown,
   ChevronRight,
+  Loader2,
+  UserCircle,
 } from "lucide-react";
+import { adminLogout, getAdminUserInfo } from "@/app/admin/(admin-auth)/login/actions";
 
 // Navigation Structure
 const adminNavItems = [
@@ -49,10 +52,45 @@ const adminNavItems = [
 
 export default function AdminSidePanel() {
   const pathname = usePathname();
+  const router = useRouter();
   const [expandedNav, setExpandedNav] = useState<string | null>("Dashboard");
+  const [userInfo, setUserInfo] = useState<{
+    email: string;
+    role: string;
+    full_name?: string | null;
+  } | null>(null);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+
+  // Load user info on mount
+  useEffect(() => {
+    loadUserInfo();
+  }, []);
+
+  async function loadUserInfo() {
+    const result = await getAdminUserInfo();
+    if (result?.user) {
+      setUserInfo(result.user);
+    }
+  }
+
+  async function handleLogout() {
+    setIsLoggingOut(true);
+    const result = await adminLogout();
+    if (result.success) {
+      router.push("/admin/login");
+    } else {
+      setIsLoggingOut(false);
+      alert(result.error || "Logout failed");
+    }
+  }
 
   // Only show this sidebar if user is on admin route
   if (!pathname?.startsWith("/admin")) return null;
+
+  // Format role for display
+  const formatRole = (role: string) => {
+    return role.replace("_", " ").toUpperCase();
+  };
 
   return (
     <aside className="fixed left-0 top-0 h-screen w-64 bg-radiance-charcoalTextColor text-white z-50 border-r border-white/5 flex flex-col">
@@ -65,6 +103,23 @@ export default function AdminSidePanel() {
           </span>
         </h1>
       </div>
+
+      {/* User Info */}
+      {userInfo && (
+        <div className="px-4 py-3 border-b border-white/5 bg-white/5">
+          <div className="flex items-center gap-3">
+            <UserCircle size={32} className="text-white/50" />
+            <div className="flex-1 min-w-0">
+              <p className="text-xs font-bold text-white truncate">
+                {userInfo.full_name || "Admin User"}
+              </p>
+              <p className="text-[10px] text-radiance-goldColor truncate">
+                {formatRole(userInfo.role)}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Main Navigation */}
       <nav className="flex-1 overflow-y-auto p-4 space-y-2 custom-scrollbar">
@@ -135,11 +190,21 @@ export default function AdminSidePanel() {
         })}
       </nav>
 
-      {/* Admin Footer */}
+      {/* Admin Footer with Logout */}
       <div className="p-4 border-t border-white/5">
-        <button className="flex items-center gap-3 w-full p-3 rounded-xl text-red-400 hover:bg-red-400/10 transition-colors">
-          <LogOut size={20} />
-          <span className="text-sm font-bold">Logout Session</span>
+        <button
+          onClick={handleLogout}
+          disabled={isLoggingOut}
+          className="flex items-center gap-3 w-full p-3 rounded-xl text-red-400 hover:bg-red-400/10 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {isLoggingOut ? (
+            <Loader2 size={20} className="animate-spin" />
+          ) : (
+            <LogOut size={20} />
+          )}
+          <span className="text-sm font-bold">
+            {isLoggingOut ? "Logging out..." : "Logout Session"}
+          </span>
         </button>
       </div>
     </aside>

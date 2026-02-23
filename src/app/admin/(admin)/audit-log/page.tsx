@@ -8,7 +8,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { getActivityLogs, checkPermission } from "../action";
+import { getActivityLogs, checkPermission } from "../admin-actions";
 import { ClipboardList, FileText } from "lucide-react";
 
 export default function AuditLogPage() {

@@ -1,18 +1,27 @@
+/**
+ * =============================================================================
+ * Forgot Password Page
+ * =============================================================================
+ * 
+ * Password reset request page for customers.
+ * Uses CustomerAuthService via server actions.
+ */
+
 "use client";
 
 import React, { useActionState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Mail, Loader2, ArrowLeft } from "lucide-react";
-import { forgotPassword } from "../action";
+import { sendPasswordResetEmail } from "../actions";
+import type { AuthState } from "@/types";
 
 export default function ForgotPasswordPage() {
-  const [state, formAction, isPending] = useActionState(forgotPassword, null);
+  const [state, formAction, isPending] = useActionState(sendPasswordResetEmail, null);
   const router = useRouter();
 
   // Handle successful password reset request
   useEffect(() => {
     if (state?.message && !state.error) {
-      // Redirect to login after successful request
       setTimeout(() => {
         router.push("/shop/auth");
       }, 5000);

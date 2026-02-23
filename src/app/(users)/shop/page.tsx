@@ -15,6 +15,7 @@ export default async function ShopPage({ searchParams }: ShopPageProps) {
     search:
       typeof searchParams.search === "string" ? searchParams.search : undefined,
     limit: 12, // Set a default limit for the initial load
+    is_active: true, // Only show active products to customers
   };
 
   const initialProducts = await getProducts(filters);
@@ -27,6 +28,7 @@ export default async function ShopPage({ searchParams }: ShopPageProps) {
           initialFilters={filters}
           title="JRadiance Cosmetics & Beauty Shop"
           subtitle="Discover the perfect products for your beauty needs."
+          skipInitialFetch={true} // Don't re-fetch since SSR provided data
         />
       </main>
     </div>

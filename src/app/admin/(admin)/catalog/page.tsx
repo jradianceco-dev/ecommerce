@@ -8,7 +8,6 @@
 "use client";
 
 import { useState, useEffect, useActionState } from "react";
-import { getProducts } from "@/utils/supabase/services";
 import { createProduct, updateProduct, deleteProduct, toggleProductStatus, checkPermission, uploadProductMedia } from "../admin-actions";
 import { Package, Plus, Edit, Trash2, ToggleLeft, Image as ImageIcon, X, Upload, FileVideo } from "lucide-react";
 import type { Product } from "@/types";
@@ -52,8 +51,16 @@ export default function ProductsCatalogPage() {
 
   async function loadProducts() {
     setLoading(true);
-    const result = await getProducts({ is_active: undefined });
-    setProducts(result);
+    try {
+      // Use dynamic import to avoid Turbopack bundling issues with server utilities
+      const { getProducts } = await import("@/utils/supabase/services-server");
+      // Pass is_active: undefined to see ALL products (active and inactive)
+      const result = await getProducts({ is_active: undefined });
+      setProducts(result);
+    } catch (error) {
+      console.error("Error loading products:", error);
+      setMessage({ type: "error", text: "Failed to load products" });
+    }
     setLoading(false);
   }
 

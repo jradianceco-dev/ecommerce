@@ -2,9 +2,9 @@
  * =============================================================================
  * Admin Layout
  * =============================================================================
- * 
+ *
  * Provides consistent layout for authenticated admin pages with sidebar navigation.
- * 
+ *
  * Security:
  * - Authentication verified by middleware (defensive check here)
  * - Role verification (admin, agent, chief_admin only)
@@ -12,6 +12,7 @@
  */
 
 import AdminSidePanel from "@/components/AdminSidePanel";
+import AdminErrorBoundary from "@/components/admin/AdminErrorBoundary";
 import { createClient } from "@/utils/supabase/server";
 import { redirect } from "next/navigation";
 
@@ -40,11 +41,13 @@ export default async function AdminLayout({ children }: AdminLayoutProps) {
       {/* Admin Sidebar Navigation */}
       <AdminSidePanel />
 
-      {/* Main Content Area */}
+      {/* Main Content Area with Error Boundary */}
       <main className="flex-1 ml-64">
-        <div className="container mx-auto px-8 py-12">
-          {children}
-        </div>
+        <AdminErrorBoundary>
+          <div className="container mx-auto px-8 py-12">
+            {children}
+          </div>
+        </AdminErrorBoundary>
       </main>
     </div>
   );

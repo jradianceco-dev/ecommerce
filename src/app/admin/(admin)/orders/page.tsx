@@ -1,6 +1,6 @@
 /**
  * Orders Manager Page
- * 
+ *
  * Admin can view all orders and update order status.
  * Access: Admin, Chief Admin, Agent
  */
@@ -8,41 +8,63 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { getAllOrders, updateOrderStatus, checkPermission } from "../admin-actions";
-import { ShoppingBag, Package, CheckCircle, Clock, Truck, XCircle } from "lucide-react";
+import { 
+  getAllOrders, 
+  updateOrderStatus, 
+  cancelOrder,
+  checkPermission,
+  getOrderStatistics 
+} from "../order-actions";
+import { ShoppingBag, Package, CheckCircle, Clock, Truck, XCircle, DollarSign, TrendingUp } from "lucide-react";
 
 type OrderStatus = "pending" | "confirmed" | "shipped" | "delivered" | "cancelled" | "returned";
+type PaymentStatus = "pending" | "completed" | "failed" | "refunded";
 
 interface Order {
   id: string;
   order_number: string;
   total_amount: number;
   status: OrderStatus;
-  payment_status: string;
+  payment_status: PaymentStatus;
   created_at: string;
   profiles: {
     email: string;
     full_name: string | null;
+    phone: string | null;
   } | null;
   order_items: Array<{
+    id: string;
     product_name: string;
     quantity: number;
     unit_price: number;
+    total_price: number;
   }>;
+}
+
+interface OrderStats {
+  totalOrders: number;
+  byStatus: Record<string, number>;
+  totalRevenue: number;
+  pendingRevenue: number;
 }
 
 export default function OrdersManagerPage() {
   const [hasAccess, setHasAccess] = useState(false);
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
+  const [stats, setStats] = useState<OrderStats | null>(null);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
   const [statusFilter, setStatusFilter] = useState<"all" | OrderStatus>("all");
+  const [paymentFilter, setPaymentFilter] = useState<"all" | PaymentStatus>("all");
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+  const [showCancelModal, setShowCancelModal] = useState(false);
+  const [cancelReason, setCancelReason] = useState("");
 
   useEffect(() => {
     checkPermissions();
     loadOrders();
+    loadStats();
   }, []);
 
   async function checkPermissions() {
@@ -59,16 +81,50 @@ export default function OrdersManagerPage() {
     setLoading(false);
   }
 
+  async function loadStats() {
+    const result = await getOrderStatistics("all");
+    if (result.success && result.data) {
+      setStats(result.data);
+    }
+  }
+
   async function handleStatusChange(orderId: string, newStatus: OrderStatus) {
     setActionLoading(orderId);
     const result = await updateOrderStatus(orderId, newStatus);
     setMessage({ type: result.success ? "success" : "error", text: result.message || result.error || "" });
-    if (result.success) loadOrders();
+    if (result.success) {
+      loadOrders();
+      loadStats();
+    }
     setActionLoading(null);
     setTimeout(() => setMessage(null), 3000);
   }
 
-  const filteredOrders = statusFilter === "all" ? orders : orders.filter((o) => o.status === statusFilter);
+  async function handleCancelOrder(orderId: string) {
+    if (!cancelReason.trim()) {
+      setMessage({ type: "error", text: "Please provide a cancellation reason" });
+      return;
+    }
+    
+    setActionLoading(orderId);
+    const result = await cancelOrder(orderId, cancelReason);
+    setMessage({ type: result.success ? "success" : "error", text: result.message || result.error || "" });
+    if (result.success) {
+      setShowCancelModal(false);
+      setCancelReason("");
+      setSelectedOrder(null);
+      loadOrders();
+      loadStats();
+    }
+    setActionLoading(null);
+    setTimeout(() => setMessage(null), 3000);
+  }
+
+  const filteredOrders = orders.filter((order) => {
+    if (statusFilter !== "all" && order.status !== statusFilter) return false;
+    if (paymentFilter !== "all" && order.payment_status !== paymentFilter) return false;
+    return true;
+  });
 
   const getStatusIcon = (status: OrderStatus) => {
     switch (status) {
@@ -89,6 +145,15 @@ export default function OrdersManagerPage() {
       case "delivered": return "bg-green-100 text-green-800";
       case "cancelled": return "bg-red-100 text-red-800";
       case "returned": return "bg-orange-100 text-orange-800";
+    }
+  };
+
+  const getPaymentStatusColor = (status: PaymentStatus) => {
+    switch (status) {
+      case "completed": return "bg-green-100 text-green-800";
+      case "pending": return "bg-yellow-100 text-yellow-800";
+      case "failed": return "bg-red-100 text-red-800";
+      case "refunded": return "bg-gray-100 text-gray-800";
     }
   };
 
@@ -117,21 +182,74 @@ export default function OrdersManagerPage() {
         </div>
       )}
 
+      {/* Stats Cards */}
+      {stats && (
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+          <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-600">Total Orders</p>
+                <p className="text-2xl font-bold text-gray-900">{stats.totalOrders}</p>
+              </div>
+              <ShoppingBag size={40} className="text-blue-500" />
+            </div>
+          </div>
+          <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-600">Total Revenue</p>
+                <p className="text-2xl font-bold text-radiance-goldColor">₦{stats.totalRevenue.toLocaleString()}</p>
+              </div>
+              <DollarSign size={40} className="text-green-500" />
+            </div>
+          </div>
+          <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-600">Pending Revenue</p>
+                <p className="text-2xl font-bold text-yellow-600">₦{stats.pendingRevenue.toLocaleString()}</p>
+              </div>
+              <TrendingUp size={40} className="text-yellow-500" />
+            </div>
+          </div>
+          <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-600">Completed</p>
+                <p className="text-2xl font-bold text-green-600">{stats.byStatus["delivered"] || 0}</p>
+              </div>
+              <CheckCircle size={40} className="text-green-500" />
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Filters */}
       <div className="flex gap-2 overflow-x-auto">
-        {(["all", "pending", "confirmed", "shipped", "delivered", "cancelled", "returned"] as const).map((status) => (
-          <button
-            key={status}
-            onClick={() => setStatusFilter(status)}
-            className={`px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap ${
-              statusFilter === status
-                ? "bg-radiance-goldColor text-white"
-                : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-            }`}
-          >
-            {status.charAt(0).toUpperCase() + status.slice(1)}
-          </button>
-        ))}
+        <select
+          value={statusFilter}
+          onChange={(e) => setStatusFilter(e.target.value as any)}
+          className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-radiance-goldColor"
+        >
+          <option value="all">All Statuses</option>
+          <option value="pending">Pending</option>
+          <option value="confirmed">Confirmed</option>
+          <option value="shipped">Shipped</option>
+          <option value="delivered">Delivered</option>
+          <option value="cancelled">Cancelled</option>
+          <option value="returned">Returned</option>
+        </select>
+        <select
+          value={paymentFilter}
+          onChange={(e) => setPaymentFilter(e.target.value as any)}
+          className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-radiance-goldColor"
+        >
+          <option value="all">All Payments</option>
+          <option value="pending">Pending</option>
+          <option value="completed">Completed</option>
+          <option value="failed">Failed</option>
+          <option value="refunded">Refunded</option>
+        </select>
       </div>
 
       {loading ? (
@@ -183,11 +301,7 @@ export default function OrdersManagerPage() {
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                        order.payment_status === "completed" ? "bg-green-100 text-green-800" :
-                        order.payment_status === "pending" ? "bg-yellow-100 text-yellow-800" :
-                        "bg-red-100 text-red-800"
-                      }`}>
+                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${getPaymentStatusColor(order.payment_status)}`}>
                         {order.payment_status}
                       </span>
                     </td>
@@ -195,19 +309,32 @@ export default function OrdersManagerPage() {
                       {new Date(order.created_at).toLocaleDateString()}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right">
-                      <select
-                        value={order.status}
-                        onChange={(e) => handleStatusChange(order.id, e.target.value as OrderStatus)}
-                        disabled={actionLoading === order.id}
-                        className="text-sm border border-gray-300 rounded-lg px-3 py-1 focus:ring-2 focus:ring-radiance-goldColor disabled:opacity-50"
-                      >
-                        <option value="pending">Pending</option>
-                        <option value="confirmed">Confirmed</option>
-                        <option value="shipped">Shipped</option>
-                        <option value="delivered">Delivered</option>
-                        <option value="cancelled">Cancelled</option>
-                        <option value="returned">Returned</option>
-                      </select>
+                      <div className="flex items-center justify-end gap-2">
+                        <select
+                          value={order.status}
+                          onChange={(e) => handleStatusChange(order.id, e.target.value as OrderStatus)}
+                          disabled={actionLoading === order.id}
+                          className="text-sm border border-gray-300 rounded-lg px-3 py-1 focus:ring-2 focus:ring-radiance-goldColor disabled:opacity-50"
+                        >
+                          <option value="pending">Pending</option>
+                          <option value="confirmed">Confirmed</option>
+                          <option value="shipped">Shipped</option>
+                          <option value="delivered">Delivered</option>
+                          <option value="cancelled">Cancelled</option>
+                          <option value="returned">Returned</option>
+                        </select>
+                        {order.status !== "cancelled" && order.status !== "returned" && (
+                          <button
+                            onClick={() => {
+                              setSelectedOrder(order);
+                              setShowCancelModal(true);
+                            }}
+                            className="text-red-600 hover:text-red-900 text-sm font-medium"
+                          >
+                            Cancel
+                          </button>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -224,17 +351,58 @@ export default function OrdersManagerPage() {
         </div>
       )}
 
-      {/* Order Details Modal */}
-      {selectedOrder && (
+      {/* Cancel Order Modal */}
+      {showCancelModal && selectedOrder && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-2xl font-bold">Order Details</h2>
-              <button onClick={() => setSelectedOrder(null)} className="p-2 hover:bg-gray-100 rounded-full">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-bold">Cancel Order</h2>
+              <button
+                onClick={() => {
+                  setShowCancelModal(false);
+                  setCancelReason("");
+                  setSelectedOrder(null);
+                }}
+                className="p-2 hover:bg-gray-100 rounded-full"
+              >
                 <XCircle size={24} />
               </button>
             </div>
-            {/* Order details content */}
+            <p className="text-gray-600 mb-4">
+              Are you sure you want to cancel order <span className="font-bold">{selectedOrder.order_number}</span>?
+              This will restore the product stock.
+            </p>
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Cancellation Reason
+              </label>
+              <textarea
+                value={cancelReason}
+                onChange={(e) => setCancelReason(e.target.value)}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-radiance-goldColor"
+                rows={3}
+                placeholder="Please provide a reason for cancellation..."
+              />
+            </div>
+            <div className="flex gap-3">
+              <button
+                onClick={() => {
+                  setShowCancelModal(false);
+                  setCancelReason("");
+                  setSelectedOrder(null);
+                }}
+                className="flex-1 px-6 py-3 border border-gray-300 rounded-xl font-medium hover:bg-gray-50 transition-colors"
+              >
+                Back
+              </button>
+              <button
+                onClick={() => handleCancelOrder(selectedOrder.id)}
+                disabled={actionLoading === selectedOrder.id || !cancelReason.trim()}
+                className="flex-1 px-6 py-3 bg-red-600 text-white rounded-xl font-medium hover:bg-red-700 transition-colors disabled:opacity-50"
+              >
+                {actionLoading === selectedOrder.id ? "Cancelling..." : "Confirm Cancel"}
+              </button>
+            </div>
           </div>
         </div>
       )}

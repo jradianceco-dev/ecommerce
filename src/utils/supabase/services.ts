@@ -64,10 +64,14 @@ export async function getProducts(
 ): Promise<Product[]> {
   try {
     const supabase = createClient();
-    let query = supabase
-      .from("products")
-      .select("*")
-      .eq("is_active", filters?.is_active !== false ? true : undefined);
+    let query = supabase.from("products").select("*");
+
+    // Fix: Only apply is_active filter if explicitly provided
+    // For admin catalog views, pass is_active: undefined to see all products
+    // For customer views, pass is_active: true to see only active products
+    if (filters?.is_active !== undefined) {
+      query = query.eq("is_active", filters.is_active);
+    }
 
     if (filters?.category) {
       query = query.eq("category", filters.category);

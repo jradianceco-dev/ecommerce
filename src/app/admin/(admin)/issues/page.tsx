@@ -1,65 +1,46 @@
 /**
  * Issues Log Page
- * 
- * View system bugs and customer complaints with status tracking.
+ *
+ * Track system bugs and customer complaints with status tracking.
  * Access: Admin, Chief Admin
  */
 
 "use client";
 
 import { useState, useEffect } from "react";
-import { checkPermission } from "../admin-actions";
-import { AlertTriangle, Bug, MessageSquare, CheckCircle, Clock, AlertCircle } from "lucide-react";
+import { 
+  getAllIssues, 
+  updateIssueStatus, 
+  updateIssuePriority, 
+  deleteIssue,
+  checkPermission 
+} from "../issue-actions";
+import { AlertTriangle, Bug, MessageSquare, CheckCircle, Clock, AlertCircle, Plus, Trash2 } from "lucide-react";
 
 interface Issue {
   id: string;
-  type: "bug" | "complaint";
+  type: "bug" | "complaint" | "feature_request";
   title: string;
   description: string;
-  status: "reported" | "pending" | "solved";
-  priority: "low" | "medium" | "high";
+  status: "reported" | "pending" | "solved" | "closed";
+  priority: "low" | "medium" | "high" | "critical";
+  reported_by: string | null;
+  assigned_to: string | null;
+  resolved_at?: string | null;
   created_at: string;
-  resolved_at?: string;
+  profiles?: { email: string; full_name: string | null } | null;
+  admin_staff?: { position: string | null } | null;
 }
-
-// Mock data - replace with actual database queries when issues table is created
-const mockIssues: Issue[] = [
-  {
-    id: "1",
-    type: "bug",
-    title: "Cart not updating quantity",
-    description: "Users report cart quantity not updating properly on mobile devices",
-    status: "pending",
-    priority: "high",
-    created_at: new Date().toISOString(),
-  },
-  {
-    id: "2",
-    type: "complaint",
-    title: "Delayed delivery",
-    description: "Customer complaint about order #12345 not delivered on time",
-    status: "reported",
-    priority: "medium",
-    created_at: new Date().toISOString(),
-  },
-  {
-    id: "3",
-    type: "bug",
-    title: "Image upload failing",
-    description: "Admin unable to upload product images larger than 5MB",
-    status: "solved",
-    priority: "low",
-    created_at: new Date().toISOString(),
-    resolved_at: new Date().toISOString(),
-  },
-];
 
 export default function IssuesLogPage() {
   const [hasAccess, setHasAccess] = useState(false);
   const [issues, setIssues] = useState<Issue[]>([]);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState<"all" | "bug" | "complaint">("all");
-  const [statusFilter, setStatusFilter] = useState<"all" | "reported" | "pending" | "solved">("all");
+  const [filter, setFilter] = useState<"all" | "bug" | "complaint" | "feature_request">("all");
+  const [statusFilter, setStatusFilter] = useState<"all" | "reported" | "pending" | "solved" | "closed">("all");
+  const [priorityFilter, setPriorityFilter] = useState<"all" | "low" | "medium" | "high" | "critical">("all");
+  const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
+  const [actionLoading, setActionLoading] = useState<string | null>(null);
 
   useEffect(() => {
     checkPermissions();
@@ -72,14 +53,46 @@ export default function IssuesLogPage() {
   }
 
   async function loadIssues() {
-    // For now, use mock data. Replace with actual API call when issues table exists
-    setIssues(mockIssues);
+    setLoading(true);
+    const result = await getAllIssues();
+    if (result.success && result.data) {
+      setIssues(result.data);
+    }
     setLoading(false);
+  }
+
+  async function handleStatusChange(issueId: string, newStatus: "reported" | "pending" | "solved" | "closed") {
+    setActionLoading(issueId);
+    const result = await updateIssueStatus(issueId, newStatus);
+    setMessage({ type: result.success ? "success" : "error", text: result.message || result.error || "" });
+    if (result.success) loadIssues();
+    setActionLoading(null);
+    setTimeout(() => setMessage(null), 3000);
+  }
+
+  async function handlePriorityChange(issueId: string, newPriority: "low" | "medium" | "high" | "critical") {
+    setActionLoading(issueId);
+    const result = await updateIssuePriority(issueId, newPriority);
+    setMessage({ type: result.success ? "success" : "error", text: result.message || result.error || "" });
+    if (result.success) loadIssues();
+    setActionLoading(null);
+    setTimeout(() => setMessage(null), 3000);
+  }
+
+  async function handleDelete(issueId: string) {
+    if (!confirm("Are you sure you want to delete this issue?")) return;
+    setActionLoading(issueId);
+    const result = await deleteIssue(issueId);
+    setMessage({ type: result.success ? "success" : "error", text: result.message || result.error || "" });
+    if (result.success) loadIssues();
+    setActionLoading(null);
+    setTimeout(() => setMessage(null), 3000);
   }
 
   const filteredIssues = issues.filter((issue) => {
     if (filter !== "all" && issue.type !== filter) return false;
     if (statusFilter !== "all" && issue.status !== statusFilter) return false;
+    if (priorityFilter !== "all" && issue.priority !== priorityFilter) return false;
     return true;
   });
 
@@ -88,11 +101,25 @@ export default function IssuesLogPage() {
       case "reported": return <AlertCircle size={16} className="text-red-500" />;
       case "pending": return <Clock size={16} className="text-yellow-500" />;
       case "solved": return <CheckCircle size={16} className="text-green-500" />;
+      case "closed": return <CheckCircle size={16} className="text-gray-500" />;
     }
   };
 
   const getTypeIcon = (type: string) => {
-    return type === "bug" ? <Bug size={16} /> : <MessageSquare size={16} />;
+    switch (type) {
+      case "bug": return <Bug size={16} />;
+      case "complaint": return <MessageSquare size={16} />;
+      case "feature_request": return <Plus size={16} />;
+    }
+  };
+
+  const getPriorityColor = (priority: string) => {
+    switch (priority) {
+      case "critical": return "bg-red-100 text-red-800";
+      case "high": return "bg-orange-100 text-orange-800";
+      case "medium": return "bg-yellow-100 text-yellow-800";
+      case "low": return "bg-gray-100 text-gray-800";
+    }
   };
 
   if (!hasAccess) {
@@ -114,8 +141,14 @@ export default function IssuesLogPage() {
         <AlertTriangle className="text-radiance-goldColor" size={32} />
       </div>
 
+      {message && (
+        <div className={`p-4 rounded-xl ${message.type === "success" ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"}`}>
+          {message.text}
+        </div>
+      )}
+
       {/* Filters */}
-      <div className="flex gap-4">
+      <div className="flex flex-wrap gap-4">
         <select
           value={filter}
           onChange={(e) => setFilter(e.target.value as any)}
@@ -124,6 +157,7 @@ export default function IssuesLogPage() {
           <option value="all">All Types</option>
           <option value="bug">Bugs Only</option>
           <option value="complaint">Complaints Only</option>
+          <option value="feature_request">Feature Requests</option>
         </select>
         <select
           value={statusFilter}
@@ -134,6 +168,18 @@ export default function IssuesLogPage() {
           <option value="reported">Reported</option>
           <option value="pending">Pending</option>
           <option value="solved">Solved</option>
+          <option value="closed">Closed</option>
+        </select>
+        <select
+          value={priorityFilter}
+          onChange={(e) => setPriorityFilter(e.target.value as any)}
+          className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-radiance-goldColor"
+        >
+          <option value="all">All Priorities</option>
+          <option value="critical">Critical</option>
+          <option value="high">High</option>
+          <option value="medium">Medium</option>
+          <option value="low">Low</option>
         </select>
       </div>
 
@@ -146,41 +192,67 @@ export default function IssuesLogPage() {
           {filteredIssues.map((issue) => (
             <div key={issue.id} className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
               <div className="flex items-start justify-between">
-                <div className="flex items-start gap-4">
-                  <div className={`p-3 rounded-lg ${issue.type === "bug" ? "bg-red-100" : "bg-blue-100"}`}>
+                <div className="flex items-start gap-4 flex-1">
+                  <div className={`p-3 rounded-lg ${issue.type === "bug" ? "bg-red-100" : issue.type === "complaint" ? "bg-blue-100" : "bg-purple-100"}`}>
                     {getTypeIcon(issue.type)}
                   </div>
-                  <div>
-                    <div className="flex items-center gap-2">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 flex-wrap">
                       <h3 className="font-bold text-gray-900">{issue.title}</h3>
                       {getStatusIcon(issue.status)}
-                      <span className={`px-2 py-0.5 rounded-full text-xs ${
+                      <span className={`px-2 py-1 rounded-full text-xs ${
                         issue.status === "reported" ? "bg-red-100 text-red-800" :
                         issue.status === "pending" ? "bg-yellow-100 text-yellow-800" :
-                        "bg-green-100 text-green-800"
+                        issue.status === "solved" ? "bg-green-100 text-green-800" :
+                        "bg-gray-100 text-gray-800"
                       }`}>
                         {issue.status}
                       </span>
-                      <span className={`px-2 py-0.5 rounded-full text-xs ${
-                        issue.priority === "high" ? "bg-red-100 text-red-800" :
-                        issue.priority === "medium" ? "bg-yellow-100 text-yellow-800" :
-                        "bg-gray-100 text-gray-800"
-                      }`}>
+                      <span className={`px-2 py-1 rounded-full text-xs ${getPriorityColor(issue.priority)}`}>
                         {issue.priority}
                       </span>
                     </div>
                     <p className="text-gray-600 mt-2 text-sm">{issue.description}</p>
-                    <p className="text-xs text-gray-500 mt-2">
-                      Reported: {new Date(issue.created_at).toLocaleString()}
-                      {issue.resolved_at && ` • Resolved: ${new Date(issue.resolved_at).toLocaleString()}`}
-                    </p>
+                    <div className="flex items-center gap-4 mt-3 text-xs text-gray-500">
+                      <span>Reported: {new Date(issue.created_at).toLocaleString()}</span>
+                      {issue.profiles?.email && <span>• By: {issue.profiles.email}</span>}
+                      {issue.resolved_at && <span>• Resolved: {new Date(issue.resolved_at).toLocaleString()}</span>}
+                      {issue.admin_staff && <span>• Assigned: {issue.admin_staff.position || "Admin"}</span>}
+                    </div>
                   </div>
                 </div>
-                <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-                  issue.type === "bug" ? "bg-red-100 text-red-800" : "bg-blue-100 text-blue-800"
-                }`}>
-                  {issue.type}
-                </span>
+                <div className="flex items-center gap-2">
+                  <select
+                    value={issue.status}
+                    onChange={(e) => handleStatusChange(issue.id, e.target.value as any)}
+                    disabled={actionLoading === issue.id}
+                    className="text-xs border border-gray-300 rounded-lg px-2 py-1 focus:ring-2 focus:ring-radiance-goldColor disabled:opacity-50"
+                  >
+                    <option value="reported">Reported</option>
+                    <option value="pending">Pending</option>
+                    <option value="solved">Solved</option>
+                    <option value="closed">Closed</option>
+                  </select>
+                  <select
+                    value={issue.priority}
+                    onChange={(e) => handlePriorityChange(issue.id, e.target.value as any)}
+                    disabled={actionLoading === issue.id}
+                    className="text-xs border border-gray-300 rounded-lg px-2 py-1 focus:ring-2 focus:ring-radiance-goldColor disabled:opacity-50"
+                  >
+                    <option value="low">Low</option>
+                    <option value="medium">Medium</option>
+                    <option value="high">High</option>
+                    <option value="critical">Critical</option>
+                  </select>
+                  <button
+                    onClick={() => handleDelete(issue.id)}
+                    disabled={actionLoading === issue.id}
+                    className="p-2 text-red-600 hover:bg-red-50 rounded-lg disabled:opacity-50"
+                    title="Delete"
+                  >
+                    <Trash2 size={16} />
+                  </button>
+                </div>
               </div>
             </div>
           ))}

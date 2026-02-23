@@ -1,11 +1,10 @@
 /**
  * Server-Side Database Services Layer
- * 
+ *
  * Used in server components, API routes, and server actions
  * All queries go through these functions
  */
 
-import { createClient } from "./server";
 import { createStaticClient } from "./static-client";
 import type { UserProfile, Product, ProductFilters } from "@/types";
 
@@ -14,7 +13,7 @@ export async function getUserProfile(
   userId: string,
 ): Promise<UserProfile | null> {
   try {
-    const supabase = await createClient();
+    const supabase = createStaticClient();
     const { data, error } = await supabase
       .from("profiles")
       .select("*")
@@ -34,7 +33,7 @@ export async function updateUserProfile(
   updates: Partial<UserProfile>,
 ): Promise<UserProfile | null> {
   try {
-    const supabase = await createClient();
+    const supabase = createStaticClient();
     const { data, error } = await supabase
       .from("profiles")
       .update(updates)
@@ -55,11 +54,15 @@ export async function getProducts(
   filters?: ProductFilters,
 ): Promise<Product[]> {
   try {
-    const supabase = await createClient();
-    let query = supabase
-      .from("products")
-      .select("*")
-      .eq("is_active", filters?.is_active !== false ? true : undefined);
+    const supabase = createStaticClient();
+    let query = supabase.from("products").select("*");
+
+    // Fix: Only apply is_active filter if explicitly provided
+    // For admin catalog views, pass is_active: undefined to see all products
+    // For customer views, pass is_active: true to see only active products
+    if (filters?.is_active !== undefined) {
+      query = query.eq("is_active", filters.is_active);
+    }
 
     if (filters?.category) {
       query = query.eq("category", filters.category);
@@ -94,7 +97,7 @@ export async function getProductById(
   productId: string,
 ): Promise<Product | null> {
   try {
-    const supabase = await createClient();
+    const supabase = createStaticClient();
     const { data, error } = await supabase
       .from("products")
       .select("*")
@@ -113,7 +116,7 @@ export async function getProductsByIds(
   productIds: string[],
 ): Promise<Product[]> {
   try {
-    const supabase = await createClient();
+    const supabase = createStaticClient();
     const { data, error } = await supabase
       .from("products")
       .select("*")
@@ -132,7 +135,7 @@ export async function getTrendingProducts(
   limit: number = 8,
 ): Promise<Product[]> {
   try {
-    const supabase = await createClient();
+    const supabase = createStaticClient();
 
     // Get recent order items (last 30 days)
     const thirtyDaysAgo = new Date();
@@ -176,7 +179,7 @@ export async function getBestSellerProducts(
   limit: number = 8,
 ): Promise<Product[]> {
   try {
-    const supabase = await createClient();
+    const supabase = createStaticClient();
 
     // Get all order items grouped by product_id with total quantity
     const { data: orderItems, error } = await supabase
@@ -219,7 +222,7 @@ export async function addProductReview(
   review_text: string | null,
 ): Promise<boolean> {
   try {
-    const supabase = await createClient();
+    const supabase = createStaticClient();
     const { error } = await supabase.from("product_reviews").insert({
       product_id: productId,
       user_id: userId,

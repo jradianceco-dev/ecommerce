@@ -19,6 +19,7 @@ interface ProductFeedsProps {
   subtitle?: string;
   className?: string;
   feedType?: "trending" | "best-sellers" | "all";
+  skipInitialFetch?: boolean; // Skip initial fetch if SSR provided data
 }
 
 export default function ProductFeeds({
@@ -30,9 +31,10 @@ export default function ProductFeeds({
   subtitle,
   className = "",
   feedType = "all",
+  skipInitialFetch = false, 
 }: ProductFeedsProps) {
   const [products, setProducts] = useState<Product[]>(initialProducts || []);
-  const [loading, setLoading] = useState(!initialProducts);
+  const [loading, setLoading] = useState(!initialProducts && !skipInitialFetch);
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState(initialFilters.search || "");
@@ -48,7 +50,7 @@ export default function ProductFeeds({
   const [hasMore, setHasMore] = useState(true);
   const BATCH_SIZE = initialFilters.limit || 8;
 
-  // Generic product fetcher
+  // Generic product fetcher with error handling
   const fetchProductsCallback = useCallback(
     async (filters: ProductFilters, nextPage = 1) => {
       if (nextPage > 1) {
@@ -83,7 +85,8 @@ export default function ProductFeeds({
         setHasMore(newProducts.length === BATCH_SIZE);
         setPage(nextPage);
       } catch (err) {
-        setError("Failed to load products");
+        const errorMessage = err instanceof Error ? err.message : "Failed to load products";
+        setError(errorMessage);
         console.error("Error fetching products:", err);
       } finally {
         setLoading(false);
@@ -93,18 +96,27 @@ export default function ProductFeeds({
     [BATCH_SIZE, feedType],
   );
 
-  // Initial load
+  // Initial load - skip if SSR provided data
   useEffect(() => {
-    if (!initialProducts) {
+    // If we have initial products and skipInitialFetch is true, don't re-fetch
+    if (skipInitialFetch && initialProducts && initialProducts.length > 0) {
+      setProducts(initialProducts);
+      setHasMore(initialProducts.length >= BATCH_SIZE);
+      setLoading(false);
+      return;
+    }
+    
+    // Only fetch if no initial products provided
+    if (!initialProducts && !skipInitialFetch) {
       fetchProductsCallback(initialFilters, 1);
-    } else {
-      setHasMore(products.length >= BATCH_SIZE);
+    } else if (initialProducts) {
+      setHasMore(initialProducts.length >= BATCH_SIZE);
     }
   }, [
     initialFilters,
     fetchProductsCallback,
     initialProducts,
-    products.length,
+    skipInitialFetch,
     BATCH_SIZE,
   ]);
 
@@ -334,10 +346,8 @@ export default function ProductFeeds({
             <button
               onClick={handleLoadMore}
               disabled={loadingMore}
-              // className="bg-radiance-charcoalTextColor text-white px-8 py-3 rounded-full font-bold text-sm hover:bg-radiance-goldColor transition-all shadow-lg disabled:bg-gray-400"
               className="bg-radiance-charcoalTextColor text-white px-8 py-3 rounded-full font-bold text-sm hover:bg-radiance-goldColor transition-all shadow-md hover:shadow-lg disabled:bg-gray-300 disabled:cursor-not-allowed disabled:shadow-none min-w-40"
             >
-              {/* {loadingMore ? "Loading..." : "See More"} */}
               {loadingMore ? (
                 <span className="flex items-center justify-center gap-2">
                   <span className="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin"></span>

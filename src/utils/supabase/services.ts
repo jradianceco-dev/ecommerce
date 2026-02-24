@@ -596,3 +596,88 @@ export async function getProductReviews(
     return [];
   }
 }
+
+/**
+ * Get average rating for a product
+ * @param productId - Product ID to get rating for
+ * @returns Average rating (0-5) and total review count
+ */
+export async function getProductAverageRating(
+  productId: string,
+): Promise<{ averageRating: number; totalReviews: number }> {
+  try {
+    const supabase = createClient();
+    const { data, error } = await supabase
+      .from("product_reviews")
+      .select("rating")
+      .eq("product_id", productId);
+
+    if (error) throw error;
+
+    if (!data || data.length === 0) {
+      return { averageRating: 0, totalReviews: 0 };
+    }
+
+    const totalReviews = data.length;
+    const sumRatings = data.reduce((sum, review) => sum + (review.rating || 0), 0);
+    const averageRating = sumRatings / totalReviews;
+
+    return {
+      averageRating: Math.round(averageRating * 10) / 10, // Round to 1 decimal
+      totalReviews,
+    };
+  } catch (error) {
+    console.error("Error fetching average rating:", error);
+    return { averageRating: 0, totalReviews: 0 };
+  }
+}
+
+/**
+ * Get ratings for multiple products at once
+ * @param productIds - Array of product IDs
+ * @returns Map of product ID to rating data
+ */
+export async function getProductsAverageRatings(
+  productIds: string[],
+): Promise<Map<string, { averageRating: number; totalReviews: number }>> {
+  try {
+    const supabase = createClient();
+    const { data, error } = await supabase
+      .from("product_reviews")
+      .select("product_id, rating")
+      .in("product_id", productIds);
+
+    if (error) throw error;
+
+    const ratingsMap = new Map<string, { sum: number; count: number }>();
+
+    // Initialize map
+    productIds.forEach((id) => {
+      ratingsMap.set(id, { sum: 0, count: 0 });
+    });
+
+    // Aggregate ratings
+    data?.forEach((review) => {
+      const current = ratingsMap.get(review.product_id) || { sum: 0, count: 0 };
+      ratingsMap.set(review.product_id, {
+        sum: current.sum + (review.rating || 0),
+        count: current.count + 1,
+      });
+    });
+
+    // Convert to final format
+    const result = new Map<string, { averageRating: number; totalReviews: number }>();
+    ratingsMap.forEach((value, key) => {
+      result.set(key, {
+        averageRating: value.count > 0 ? Math.round((value.sum / value.count) * 10) / 10 : 0,
+        totalReviews: value.count,
+      });
+    });
+
+    return result;
+  } catch (error) {
+    console.error("Error fetching products ratings:", error);
+    // Return empty map on error
+    return new Map();
+  }
+}

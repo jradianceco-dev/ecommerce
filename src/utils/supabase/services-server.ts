@@ -264,6 +264,41 @@ export async function getProductBySlug(slug: string): Promise<Product | null> {
 }
 
 /**
+ * Get average rating for a product (server-side)
+ * @param productId - Product ID to get rating for
+ * @returns Average rating (0-5) and total review count
+ */
+export async function getProductAverageRating(
+  productId: string,
+): Promise<{ averageRating: number; totalReviews: number }> {
+  try {
+    const supabase = createStaticClient();
+    const { data, error } = await supabase
+      .from("product_reviews")
+      .select("rating")
+      .eq("product_id", productId);
+
+    if (error) throw error;
+
+    if (!data || data.length === 0) {
+      return { averageRating: 0, totalReviews: 0 };
+    }
+
+    const totalReviews = data.length;
+    const sumRatings = data.reduce((sum, review) => sum + (review.rating || 0), 0);
+    const averageRating = sumRatings / totalReviews;
+
+    return {
+      averageRating: Math.round(averageRating * 10) / 10,
+      totalReviews,
+    };
+  } catch (error) {
+    console.error("Error fetching average rating:", error);
+    return { averageRating: 0, totalReviews: 0 };
+  }
+}
+
+/**
  * Get all product slugs for sitemap generation
  * CQS: Query method - only retrieves data for sitemap
  * Uses static client to avoid cookie issues during static generation

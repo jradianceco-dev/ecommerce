@@ -1,7 +1,6 @@
 /**
- * =============================================================================
  * JRADIANCE Admin Actions
- * =============================================================================
+ * =======================
  *
  * Server-side functions for all administrative operations.
  * These actions are only accessible by authorized admin users.
@@ -24,10 +23,20 @@ import { createClient } from "@/utils/supabase/server";
 import { createStaticClient } from "@/utils/supabase/static-client";
 import type { UserRole, OrderStatus } from "@/types";
 import { revalidatePath } from "next/cache";
-import { uploadFileToFTP, uploadMultipleFilesToFTP } from "@/utils/ftp-upload";
+import {
+  uploadProductMedia as uploadToStorage,
+  deleteFileFromStorage,
+  deleteMultipleFilesFromStorage,
+  STORAGE_BUCKETS,
+  getPublicUrl,
+  validateFileType,
+  validateFileSize,
+  PRODUCT_MEDIA_TYPES,
+  MAX_FILE_SIZES,
+} from "@/utils/supabase/storage";
 
-/* 
-   Common Response Types 
+/*
+   Common Response Types
    */
 
 /**
@@ -40,7 +49,146 @@ export interface AdminActionResult {
   message?: string;
 }
 
-/* 
+/*
+  Helper Functions for Product Management
+*/
+
+/**
+ * Generate a URL-friendly slug from product name
+ * Handles duplicates by adding incremental suffix
+ *
+ * @param name - Product name to convert to slug
+ * @param productId - Existing product ID (for updates, to exclude from duplicate check)
+ * @returns Unique slug
+ */
+async function generateProductSlug(
+  name: string,
+  productId?: string
+): Promise<string> {
+  const supabase = await createClient();
+
+  // Convert name to slug: lowercase, replace non-alphanumeric with hyphens
+  let baseSlug = name
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+
+  if (!baseSlug) {
+    baseSlug = `product-${Date.now()}`;
+  }
+
+  // Check for duplicates and add suffix if needed
+  let slug = baseSlug;
+  let counter = 0;
+
+  while (true) {
+    const query = supabase
+      .from("products")
+      .select("id", { count: "exact", head: true })
+      .eq("slug", slug);
+
+    if (productId) {
+      query.neq("id", productId);
+    }
+
+    const { count } = await query;
+
+    if (!count || count === 0) {
+      break;
+    }
+
+    counter++;
+    slug = `${baseSlug}-${counter}`;
+  }
+
+  return slug;
+}
+
+/**
+ * Generate a unique SKU for product
+ * Format: JRAD-CATEGORY-TIMESTAMP-RANDOM
+ *
+ * @param category - Product category
+ * @returns Unique SKU
+ */
+function generateProductSKU(category: string): string {
+  const timestamp = Date.now().toString(36).toUpperCase();
+  const random = Math.random().toString(36).substring(2, 6).toUpperCase();
+  const categoryPrefix = category
+    .substring(0, 3)
+    .toUpperCase()
+    .replace(/[^A-Z]/g, "");
+
+  return `JRAD-${categoryPrefix}-${timestamp}-${random}`;
+}
+
+/**
+ * Validate product data before creation/update
+ *
+ * @param productData - Product data to validate
+ * @returns Validation result
+ */
+function validateProductData(
+  productData: Partial<{
+    name: string;
+    slug: string;
+    description: string | null;
+    category: string;
+    price: number;
+    discount_price: number | null;
+    stock_quantity: number;
+    sku: string | null;
+    images: string[];
+    attributes: Record<string, string | number | boolean | null>;
+  }>
+): { valid: boolean; error?: string } {
+  if (!productData.name || productData.name.trim().length === 0) {
+    return { valid: false, error: "Product name is required" };
+  }
+
+  if (!productData.category || productData.category.trim().length === 0) {
+    return { valid: false, error: "Product category is required" };
+  }
+
+  if (
+    productData.price === undefined ||
+    productData.price === null ||
+    productData.price < 0
+  ) {
+    return { valid: false, error: "Valid price is required" };
+  }
+
+  if (
+    productData.stock_quantity === undefined ||
+    productData.stock_quantity === null ||
+    productData.stock_quantity < 0
+  ) {
+    return { valid: false, error: "Valid stock quantity is required" };
+  }
+
+  if (
+    productData.discount_price !== null &&
+    productData.discount_price !== undefined &&
+    productData.discount_price < 0
+  ) {
+    return { valid: false, error: "Discount price must be positive" };
+  }
+
+  if (
+    productData.discount_price !== null &&
+    productData.discount_price !== undefined &&
+    productData.discount_price >= productData.price
+  ) {
+    return {
+      valid: false,
+      error: "Discount price must be less than original price",
+    };
+  }
+
+  return { valid: true };
+}
+
+/*
   Permission & Access Control
 */
 
@@ -514,6 +662,7 @@ export async function getAllAgents() {
  * Create Product
  *
  * Adds a new product to the catalog.
+ * Auto-generates slug and SKU if not provided.
  * Associates product with creating admin for audit trail.
  *
  * @param productData - Product information including name, price, images, etc.
@@ -525,13 +674,13 @@ export async function getAllAgents() {
  */
 export async function createProduct(productData: {
   name: string;
-  slug: string;
+  slug?: string; // Optional - auto-generated if not provided
   description: string | null;
   category: string;
   price: number;
   discount_price: number | null;
   stock_quantity: number;
-  sku: string | null;
+  sku?: string; // Optional - auto-generated if not provided
   images: string[];
   attributes: Record<string, string | number | boolean | null>;
 }): Promise<AdminActionResult & { productId?: string }> {
@@ -545,6 +694,37 @@ export async function createProduct(productData: {
       return { success: false, error: "Not authenticated" };
     }
 
+    // Validate product data
+    const validation = validateProductData(productData);
+    if (!validation.valid) {
+      return { success: false, error: validation.error };
+    }
+
+    // Auto-generate slug if not provided or empty
+    let finalSlug = productData.slug?.trim();
+    if (!finalSlug) {
+      finalSlug = await generateProductSlug(productData.name);
+    } else {
+      // Check if slug is unique, add suffix if not
+      finalSlug = await generateProductSlug(productData.name);
+      // If the provided slug is already unique, use it; otherwise use generated one
+      const providedSlugCheck = await supabase
+        .from("products")
+        .select("id", { count: "exact", head: true })
+        .eq("slug", productData.slug)
+        .single();
+      
+      if (!providedSlugCheck.count || providedSlugCheck.count === 0) {
+        finalSlug = productData.slug;
+      }
+    }
+
+    // Auto-generate SKU if not provided
+    let finalSku = productData.sku?.trim();
+    if (!finalSku) {
+      finalSku = generateProductSKU(productData.category);
+    }
+
     // Get admin_staff record for created_by field
     const { data: adminStaff } = await supabase
       .from("admin_staff")
@@ -556,6 +736,8 @@ export async function createProduct(productData: {
       .from("products")
       .insert({
         ...productData,
+        slug: finalSlug,
+        sku: finalSku,
         created_by: adminStaff?.id || null,
       })
       .select("id")
@@ -569,7 +751,7 @@ export async function createProduct(productData: {
       action: "product_created",
       resource_type: "product",
       resource_id: data.id,
-      changes: { name: productData.name },
+      changes: { name: productData.name, slug: finalSlug, sku: finalSku },
     });
 
     // Revalidate pages that display products
@@ -595,6 +777,7 @@ export async function createProduct(productData: {
  * Update Product
  *
  * Modifies existing product information.
+ * Auto-generates slug if name changes and slug is not provided.
  * Updates timestamp for cache invalidation.
  *
  * @param productId - ID of product to update
@@ -609,13 +792,13 @@ export async function updateProduct(
   productId: string,
   updates: Partial<{
     name: string;
-    slug: string;
+    slug?: string;
     description: string | null;
     category: string;
     price: number;
     discount_price: number | null;
     stock_quantity: number;
-    sku: string | null;
+    sku?: string;
     images: string[];
     attributes: Record<string, string | number | boolean | null>;
   }>,
@@ -628,6 +811,33 @@ export async function updateProduct(
     } = await supabase.auth.getUser();
     if (!user) {
       return { success: false, error: "Not authenticated" };
+    }
+
+    // Validate product data if price, stock, or category is being updated
+    if (
+      updates.price !== undefined ||
+      updates.stock_quantity !== undefined ||
+      updates.category !== undefined
+    ) {
+      const validation = validateProductData({
+        price: updates.price,
+        stock_quantity: updates.stock_quantity,
+        category: updates.category,
+        discount_price: updates.discount_price,
+      });
+      if (!validation.valid) {
+        return { success: false, error: validation.error };
+      }
+    }
+
+    // Auto-generate slug if name is being updated and slug is not provided
+    if (updates.name && !updates.slug) {
+      updates.slug = await generateProductSlug(updates.name, productId);
+    }
+
+    // Auto-generate SKU if category is being updated and SKU is not provided
+    if (updates.category && !updates.sku) {
+      updates.sku = generateProductSKU(updates.category);
     }
 
     const { error } = await supabase
@@ -648,7 +858,7 @@ export async function updateProduct(
 
     revalidatePath("/admin/catalog");
     revalidatePath("/shop");
-    revalidatePath(`/products/${productId}`);
+    revalidatePath(`/products/${updates.slug || productId}`);
     return { success: true, message: "Product updated successfully" };
   } catch (error) {
     console.error("Error updating product:", error);
@@ -786,7 +996,7 @@ export async function toggleProductStatus(
 /**
  * Upload Product Media
  *
- * Uploads images/videos to Namecheap FTP storage.
+ * Uploads images/videos to Supabase Storage.
  * Returns URLs that can be stored in product record.
  *
  * @param formData - FormData containing files array
@@ -826,33 +1036,35 @@ export async function uploadProductMedia(
       return { success: false, error: "No files provided" };
     }
 
-    // Validate file types (images and videos only)
-    const allowedTypes = [
-      "image/jpeg",
-      "image/png",
-      "image/gif",
-      "image/webp",
-      "video/mp4",
-      "video/webm",
-      "video/quicktime",
-    ];
+    // Validate files
+    const validFiles: File[] = [];
+    for (const file of files) {
+      // Check file type
+      const typeValidation = validateFileType(file, PRODUCT_MEDIA_TYPES);
+      if (!typeValidation.valid) {
+        return { success: false, error: typeValidation.error };
+      }
 
-    const validFiles = files.filter(
-      (file) =>
-        allowedTypes.includes(file.type) ||
-        file.type.startsWith("image/") ||
-        file.type.startsWith("video/"),
-    );
+      // Check file size
+      const isVideo = file.type.startsWith("video/");
+      const maxSize = isVideo ? MAX_FILE_SIZES.PRODUCT_VIDEO : MAX_FILE_SIZES.PRODUCT_IMAGE;
+      const sizeValidation = validateFileSize(file, maxSize);
+      if (!sizeValidation.valid) {
+        return { success: false, error: sizeValidation.error };
+      }
+
+      validFiles.push(file);
+    }
 
     if (validFiles.length === 0) {
       return {
         success: false,
-        error: "Invalid file types. Only images and videos are allowed.",
+        error: "Invalid files. Only upload valid file types.",
       };
     }
 
-    // Upload files to FTP
-    const uploadResults = await uploadMultipleFilesToFTP(validFiles, folder);
+    // Upload files to Supabase Storage
+    const uploadResults = await uploadToStorage(validFiles);
 
     // Process results
     const successfulUploads = uploadResults
@@ -868,7 +1080,7 @@ export async function uploadProductMedia(
     if (successfulUploads.length === 0) {
       return {
         success: false,
-        error: "Failed to upload any files. Please check FTP configuration.",
+        error: "Failed to upload any files. Please check storage configuration.",
       };
     }
 
@@ -910,7 +1122,8 @@ export async function uploadProductImage(file: File): Promise<{
   url?: string;
   error?: string;
 }> {
-  const result = await uploadFileToFTP(file, "products/images");
+  const { uploadFileToStorage } = await import("@/utils/supabase/storage");
+  const result = await uploadFileToStorage(file, "PRODUCT_IMAGES", "products");
   return result;
 }
 
@@ -927,7 +1140,8 @@ export async function uploadProductVideo(file: File): Promise<{
   url?: string;
   error?: string;
 }> {
-  const result = await uploadFileToFTP(file, "products/videos");
+  const { uploadFileToStorage } = await import("@/utils/supabase/storage");
+  const result = await uploadFileToStorage(file, "PRODUCT_IMAGES", "products");
   return result;
 }
 

@@ -19,12 +19,12 @@ const nextConfig: NextConfig = {
         hostname: "www.jradianceco.com",
         pathname: "/**",
       },
-      // Add Namecheap storage domain if used
-      // {
-      //   protocol: "https",
-      //   hostname: "storage.yournamecheapdomain.com",
-      //   pathname: "/**",
-      // },
+      // Supabase Storage - Product Images & Avatars
+      {
+        protocol: "https",
+        hostname: "*.supabase.co",
+        pathname: "/storage/v1/object/public/**",
+      },
     ],
     // Performance optimization
     minimumCacheTTL: 60 * 60 * 24, // 24 hours
@@ -43,7 +43,7 @@ const nextConfig: NextConfig = {
           {
             key: "Content-Security-Policy",
             value:
-              "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.paystack.co https://fp.paystack.co https://*.supabase.co https://*.fingerprintjs.com https://*.fpcdn.io https://*.datadoghq.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://jradianceco.com https://www.jradianceco.com; connect-src 'self' https://*.supabase.co https://*.datadoghq.com https://fp.paystack.co; frame-src 'self' https://js.paystack.co;",
+              "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.paystack.co https://fp.paystack.co https://*.supabase.co https://*.fingerprintjs.com https://*.fpcdn.io https://*.datadoghq.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://jradianceco.com https://www.jradianceco.com https://*.supabase.co; connect-src 'self' https://*.supabase.co https://*.datadoghq.com https://fp.paystack.co; frame-src 'self' https://js.paystack.co;",
           },
           // Additional security headers for SEO
           {

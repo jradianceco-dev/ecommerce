@@ -1,171 +1,344 @@
 /**
  * Admin Dashboard Home Page
- * 
- * Overview of key metrics and quick access to admin features.
+ * =========================
+ *
+ * Main dashboard for admin users with:
+ * - Sales metrics
+ * - Recent orders
+ * - Product stats
+ * - Quick actions
+ *
+ * Access: Admin, Chief Admin, Agent
  */
 
 "use client";
 
 import { useState, useEffect } from "react";
+import { checkPermission } from "../admin-actions";
+import {
+  Package,
+  ShoppingCart,
+  TrendingUp,
+  Users,
+  DollarSign,
+  AlertTriangle,
+  Clock,
+  ArrowUpRight,
+  ArrowDownRight,
+  Loader2,
+} from "lucide-react";
 import Link from "next/link";
-import AdminSidePanel from "@/components/AdminSidePanel";
-import { getSalesStats, getActivityLogs, checkPermission } from "../admin-actions";
-import { ShoppingBag, DollarSign, TrendingUp, Users, Package, Clock } from "lucide-react";
+import { createClient } from "@/utils/supabase/client";
 
-export default function AdminDashboard() {
-  const [role, setRole] = useState<string | null>(null);
-  const [stats, setStats] = useState<any>(null);
-  const [recentLogs, setRecentLogs] = useState<any[]>([]);
+export default function DashboardPage() {
+  const [hasAccess, setHasAccess] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [stats, setStats] = useState({
+    totalProducts: 0,
+    activeProducts: 0,
+    totalOrders: 0,
+    pendingOrders: 0,
+    totalRevenue: 0,
+    monthlyRevenue: 0,
+    totalCustomers: 0,
+    lowStockProducts: 0,
+  });
 
   useEffect(() => {
+    checkPermissions();
     loadDashboardData();
   }, []);
 
+  async function checkPermissions() {
+    const hasPermission = await checkPermission("agent");
+    setHasAccess(hasPermission);
+  }
+
   async function loadDashboardData() {
     setLoading(true);
-    
-    // Get user role
-    const hasAgentAccess = await checkPermission("agent");
-    if (hasAgentAccess) {
-      const perms = await checkPermission("chief_admin");
-      setRole(perms ? "chief_admin" : "admin");
+    try {
+      const supabase = createClient();
+
+      // Get product stats
+      const { count: totalProducts } = await supabase
+        .from("products")
+        .select("*", { count: "exact", head: true });
+
+      const { count: activeProducts } = await supabase
+        .from("products")
+        .select("*", { count: "exact", head: true })
+        .eq("is_active", true);
+
+      // Get order stats
+      const { count: totalOrders } = await supabase
+        .from("orders")
+        .select("*", { count: "exact", head: true });
+
+      const { count: pendingOrders } = await supabase
+        .from("orders")
+        .select("*", { count: "exact", head: true })
+        .eq("status", "pending");
+
+      // Get revenue stats
+      const { data: revenueData } = await supabase
+        .from("orders")
+        .select("total_amount")
+        .eq("payment_status", "completed");
+
+      const totalRevenue =
+        revenueData?.reduce((sum, order) => sum + order.total_amount, 0) || 0;
+
+      // Monthly revenue (last 30 days)
+      const thirtyDaysAgo = new Date();
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+      const { data: monthlyRevenueData } = await supabase
+        .from("orders")
+        .select("total_amount")
+        .eq("payment_status", "completed")
+        .gte("created_at", thirtyDaysAgo.toISOString());
+
+      const monthlyRevenue =
+        monthlyRevenueData?.reduce(
+          (sum, order) => sum + order.total_amount,
+          0
+        ) || 0;
+
+      // Get customer count
+      const { count: totalCustomers } = await supabase
+        .from("profiles")
+        .select("*", { count: "exact", head: true })
+        .eq("role", "customer");
+
+      // Get low stock products
+      const { count: lowStockProducts } = await supabase
+        .from("products")
+        .select("*", { count: "exact", head: true })
+        .lte("stock_quantity", 10)
+        .eq("is_active", true);
+
+      setStats({
+        totalProducts: totalProducts || 0,
+        activeProducts: activeProducts || 0,
+        totalOrders: totalOrders || 0,
+        pendingOrders: pendingOrders || 0,
+        totalRevenue,
+        monthlyRevenue,
+        totalCustomers: totalCustomers || 0,
+        lowStockProducts: lowStockProducts || 0,
+      });
+    } catch (error) {
+      console.error("Error loading dashboard data:", error);
     }
-
-    // Load stats
-    const statsResult = await getSalesStats("week");
-    if (statsResult.success) setStats(statsResult.data);
-
-    // Load recent activity
-    const logsResult = await getActivityLogs(5);
-    if (logsResult.success) setRecentLogs(logsResult.data || []);
-
     setLoading(false);
   }
 
+  if (!hasAccess) {
+    return (
+      <div className="text-center py-12">
+        <h2 className="text-xl font-bold text-red-600">Access Denied</h2>
+        <p className="text-gray-600 mt-2">
+          You don&apos;t have permission to view the dashboard.
+        </p>
+      </div>
+    );
+  }
+
+  if (loading) {
+    return (
+      <div className="text-center py-12">
+        <Loader2 size={48} className="animate-spin mx-auto text-radiance-goldColor" />
+      </div>
+    );
+  }
+
+  const statCards = [
+    {
+      title: "Total Revenue",
+      value: `₦${stats.totalRevenue.toLocaleString()}`,
+      subValue: `₦${stats.monthlyRevenue.toLocaleString()} this month`,
+      icon: DollarSign,
+      color: "text-green-600",
+      bgColor: "bg-green-50",
+      trend: "up",
+    },
+    {
+      title: "Total Orders",
+      value: stats.totalOrders.toString(),
+      subValue: `${stats.pendingOrders} pending`,
+      icon: ShoppingCart,
+      color: "text-blue-600",
+      bgColor: "bg-blue-50",
+      trend: "neutral",
+    },
+    {
+      title: "Products",
+      value: `${stats.activeProducts}/${stats.totalProducts}`,
+      subValue: "active products",
+      icon: Package,
+      color: "text-purple-600",
+      bgColor: "bg-purple-50",
+      trend: "neutral",
+    },
+    {
+      title: "Customers",
+      value: stats.totalCustomers.toString(),
+      subValue: "registered customers",
+      icon: Users,
+      color: "text-orange-600",
+      bgColor: "bg-orange-50",
+      trend: "up",
+    },
+  ];
+
+  const alertCards = [
+    {
+      title: "Low Stock Alert",
+      value: stats.lowStockProducts.toString(),
+      description: "Products with stock ≤ 10",
+      icon: AlertTriangle,
+      color: "text-yellow-600",
+      bgColor: "bg-yellow-50",
+      link: "/admin/catalog",
+    },
+    {
+      title: "Pending Orders",
+      value: stats.pendingOrders.toString(),
+      description: "Orders awaiting confirmation",
+      icon: Clock,
+      color: "text-blue-600",
+      bgColor: "bg-blue-50",
+      link: "/admin/orders",
+    },
+  ];
+
   return (
     <div className="space-y-8">
-      <AdminSidePanel />
-
-      {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-radiance-charcoalTextColor">Admin Dashboard</h1>
+      {/* Page Header */}
+      <div>
+        <h1 className="text-3xl font-bold text-radiance-charcoalTextColor">
+          Dashboard
+        </h1>
         <p className="text-gray-600 mt-1">
-          Welcome back! Here's what's happening with your store.
+          Overview of your store&apos;s performance
         </p>
-        {role && (
-          <p className="text-sm text-radiance-goldColor mt-2 font-medium">
-            Role: {role.replace("_", " ").toUpperCase()}
-          </p>
-        )}
       </div>
 
-      {loading ? (
-        <div className="text-center py-12">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-radiance-goldColor mx-auto"></div>
-        </div>
-      ) : (
-        <>
-          {/* Stats Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            <Link href="/admin/sales-log" className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-shadow">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-gray-600">Total Revenue (Week)</p>
-                  <p className="text-2xl font-bold text-radiance-goldColor">
-                    ₦{stats?.totalRevenue.toLocaleString() || "0"}
-                  </p>
-                </div>
-                <DollarSign size={40} className="text-green-500" />
-              </div>
-            </Link>
-
-            <Link href="/admin/orders" className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-shadow">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-gray-600">Total Orders</p>
-                  <p className="text-2xl font-bold text-gray-900">{stats?.totalOrders || 0}</p>
-                </div>
-                <ShoppingBag size={40} className="text-blue-500" />
-              </div>
-            </Link>
-
-            <Link href="/admin/orders" className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-shadow">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-gray-600">Completed Orders</p>
-                  <p className="text-2xl font-bold text-gray-900">{stats?.completedOrders || 0}</p>
-                </div>
-                <Package size={40} className="text-green-500" />
-              </div>
-            </Link>
-
-            <Link href="/admin/users" className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-shadow">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-gray-600">Completion Rate</p>
-                  <p className="text-2xl font-bold text-gray-900">
-                    {stats?.totalOrders ? Math.round((stats.completedOrders / stats.totalOrders) * 100) : 0}%
-                  </p>
-                </div>
-                <TrendingUp size={40} className="text-purple-500" />
-              </div>
-            </Link>
-          </div>
-
-          {/* Quick Actions */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-            <h2 className="text-lg font-bold mb-4">Quick Actions</h2>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <Link href="/admin/catalog" className="flex flex-col items-center p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors">
-                <Package size={24} className="text-blue-500 mb-2" />
-                <span className="text-sm font-medium">Manage Products</span>
-              </Link>
-              <Link href="/admin/orders" className="flex flex-col items-center p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors">
-                <ShoppingBag size={24} className="text-green-500 mb-2" />
-                <span className="text-sm font-medium">View Orders</span>
-              </Link>
-              <Link href="/admin/users" className="flex flex-col items-center p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors">
-                <Users size={24} className="text-purple-500 mb-2" />
-                <span className="text-sm font-medium">User Manager</span>
-              </Link>
-              <Link href="/admin/audit-log" className="flex flex-col items-center p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors">
-                <Clock size={24} className="text-orange-500 mb-2" />
-                <span className="text-sm font-medium">Audit Logs</span>
-              </Link>
-            </div>
-          </div>
-
-          {/* Recent Activity */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+      {/* Main Stats Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        {statCards.map((stat) => (
+          <div
+            key={stat.title}
+            className="bg-white rounded-xl p-6 shadow-sm border border-gray-200 hover:shadow-md transition-shadow"
+          >
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-bold">Recent Activity</h2>
-              <Link href="/admin/audit-log" className="text-sm text-radiance-goldColor hover:underline">
-                View All
-              </Link>
-            </div>
-            <div className="space-y-3">
-              {recentLogs.length > 0 ? (
-                recentLogs.map((log) => (
-                  <div key={log.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                    <div>
-                      <p className="text-sm font-medium text-gray-900">{log.action}</p>
-                      <p className="text-xs text-gray-500">
-                        {new Date(log.created_at).toLocaleString()}
-                      </p>
-                    </div>
-                    <span className="text-xs text-gray-500">
-                      {log.profiles?.email || `Admin ${log.admin_id.slice(0, 8)}`}
-                    </span>
-                  </div>
-                ))
-              ) : (
-                <p className="text-gray-500 text-center py-4">No recent activity</p>
+              <div
+                className={`p-3 rounded-xl ${stat.bgColor} ${stat.color}`}
+              >
+                <stat.icon size={24} />
+              </div>
+              {stat.trend !== "neutral" && (
+                <div
+                  className={`flex items-center text-sm font-bold ${
+                    stat.trend === "up" ? "text-green-600" : "text-red-600"
+                  }`}
+                >
+                  {stat.trend === "up" ? (
+                    <ArrowUpRight size={16} />
+                  ) : (
+                    <ArrowDownRight size={16} />
+                  )}
+                </div>
               )}
             </div>
+            <div>
+              <p className="text-2xl font-bold text-gray-900">{stat.value}</p>
+              <p className="text-sm text-gray-600 mt-1">{stat.subValue}</p>
+            </div>
           </div>
-        </>
-      )}
+        ))}
+      </div>
+
+      {/* Alerts Section */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {alertCards.map((alert) => (
+          <Link
+            key={alert.title}
+            href={alert.link}
+            className="bg-white rounded-xl p-6 shadow-sm border border-gray-200 hover:shadow-md transition-shadow block"
+          >
+            <div className="flex items-center gap-4">
+              <div
+                className={`p-4 rounded-xl ${alert.bgColor} ${alert.color}`}
+              >
+                <alert.icon size={28} />
+              </div>
+              <div className="flex-1">
+                <p className="text-3xl font-bold text-gray-900">
+                  {alert.value}
+                </p>
+                <p className="text-sm font-bold text-gray-700 mt-1">
+                  {alert.title}
+                </p>
+                <p className="text-xs text-gray-500 mt-1">{alert.description}</p>
+              </div>
+            </div>
+          </Link>
+        ))}
+      </div>
+
+      {/* Quick Actions */}
+      <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
+        <h2 className="text-xl font-bold text-gray-900 mb-4">Quick Actions</h2>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <Link
+            href="/admin/catalog"
+            className="flex flex-col items-center gap-2 p-4 rounded-xl bg-gray-50 hover:bg-radiance-goldColor/10 transition-colors"
+          >
+            <Package size={24} className="text-radiance-goldColor" />
+            <span className="text-xs font-bold text-gray-700">Add Product</span>
+          </Link>
+          <Link
+            href="/admin/orders"
+            className="flex flex-col items-center gap-2 p-4 rounded-xl bg-gray-50 hover:bg-radiance-goldColor/10 transition-colors"
+          >
+            <ShoppingCart size={24} className="text-radiance-goldColor" />
+            <span className="text-xs font-bold text-gray-700">View Orders</span>
+          </Link>
+          <Link
+            href="/admin/users"
+            className="flex flex-col items-center gap-2 p-4 rounded-xl bg-gray-50 hover:bg-radiance-goldColor/10 transition-colors"
+          >
+            <Users size={24} className="text-radiance-goldColor" />
+            <span className="text-xs font-bold text-gray-700">Manage Users</span>
+          </Link>
+          <Link
+            href="/shop"
+            className="flex flex-col items-center gap-2 p-4 rounded-xl bg-gray-50 hover:bg-radiance-goldColor/10 transition-colors"
+          >
+            <TrendingUp size={24} className="text-radiance-goldColor" />
+            <span className="text-xs font-bold text-gray-700">View Store</span>
+          </Link>
+        </div>
+      </div>
+
+      {/* Recent Activity Placeholder */}
+      <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
+        <h2 className="text-xl font-bold text-gray-900 mb-4">
+          Recent Orders
+        </h2>
+        <div className="text-center py-8 text-gray-500">
+          <ShoppingCart size={48} className="mx-auto mb-4 text-gray-300" />
+          <p className="text-sm">
+            View all orders in the{" "}
+            <Link
+              href="/admin/orders"
+              className="text-radiance-goldColor font-bold hover:underline"
+            >
+              Orders Manager
+            </Link>
+          </p>
+        </div>
+      </div>
     </div>
   );
 }

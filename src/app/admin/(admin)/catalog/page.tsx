@@ -3,23 +3,30 @@
  *
  * Admin can create, edit, delete, and manage products.
  * Access: Admin, Chief Admin, Agent
+ *
+ * Features:
+ * - Auto-generate slug from name
+ * - Auto-generate SKU from category
+ * - Supabase Storage for media uploads
+ * - Toast notifications
  */
 
 "use client";
 
-import { useState, useEffect, useActionState } from "react";
+import { useState, useEffect } from "react";
 import { createProduct, updateProduct, deleteProduct, toggleProductStatus, checkPermission, uploadProductMedia } from "../admin-actions";
-import { Package, Plus, Edit, Trash2, ToggleLeft, Image as ImageIcon, X, Upload, FileVideo } from "lucide-react";
+import { Package, Plus, Edit, Trash2, ToggleLeft, Image as ImageIcon, X, Upload, FileVideo, Loader2 } from "lucide-react";
 import type { Product } from "@/types";
+import { useToast } from "@/context/ToastContext";
 
 export default function ProductsCatalogPage() {
+  const { success, error: showError } = useToast();
   const [hasAccess, setHasAccess] = useState(false);
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
-  const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
   // Form state
   const [formData, setFormData] = useState({
@@ -31,7 +38,6 @@ export default function ProductsCatalogPage() {
     discount_price: "",
     stock_quantity: "",
     sku: "",
-    images: "",
   });
 
   // File upload state
@@ -52,16 +58,51 @@ export default function ProductsCatalogPage() {
   async function loadProducts() {
     setLoading(true);
     try {
-      // Use dynamic import to avoid Turbopack bundling issues with server utilities
       const { getProducts } = await import("@/utils/supabase/services-server");
-      // Pass is_active: undefined to see ALL products (active and inactive)
       const result = await getProducts({ is_active: undefined });
       setProducts(result);
     } catch (error) {
       console.error("Error loading products:", error);
-      setMessage({ type: "error", text: "Failed to load products" });
+      showError("Failed to load products");
     }
     setLoading(false);
+  }
+
+  // Auto-generate slug from name
+  function generateSlugFromName(name: string): string {
+    return name
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "");
+  }
+
+  // Auto-generate SKU from category
+  function generateSKUFromCategory(category: string): string {
+    const timestamp = Date.now().toString(36).toUpperCase();
+    const random = Math.random().toString(36).substring(2, 6).toUpperCase();
+    const categoryPrefix = category
+      .substring(0, 3)
+      .toUpperCase()
+      .replace(/[^A-Z]/g, "");
+    return `JRAD-${categoryPrefix}-${timestamp}-${random}`;
+  }
+
+  // Handle name change - auto-generate slug
+  function handleNameChange(name: string) {
+    setFormData((prev) => ({
+      ...prev,
+      name,
+      slug: generateSlugFromName(name),
+    }));
+  }
+
+  // Handle category change - auto-generate SKU if empty
+  function handleCategoryChange(category: string) {
+    setFormData((prev) => ({
+      ...prev,
+      category,
+      sku: prev.sku || generateSKUFromCategory(category),
+    }));
   }
 
   function handleEdit(product: Product) {
@@ -75,7 +116,6 @@ export default function ProductsCatalogPage() {
       discount_price: product.discount_price?.toString() || "",
       stock_quantity: product.stock_quantity.toString(),
       sku: product.sku || "",
-      images: product.images?.join(", ") || "",
     });
     setUploadedImages(product.images || []);
     setSelectedFiles([]);
@@ -84,16 +124,16 @@ export default function ProductsCatalogPage() {
 
   function handleCreate() {
     setEditingProduct(null);
+    const tempCategory = "General";
     setFormData({
       name: "",
       slug: "",
       description: "",
-      category: "",
+      category: tempCategory,
       price: "",
       discount_price: "",
       stock_quantity: "",
-      sku: "",
-      images: "",
+      sku: generateSKUFromCategory(tempCategory),
     });
     setUploadedImages([]);
     setSelectedFiles([]);
@@ -123,15 +163,40 @@ export default function ProductsCatalogPage() {
         finalImages = [...finalImages, ...uploadResult.results!.map((r) => r.url)];
       }
 
+      // Validate required fields
+      if (!formData.name.trim()) {
+        showError("Product name is required");
+        return;
+      }
+      if (!formData.category.trim()) {
+        showError("Product category is required");
+        return;
+      }
+      const price = parseFloat(formData.price);
+      if (isNaN(price) || price < 0) {
+        showError("Valid price is required");
+        return;
+      }
+      const stockQuantity = parseInt(formData.stock_quantity);
+      if (isNaN(stockQuantity) || stockQuantity < 0) {
+        showError("Valid stock quantity is required");
+        return;
+      }
+      const discountPrice = formData.discount_price ? parseFloat(formData.discount_price) : null;
+      if (discountPrice !== null && discountPrice >= price) {
+        showError("Discount price must be less than original price");
+        return;
+      }
+
       const productData = {
-        name: formData.name,
-        slug: formData.slug,
-        description: formData.description || null,
-        category: formData.category,
-        price: parseFloat(formData.price),
-        discount_price: formData.discount_price ? parseFloat(formData.discount_price) : null,
-        stock_quantity: parseInt(formData.stock_quantity),
-        sku: formData.sku || null,
+        name: formData.name.trim(),
+        slug: formData.slug.trim() || generateSlugFromName(formData.name),
+        description: formData.description.trim() || null,
+        category: formData.category.trim(),
+        price,
+        discount_price: discountPrice,
+        stock_quantity: stockQuantity,
+        sku: formData.sku.trim() || generateSKUFromCategory(formData.category),
         images: finalImages,
         attributes: {},
       };
@@ -143,20 +208,18 @@ export default function ProductsCatalogPage() {
         result = await createProduct(productData);
       }
 
-      setMessage({ type: result.success ? "success" : "error", text: result.message || result.error || "" });
       if (result.success) {
+        success(editingProduct ? "Product updated" : "Product created");
         setShowModal(false);
         loadProducts();
+      } else {
+        showError(result.error || "Operation failed");
       }
-    } catch (error) {
-      setMessage({ 
-        type: "error", 
-        text: error instanceof Error ? error.message : "An error occurred" 
-      });
+    } catch (err) {
+      showError(err instanceof Error ? err.message : "An error occurred");
     } finally {
       setUploading(false);
       setActionLoading(null);
-      setTimeout(() => setMessage(null), 3000);
     }
   }
 
@@ -165,19 +228,25 @@ export default function ProductsCatalogPage() {
 
     setActionLoading(productId);
     const result = await deleteProduct(productId);
-    setMessage({ type: result.success ? "success" : "error", text: result.message || result.error || "" });
-    if (result.success) loadProducts();
+    if (result.success) {
+      success("Product deleted successfully");
+      loadProducts();
+    } else {
+      showError(result.error || "Failed to delete product");
+    }
     setActionLoading(null);
-    setTimeout(() => setMessage(null), 3000);
   }
 
   async function handleToggleStatus(productId: string) {
     setActionLoading(productId);
     const result = await toggleProductStatus(productId);
-    setMessage({ type: result.success ? "success" : "error", text: result.message || result.error || "" });
-    if (result.success) loadProducts();
+    if (result.success) {
+      success(result.message || "Status updated");
+      loadProducts();
+    } else {
+      showError(result.error || "Failed to update status");
+    }
     setActionLoading(null);
-    setTimeout(() => setMessage(null), 3000);
   }
 
   function handleFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
@@ -185,7 +254,6 @@ export default function ProductsCatalogPage() {
     if (files.length > 0) {
       setSelectedFiles((prev) => [...prev, ...files]);
     }
-    // Reset input value to allow selecting the same file again
     e.target.value = "";
   }
 
@@ -201,7 +269,7 @@ export default function ProductsCatalogPage() {
     return (
       <div className="text-center py-12">
         <h2 className="text-xl font-bold text-red-600">Access Denied</h2>
-        <p className="text-gray-600 mt-2">You don't have permission to manage products.</p>
+        <p className="text-gray-600 mt-2">You don&apos;t have permission to manage products.</p>
       </div>
     );
   }
@@ -222,15 +290,9 @@ export default function ProductsCatalogPage() {
         </button>
       </div>
 
-      {message && (
-        <div className={`p-4 rounded-xl ${message.type === "success" ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"}`}>
-          {message.text}
-        </div>
-      )}
-
       {loading ? (
         <div className="text-center py-12">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-radiance-goldColor mx-auto"></div>
+          <Loader2 size={48} className="animate-spin mx-auto text-radiance-goldColor" />
         </div>
       ) : (
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
@@ -314,8 +376,8 @@ export default function ProductsCatalogPage() {
 
       {/* Modal for Create/Edit */}
       {showModal && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6">
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-white rounded-2xl max-w-2xl w-full my-8 p-6 relative">
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-2xl font-bold">{editingProduct ? "Edit Product" : "Create Product"}</h2>
               <button onClick={() => setShowModal(false)} className="p-2 hover:bg-gray-100 rounded-full">
@@ -323,26 +385,27 @@ export default function ProductsCatalogPage() {
               </button>
             </div>
 
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form onSubmit={handleSubmit} className="space-y-4 max-h-[70vh] overflow-y-auto pr-2">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Name <span className="text-red-500">*</span></label>
                   <input
                     type="text"
                     value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    onChange={(e) => handleNameChange(e.target.value)}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-radiance-goldColor focus:border-transparent"
                     required
+                    disabled={uploading || actionLoading === "submit"}
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Slug</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Slug <span className="text-xs text-gray-500">(auto-generated)</span></label>
                   <input
                     type="text"
                     value={formData.slug}
                     onChange={(e) => setFormData({ ...formData, slug: e.target.value })}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-radiance-goldColor focus:border-transparent"
-                    required
+                    disabled={uploading || actionLoading === "submit"}
                   />
                 </div>
               </div>
@@ -354,41 +417,46 @@ export default function ProductsCatalogPage() {
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-radiance-goldColor focus:border-transparent"
                   rows={4}
+                  disabled={uploading || actionLoading === "submit"}
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Category <span className="text-red-500">*</span></label>
                   <input
                     type="text"
                     value={formData.category}
-                    onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                    onChange={(e) => handleCategoryChange(e.target.value)}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-radiance-goldColor focus:border-transparent"
                     required
+                    disabled={uploading || actionLoading === "submit"}
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">SKU</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">SKU <span className="text-xs text-gray-500">(auto-generated)</span></label>
                   <input
                     type="text"
                     value={formData.sku}
                     onChange={(e) => setFormData({ ...formData, sku: e.target.value })}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-radiance-goldColor focus:border-transparent"
+                    disabled={uploading || actionLoading === "submit"}
                   />
                 </div>
               </div>
 
               <div className="grid grid-cols-3 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Price (₦)</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Price (₦) <span className="text-red-500">*</span></label>
                   <input
                     type="number"
                     step="0.01"
+                    min="0"
                     value={formData.price}
                     onChange={(e) => setFormData({ ...formData, price: e.target.value })}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-radiance-goldColor focus:border-transparent"
                     required
+                    disabled={uploading || actionLoading === "submit"}
                   />
                 </div>
                 <div>
@@ -396,19 +464,23 @@ export default function ProductsCatalogPage() {
                   <input
                     type="number"
                     step="0.01"
+                    min="0"
                     value={formData.discount_price}
                     onChange={(e) => setFormData({ ...formData, discount_price: e.target.value })}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-radiance-goldColor focus:border-transparent"
+                    disabled={uploading || actionLoading === "submit"}
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Stock Quantity</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Stock Quantity <span className="text-red-500">*</span></label>
                   <input
                     type="number"
+                    min="0"
                     value={formData.stock_quantity}
                     onChange={(e) => setFormData({ ...formData, stock_quantity: e.target.value })}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-radiance-goldColor focus:border-transparent"
                     required
+                    disabled={uploading || actionLoading === "submit"}
                   />
                 </div>
               </div>
@@ -416,7 +488,7 @@ export default function ProductsCatalogPage() {
               {/* Media Upload Section */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Product Images/Videos</label>
-                
+
                 {/* Upload Area */}
                 <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-radiance-goldColor transition-colors">
                   <input
@@ -426,7 +498,7 @@ export default function ProductsCatalogPage() {
                     accept="image/*,video/*"
                     onChange={handleFileSelect}
                     className="hidden"
-                    disabled={uploading}
+                    disabled={uploading || actionLoading === "submit"}
                   />
                   <label
                     htmlFor="media-upload"
@@ -436,7 +508,7 @@ export default function ProductsCatalogPage() {
                     <div className="text-sm text-gray-600">
                       <span className="font-semibold text-radiance-goldColor">Click to upload</span> or drag and drop
                     </div>
-                    <p className="text-xs text-gray-500">Images (JPG, PNG, GIF, WEBP) or Videos (MP4, WEBM)</p>
+                    <p className="text-xs text-gray-500">Images (JPG, PNG, GIF, WEBP) or Videos (MP4, WEBM) - Max 5MB (images), 50MB (videos)</p>
                   </label>
                 </div>
 
@@ -448,7 +520,9 @@ export default function ProductsCatalogPage() {
                       {uploadedImages.map((url, index) => (
                         <div key={index} className="relative group aspect-square rounded-lg overflow-hidden border border-gray-200">
                           {url.match(/\.(mp4|webm|mov)$/i) ? (
-                            <video src={url} className="w-full h-full object-cover" controls={false} />
+                            <div className="w-full h-full flex items-center justify-center bg-gray-100">
+                              <FileVideo size={32} className="text-gray-400" />
+                            </div>
                           ) : (
                             <img src={url} alt={`Product ${index + 1}`} className="w-full h-full object-cover" />
                           )}
@@ -456,6 +530,7 @@ export default function ProductsCatalogPage() {
                             type="button"
                             onClick={() => handleRemoveUploadedUrl(url)}
                             className="absolute top-1 right-1 p-1 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600"
+                            disabled={uploading || actionLoading === "submit"}
                           >
                             <X size={14} />
                           </button>
@@ -468,7 +543,7 @@ export default function ProductsCatalogPage() {
                 {/* Files Pending Upload */}
                 {selectedFiles.length > 0 && (
                   <div className="mt-4">
-                    <p className="text-xs font-medium text-gray-600 mb-2">Files to upload:</p>
+                    <p className="text-xs font-medium text-gray-600 mb-2">Files to upload ({selectedFiles.length}):</p>
                     <div className="grid grid-cols-4 gap-2">
                       {selectedFiles.map((file, index) => (
                         <div key={index} className="relative group aspect-square rounded-lg overflow-hidden border border-gray-200 bg-gray-50">
@@ -490,6 +565,7 @@ export default function ProductsCatalogPage() {
                             type="button"
                             onClick={() => handleRemoveFile(index)}
                             className="absolute top-1 right-1 p-1 bg-red-500 text-white rounded-full hover:bg-red-600"
+                            disabled={uploading || actionLoading === "submit"}
                           >
                             <X size={14} />
                           </button>
@@ -500,20 +576,33 @@ export default function ProductsCatalogPage() {
                 )}
               </div>
 
-              <div className="flex gap-4 pt-4">
+              <div className="flex gap-4 pt-4 sticky bottom-0 bg-white pb-2 border-t">
                 <button
                   type="button"
                   onClick={() => setShowModal(false)}
                   className="flex-1 px-6 py-3 border border-gray-300 rounded-xl font-medium hover:bg-gray-50 transition-colors"
+                  disabled={uploading || actionLoading === "submit"}
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={actionLoading === "submit" || uploading}
-                  className="flex-1 px-6 py-3 bg-radiance-goldColor text-white rounded-xl font-medium hover:bg-radiance-charcoalTextColor transition-colors disabled:opacity-50"
+                  className="flex-1 px-6 py-3 bg-radiance-goldColor text-white rounded-xl font-medium hover:bg-radiance-charcoalTextColor transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
                 >
-                  {uploading ? "Uploading Media..." : actionLoading === "submit" ? "Saving..." : editingProduct ? "Update Product" : "Create Product"}
+                  {uploading ? (
+                    <>
+                      <Loader2 size={18} className="animate-spin" />
+                      Uploading...
+                    </>
+                  ) : actionLoading === "submit" ? (
+                    <>
+                      <Loader2 size={18} className="animate-spin" />
+                      Saving...
+                    </>
+                  ) : (
+                    editingProduct ? "Update Product" : "Create Product"
+                  )}
                 </button>
               </div>
             </form>

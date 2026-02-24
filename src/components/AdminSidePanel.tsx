@@ -37,6 +37,7 @@ const adminNavItems = [
     title: "Dashboard",
     icon: LayoutDashboard,
     subItems: [
+      { label: "Dashboard Home", href: "/admin/dashboard", icon: LayoutDashboard },
       { label: "Sales Log", href: "/admin/sales-log", icon: ClipboardList },
       { label: "Audit Log", href: "/admin/audit-log", icon: History },
       {

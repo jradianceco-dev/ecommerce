@@ -12,6 +12,7 @@ import {
   isInWishlist,
 } from "@/utils/supabase/services";
 import { useUser } from "@/context/UserContext";
+import { useToast } from "@/context/ToastContext";
 
 interface ProductCardProps {
   product: Product;
@@ -25,10 +26,15 @@ export default function ProductCard({
   className = "",
 }: ProductCardProps) {
   const user = useUser();
+  const { success, error: showError } = useToast();
   const [quantity, setQuantity] = useState(1);
   const [isWishlisted, setIsWishlisted] = useState(false);
   const [loading, setLoading] = useState(false);
   const [wishlistLoading, setWishlistLoading] = useState(false);
+  const [rating, setRating] = useState<{ average: number; count: number }>({
+    average: 0,
+    count: 0,
+  });
 
   // Check if product is in wishlist on mount
   useEffect(() => {
@@ -36,6 +42,23 @@ export default function ProductCard({
       isInWishlist(user.id, product.id).then(setIsWishlisted);
     }
   }, [user, product.id]);
+
+  // Fetch product rating on mount
+  useEffect(() => {
+    async function loadRating() {
+      try {
+        const { getProductAverageRating } = await import(
+          "@/utils/supabase/services"
+        );
+        const { averageRating, totalReviews } =
+          await getProductAverageRating(product.id);
+        setRating({ average: averageRating, count: totalReviews });
+      } catch (error) {
+        console.error("Error loading rating:", error);
+      }
+    }
+    loadRating();
+  }, [product.id]);
 
   // Calculate display price
   const displayPrice = product.discount_price || product.price;
@@ -51,21 +74,21 @@ export default function ProductCard({
   const handleAddToCart = async (e: React.MouseEvent) => {
     e.stopPropagation();
     if (!user) {
-      alert("Please log in to add items to cart");
+      showError("Please log in to add items to cart");
       return;
     }
 
     setLoading(true);
     try {
-      const success = await addToCart(user.id, product.id, quantity);
-      if (success) {
-        alert(`Added ${quantity} ${product.name} to cart!`);
+      const successResult = await addToCart(user.id, product.id, quantity);
+      if (successResult) {
+        success(`Added ${quantity} ${product.name} to cart!`);
       } else {
-        alert("Failed to add to cart");
+        showError("Failed to add to cart");
       }
     } catch (error) {
       console.error("Error adding to cart:", error);
-      alert("Failed to add to cart");
+      showError("Failed to add to cart");
     } finally {
       setLoading(false);
     }
@@ -75,26 +98,28 @@ export default function ProductCard({
   const handleWishlistToggle = async (e: React.MouseEvent) => {
     e.stopPropagation();
     if (!user) {
-      alert("Please log in to manage wishlist");
+      showError("Please log in to manage wishlist");
       return;
     }
 
     setWishlistLoading(true);
     try {
       if (isWishlisted) {
-        const success = await removeFromWishlist(user.id, product.id);
-        if (success) {
+        const successResult = await removeFromWishlist(user.id, product.id);
+        if (successResult) {
           setIsWishlisted(false);
+          success("Removed from wishlist");
         }
       } else {
-        const success = await addToWishlist(user.id, product.id);
-        if (success) {
+        const successResult = await addToWishlist(user.id, product.id);
+        if (successResult) {
           setIsWishlisted(true);
+          success("Added to wishlist");
         }
       }
     } catch (error) {
       console.error("Error updating wishlist:", error);
-      alert("Failed to update wishlist");
+      showError("Failed to update wishlist");
     } finally {
       setWishlistLoading(false);
     }
@@ -104,6 +129,40 @@ export default function ProductCard({
   const handleQuantityChange = (delta: number) => {
     const newQuantity = Math.max(1, quantity + delta);
     setQuantity(newQuantity);
+  };
+
+  // Render star rating
+  const renderStars = () => {
+    const fullStars = Math.floor(rating.average);
+    const hasHalfStar = rating.average % 1 >= 0.5;
+    const emptyStars = 5 - fullStars - (hasHalfStar ? 1 : 0);
+
+    return (
+      <div className="flex">
+        {[...Array(fullStars)].map((_, i) => (
+          <Star
+            key={`full-${i}`}
+            size={12}
+            className="text-yellow-400 fill-current"
+          />
+        ))}
+        {hasHalfStar && (
+          <div className="relative">
+            <Star size={12} className="text-gray-300" />
+            <div className="absolute top-0 left-0 overflow-hidden w-1/2">
+              <Star size={12} className="text-yellow-400 fill-current" />
+            </div>
+          </div>
+        )}
+        {[...Array(emptyStars)].map((_, i) => (
+          <Star
+            key={`empty-${i}`}
+            size={12}
+            className="text-gray-300"
+          />
+        ))}
+      </div>
+    );
   };
 
   return (
@@ -170,19 +229,12 @@ export default function ProductCard({
           {product.name}
         </h3>
 
-        {/* Rating */}
+        {/* Rating with actual data */}
         <div className="flex items-center gap-1">
-          <div className="flex">
-            {[1, 2, 3, 4, 5].map((star) => (
-              <Star
-                key={star}
-                size={12}
-                className="text-yellow-400 fill-current"
-              />
-            ))}
-          </div>
-          <span className="text-xs text-gray-500 ml-1">(4.5)</span>{" "}
-          {/* Fetch actual rating average later*/}
+          {renderStars()}
+          <span className="text-xs text-gray-500 ml-1">
+            ({rating.count})
+          </span>
         </div>
 
         {/* Price */}

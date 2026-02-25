@@ -45,8 +45,22 @@ export default function DashboardPage() {
   });
 
   useEffect(() => {
-    checkPermissions();
-    loadDashboardData();
+    let aborted = false;
+
+    async function loadData() {
+      const hasPermission = await checkPermission("agent");
+      if (!aborted) setHasAccess(hasPermission);
+
+      if (hasPermission && !aborted) {
+        await loadDashboardData(aborted);
+      }
+    }
+
+    loadData();
+
+    return () => {
+      aborted = true;
+    };
   }, []);
 
   async function checkPermissions() {
@@ -54,30 +68,34 @@ export default function DashboardPage() {
     setHasAccess(hasPermission);
   }
 
-  async function loadDashboardData() {
+  async function loadDashboardData(aborted: boolean) {
     setLoading(true);
     try {
       const supabase = createClient();
 
       // Get product stats
-      const { count: totalProducts } = await supabase
-        .from("products")
-        .select("*", { count: "exact", head: true });
+      const [{ count: totalProducts }, { count: activeProducts }] =
+        await Promise.all([
+          supabase.from("products").select("*", { count: "exact", head: true }),
+          supabase
+            .from("products")
+            .select("*", { count: "exact", head: true })
+            .eq("is_active", true),
+        ]);
 
-      const { count: activeProducts } = await supabase
-        .from("products")
-        .select("*", { count: "exact", head: true })
-        .eq("is_active", true);
+      if (aborted) return;
 
       // Get order stats
-      const { count: totalOrders } = await supabase
-        .from("orders")
-        .select("*", { count: "exact", head: true });
+      const [{ count: totalOrders }, { count: pendingOrders }] =
+        await Promise.all([
+          supabase.from("orders").select("*", { count: "exact", head: true }),
+          supabase
+            .from("orders")
+            .select("*", { count: "exact", head: true })
+            .eq("status", "pending"),
+        ]);
 
-      const { count: pendingOrders } = await supabase
-        .from("orders")
-        .select("*", { count: "exact", head: true })
-        .eq("status", "pending");
+      if (aborted) return;
 
       // Get revenue stats
       const { data: revenueData } = await supabase
@@ -87,6 +105,8 @@ export default function DashboardPage() {
 
       const totalRevenue =
         revenueData?.reduce((sum, order) => sum + order.total_amount, 0) || 0;
+
+      if (aborted) return;
 
       // Monthly revenue (last 30 days)
       const thirtyDaysAgo = new Date();
@@ -100,14 +120,18 @@ export default function DashboardPage() {
       const monthlyRevenue =
         monthlyRevenueData?.reduce(
           (sum, order) => sum + order.total_amount,
-          0
+          0,
         ) || 0;
+
+      if (aborted) return;
 
       // Get customer count
       const { count: totalCustomers } = await supabase
         .from("profiles")
         .select("*", { count: "exact", head: true })
         .eq("role", "customer");
+
+      if (aborted) return;
 
       // Get low stock products
       const { count: lowStockProducts } = await supabase
@@ -116,20 +140,27 @@ export default function DashboardPage() {
         .lte("stock_quantity", 10)
         .eq("is_active", true);
 
-      setStats({
-        totalProducts: totalProducts || 0,
-        activeProducts: activeProducts || 0,
-        totalOrders: totalOrders || 0,
-        pendingOrders: pendingOrders || 0,
-        totalRevenue,
-        monthlyRevenue,
-        totalCustomers: totalCustomers || 0,
-        lowStockProducts: lowStockProducts || 0,
-      });
+      if (!aborted) {
+        setStats({
+          totalProducts: totalProducts || 0,
+          activeProducts: activeProducts || 0,
+          totalOrders: totalOrders || 0,
+          pendingOrders: pendingOrders || 0,
+          totalRevenue,
+          monthlyRevenue,
+          totalCustomers: totalCustomers || 0,
+          lowStockProducts: lowStockProducts || 0,
+        });
+      }
     } catch (error) {
-      console.error("Error loading dashboard data:", error);
+      if (!aborted) {
+        console.error("Error loading dashboard data:", error);
+      }
+    } finally {
+      if (!aborted) {
+        setLoading(false);
+      }
     }
-    setLoading(false);
   }
 
   if (!hasAccess) {
@@ -146,7 +177,10 @@ export default function DashboardPage() {
   if (loading) {
     return (
       <div className="text-center py-12">
-        <Loader2 size={48} className="animate-spin mx-auto text-radiance-goldColor" />
+        <Loader2
+          size={48}
+          className="animate-spin mx-auto text-radiance-goldColor"
+        />
       </div>
     );
   }
@@ -231,9 +265,7 @@ export default function DashboardPage() {
             className="bg-white rounded-xl p-6 shadow-sm border border-gray-200 hover:shadow-md transition-shadow"
           >
             <div className="flex items-center justify-between mb-4">
-              <div
-                className={`p-3 rounded-xl ${stat.bgColor} ${stat.color}`}
-              >
+              <div className={`p-3 rounded-xl ${stat.bgColor} ${stat.color}`}>
                 <stat.icon size={24} />
               </div>
               {stat.trend !== "neutral" && (
@@ -267,9 +299,7 @@ export default function DashboardPage() {
             className="bg-white rounded-xl p-6 shadow-sm border border-gray-200 hover:shadow-md transition-shadow block"
           >
             <div className="flex items-center gap-4">
-              <div
-                className={`p-4 rounded-xl ${alert.bgColor} ${alert.color}`}
-              >
+              <div className={`p-4 rounded-xl ${alert.bgColor} ${alert.color}`}>
                 <alert.icon size={28} />
               </div>
               <div className="flex-1">
@@ -279,7 +309,9 @@ export default function DashboardPage() {
                 <p className="text-sm font-bold text-gray-700 mt-1">
                   {alert.title}
                 </p>
-                <p className="text-xs text-gray-500 mt-1">{alert.description}</p>
+                <p className="text-xs text-gray-500 mt-1">
+                  {alert.description}
+                </p>
               </div>
             </div>
           </Link>
@@ -309,7 +341,9 @@ export default function DashboardPage() {
             className="flex flex-col items-center gap-2 p-4 rounded-xl bg-gray-50 hover:bg-radiance-goldColor/10 transition-colors"
           >
             <Users size={24} className="text-radiance-goldColor" />
-            <span className="text-xs font-bold text-gray-700">Manage Users</span>
+            <span className="text-xs font-bold text-gray-700">
+              Manage Users
+            </span>
           </Link>
           <Link
             href="/shop"
@@ -323,9 +357,7 @@ export default function DashboardPage() {
 
       {/* Recent Activity Placeholder */}
       <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
-        <h2 className="text-xl font-bold text-gray-900 mb-4">
-          Recent Orders
-        </h2>
+        <h2 className="text-xl font-bold text-gray-900 mb-4">Recent Orders</h2>
         <div className="text-center py-8 text-gray-500">
           <ShoppingCart size={48} className="mx-auto mb-4 text-gray-300" />
           <p className="text-sm">

@@ -60,7 +60,11 @@ function AuthContent() {
   // Handle successful login/signup
   useEffect(() => {
     if (state?.message && !state.error && !state.requiresConfirmation) {
-      router.push(redirectTo);
+      // Add delay to ensure session is properly set
+      setTimeout(() => {
+        router.push(redirectTo);
+        router.refresh(); // Refresh to update user context
+      }, 500);
     }
   }, [state, router, redirectTo]);
 

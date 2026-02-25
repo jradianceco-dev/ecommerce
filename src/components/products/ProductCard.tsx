@@ -166,140 +166,148 @@ export default function ProductCard({
   };
 
   return (
-    <Link
-      href={`/products/${product.slug}`}
-      className={`bg-white rounded-xl shadow-sm hover:shadow-md transition-all duration-300 group block ${className}`}
-    >
-      {/* Product Image */}
-      <div className="relative aspect-square w-full rounded-t-xl overflow-hidden bg-gray-100">
-        {product.images && product.images.length > 0 ? (
-          <Image
-            src={product.images[0]}
-            alt={`${product.name} - Image 1`}
-            fill
-            sizes="(max-width: 768px) 50vw, (max-width: 1024px) 33vw, 25vw"
-            className="object-cover group-hover:scale-105 transition-transform duration-300"
-            priority={false}
-          />
-        ) : (
-          <div className="w-full h-full flex items-center justify-center text-gray-400">
-            <ShoppingCart size={48} />
-          </div>
-        )}
+    <div className={`bg-white rounded-xl shadow-sm hover:shadow-md transition-all duration-300 group block ${className}`}>
+      {/* Product Image - Clickable for navigation */}
+      <Link
+        href={`/products/${product.slug}`}
+        className="block"
+      >
+        <div className="relative aspect-square w-full rounded-t-xl overflow-hidden bg-gray-100">
+          {product.images && product.images.length > 0 ? (
+            <Image
+              src={product.images[0]}
+              alt={`${product.name} - Image 1`}
+              fill
+              sizes="(max-width: 768px) 50vw, (max-width: 1024px) 33vw, 25vw"
+              className="object-cover group-hover:scale-105 transition-transform duration-300"
+              priority={false}
+            />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center text-gray-400">
+              <ShoppingCart size={48} />
+            </div>
+          )}
 
-        {/* Discount Badge */}
-        {hasDiscount && (
-          <div className="absolute top-2 left-2 bg-red-500 text-white px-2 py-1 rounded-full text-xs font-bold">
-            -{discountPercentage}%
-          </div>
-        )}
-
-        {/* Wishlist Button */}
-        <button
-          onClick={handleWishlistToggle}
-          disabled={wishlistLoading}
-          className={`absolute top-2 right-2 p-2 rounded-full transition-all duration-200 ${
-            isWishlisted
-              ? "bg-red-500 text-white"
-              : "bg-white/80 text-gray-600 hover:bg-white hover:text-red-500"
-          } ${wishlistLoading ? "opacity-50" : ""}`}
-        >
-          <Heart size={16} className={isWishlisted ? "fill-current" : ""} />
-        </button>
-
-        {/* Out of Stock Overlay */}
-        {product.stock_quantity <= 0 && (
-          <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
-            <span className="bg-white text-black px-3 py-1 rounded-full text-sm font-bold">
-              Out of Stock
-            </span>
-          </div>
-        )}
-      </div>
-
-      {/* Product Info Section*/}
-      <div className="p-4 space-y-3">
-        {/* Category */}
-        <div className="text-xs text-gray-500 uppercase tracking-wider">
-          {product.category}
-        </div>
-
-        {/* Product Name */}
-        <h3 className="font-medium text-sm line-clamp-2 group-hover:text-radiance-goldColor transition-colors">
-          {product.name}
-        </h3>
-
-        {/* Rating with actual data */}
-        <div className="flex items-center gap-1">
-          {renderStars()}
-          <span className="text-xs text-gray-500 ml-1">
-            ({rating.count})
-          </span>
-        </div>
-
-        {/* Price */}
-        <div className="flex items-center gap-2">
-          <span className="text-radiance-goldColor font-bold">
-            ₦{displayPrice.toLocaleString()}
-          </span>
+          {/* Discount Badge */}
           {hasDiscount && (
-            <span className="text-gray-500 text-sm line-through">
-              ₦{product.price.toLocaleString()}
-            </span>
+            <div className="absolute top-2 left-2 bg-red-500 text-white px-2 py-1 rounded-full text-xs font-bold">
+              -{discountPercentage}%
+            </div>
+          )}
+
+          {/* Wishlist Button */}
+          <button
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              handleWishlistToggle(e);
+            }}
+            disabled={wishlistLoading}
+            className={`absolute top-2 right-2 p-2 rounded-full transition-all duration-200 ${
+              isWishlisted
+                ? "bg-red-500 text-white"
+                : "bg-white/80 text-gray-600 hover:bg-white hover:text-red-500"
+            } ${wishlistLoading ? "opacity-50" : ""}`}
+          >
+            <Heart size={16} className={isWishlisted ? "fill-current" : ""} />
+          </button>
+
+          {/* Out of Stock Overlay */}
+          {product.stock_quantity <= 0 && (
+            <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+              <span className="bg-white text-black px-3 py-1 rounded-full text-sm font-bold">
+                Out of Stock
+              </span>
+            </div>
           )}
         </div>
 
-        {/* Quick Add Section */}
-        {showQuickAdd && product.stock_quantity > 0 && (
-          <div className="space-y-2">
-            {/* Quantity Selector */}
-            <div className="flex items-center justify-between bg-gray-50 rounded-lg p-2">
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleQuantityChange(-1);
-                }}
-                className="p-1 hover:bg-gray-200 rounded"
-              >
-                <Minus size={14} />
-              </button>
-              <span className="text-sm font-medium">{quantity}</span>
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleQuantityChange(1);
-                }}
-                className="p-1 hover:bg-gray-200 rounded"
-              >
-                <Plus size={14} />
-              </button>
-            </div>
+        {/* Product Info Section - Clickable for navigation */}
+        <div className="p-4 space-y-3">
+          {/* Category */}
+          <div className="text-xs text-gray-500 uppercase tracking-wider">
+            {product.category}
+          </div>
 
-            {/* Add to Cart Button */}
+          {/* Product Name */}
+          <h3 className="font-medium text-sm line-clamp-2 group-hover:text-radiance-goldColor transition-colors">
+            {product.name}
+          </h3>
+
+          {/* Rating with actual data */}
+          <div className="flex items-center gap-1">
+            {renderStars()}
+            <span className="text-xs text-gray-500 ml-1">
+              ({rating.count})
+            </span>
+          </div>
+
+          {/* Price */}
+          <div className="flex items-center gap-2">
+            <span className="text-radiance-goldColor font-bold">
+              ₦{displayPrice.toLocaleString()}
+            </span>
+            {hasDiscount && (
+              <span className="text-gray-500 text-sm line-through">
+                ₦{product.price.toLocaleString()}
+              </span>
+            )}
+          </div>
+
+          {/* Stock Status */}
+          <div className="text-xs text-gray-500">
+            {product.stock_quantity > 0
+              ? `${product.stock_quantity} in stock`
+              : "Out of stock"}
+          </div>
+        </div>
+      </Link>
+
+      {/* Quick Add Section - OUTSIDE the Link to prevent navigation */}
+      {showQuickAdd && product.stock_quantity > 0 && (
+        <div className="px-4 pb-4 space-y-2 border-t border-gray-100 pt-4">
+          {/* Quantity Selector */}
+          <div className="flex items-center justify-between bg-gray-50 rounded-lg p-2">
             <button
-              onClick={handleAddToCart}
-              disabled={loading}
-              className="w-full bg-radiance-charcoalTextColor text-white py-2 px-4 rounded-lg font-medium hover:bg-radiance-goldColor transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                handleQuantityChange(-1);
+              }}
+              className="p-1 hover:bg-gray-200 rounded"
             >
-              {loading ? (
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-              ) : (
-                <>
-                  <ShoppingCart size={16} />
-                  Add to Cart
-                </>
-              )}
+              <Minus size={14} />
+            </button>
+            <span className="text-sm font-medium">{quantity}</span>
+            <button
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                handleQuantityChange(1);
+              }}
+              className="p-1 hover:bg-gray-200 rounded"
+            >
+              <Plus size={14} />
             </button>
           </div>
-        )}
 
-        {/* Stock Status */}
-        <div className="text-xs text-gray-500">
-          {product.stock_quantity > 0
-            ? `${product.stock_quantity} in stock`
-            : "Out of stock"}
+          {/* Add to Cart Button */}
+          <button
+            onClick={handleAddToCart}
+            disabled={loading}
+            className="w-full bg-radiance-charcoalTextColor text-white py-3 px-4 rounded-lg font-medium hover:bg-radiance-goldColor transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+          >
+            {loading ? (
+              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+            ) : (
+              <>
+                <ShoppingCart size={16} />
+                Add to Cart
+              </>
+            )}
+          </button>
         </div>
-      </div>
-    </Link>
+      )}
+    </div>
   );
 }

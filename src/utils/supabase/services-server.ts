@@ -25,12 +25,24 @@ function isAbortError(error: unknown): boolean {
 
 /**
  * Helper function to log errors (filters out abort errors)
+ * Extracts meaningful error messages from Supabase errors
  */
 function logError(message: string, error: unknown): void {
   if (isAbortError(error)) {
     return; // Don't log abort errors
   }
-  const errorMessage = error instanceof Error ? error.message : String(error);
+  
+  let errorMessage: string;
+  if (error instanceof Error) {
+    errorMessage = error.message;
+  } else if (typeof error === 'object' && error !== null) {
+    // Handle Supabase error objects
+    const err = error as Record<string, unknown>;
+    errorMessage = (err.message as string) || (err.error as string) || JSON.stringify(error);
+  } else {
+    errorMessage = String(error);
+  }
+  
   if (errorMessage) {
     console.error(message, errorMessage);
   }

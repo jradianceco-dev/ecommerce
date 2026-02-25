@@ -31,13 +31,12 @@ export default function CheckoutPage() {
     billing_address: "",
   });
 
+  // Load cart when user is authenticated
   useEffect(() => {
-    if (!user) {
-      router.push("/shop/auth?redirect=/shop/checkout");
-      return;
+    if (user) {
+      loadCart();
     }
-    loadCart();
-  }, [user, router]);
+  }, [user]);
 
   async function loadCart() {
     if (!user) return;
@@ -138,17 +137,8 @@ export default function CheckoutPage() {
     handler.openIframe();
   }
 
-  if (!user) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <Loader2 size={48} className="animate-spin mx-auto text-radiance-goldColor" />
-          <p className="mt-4 text-gray-600">Redirecting to login...</p>
-        </div>
-      </div>
-    );
-  }
-
+  // Show loading while cart is being fetched
+  // Note: Middleware already verified auth, so we trust the user is authenticated
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">

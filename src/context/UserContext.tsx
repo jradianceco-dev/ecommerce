@@ -1,245 +1,176 @@
 /**
- * =============================================================================
- * User Context Provider - Refactored for SOLID Principles
- * =============================================================================
- * Features:
- * - Proper AbortController for cleanup
- * - Retry logic with exponential backoff
- * - Graceful error handling
- * - Auth state synchronization
+ * User Context Provider 
+ * =====================
  */
 
 "use client";
 
-import React, { createContext, useContext, useEffect, useState, useCallback } from "react";
+import React, { createContext, useContext, useEffect, useState, useCallback, useMemo } from "react";
 import { createClient } from "@/utils/supabase/client";
 import type { AuthUser, UserRole } from "@/types";
 
+// Context type
+interface UserContextType {
+  user: AuthUser | null;
+  isLoading: boolean;
+  isAuthenticated: boolean;
+}
+
+const UserContext = createContext<UserContextType>({
+  user: null,
+  isLoading: true,
+  isAuthenticated: false,
+});
+
 /**
- * Authentication Service - Handles all auth operations
- * Single Responsibility: Only manages Supabase auth operations
+ * User Provider Component - OPTIMIZED
+ * 
+ * Features:
+ * - Immediate auth check (no delays)
+ * - Persistent session (survives refresh)
+ * - Real-time auth state updates
+ * - Proper cleanup on unmount
  */
-class AuthService {
-  private supabase: ReturnType<typeof createClient>;
-  private abortController: AbortController | null = null;
+export function UserProvider({ children }: { children: React.ReactNode }) {
+  const [user, setUser] = useState<AuthUser | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
-  constructor() {
-    this.supabase = createClient();
-  }
+  // Initialize auth immediately (no retry delays!)
+  useEffect(() => {
+    const supabase = createClient();
+    let isMounted = true;
 
-  /**
-   * Get abort signal for cancellable operations
-   */
-  getSignal(): AbortSignal | undefined {
-    return this.abortController?.signal;
-  }
-
-  /**
-   * Initialize abort controller for new operation
-   */
-  initAbortController(): void {
-    this.abortController?.abort(); // Cancel previous operation
-    this.abortController = new AbortController();
-  }
-
-  /**
-   * Cleanup abort controller
-   */
-  cleanup(): void {
-    this.abortController?.abort();
-    this.abortController = null;
-  }
-
-  /**
-   * Get current user with profile data
-   * Uses retry logic with exponential backoff
-   */
-  async getCurrentUser(maxRetries = 3): Promise<AuthUser | null> {
-    this.initAbortController();
-
-    let lastError: unknown = null;
-    let retryCount = 0;
-
-    while (retryCount < maxRetries) {
-      try {
-        // Check if aborted
-        if (this.getSignal()?.aborted) {
-          return null;
+    // Immediate check
+    supabase.auth.getUser()
+      .then(async ({ data: { user: supabaseUser } }) => {
+        if (!isMounted) return;
+        
+        if (!supabaseUser) {
+          setUser(null);
+          setIsLoading(false);
+          return;
         }
 
-        const { data: { user } } = await this.supabase.auth.getUser();
+        // Fetch profile for role
+        try {
+          const { data: profile } = await supabase
+            .from("profiles")
+            .select("role")
+            .eq("id", supabaseUser.id)
+            .single();
 
-        if (!user) {
-          this.cleanup();
-          return null;
-        }
-
-        // Fetch role from profiles table (NOT user_metadata)
-        const { data: profile, error: profileError } = await this.supabase
-          .from("profiles")
-          .select("role")
-          .eq("id", user.id)
-          .single();
-
-        if (profileError) {
-          // Don't fail completely if profile fetch fails - use default role
-          console.warn("Profile fetch failed, using default role:", profileError.message);
-        }
-
-        const authUser: AuthUser = {
-          id: user.id,
-          email: user.email || "",
-          role: (profile?.role as UserRole) || "customer",
-        };
-
-        this.cleanup();
-        return authUser;
-      } catch (error) {
-        lastError = error;
-        retryCount++;
-
-        // Don't retry abort errors
-        if (error instanceof Error && error.name === "AbortError") {
-          this.cleanup();
-          return null;
-        }
-
-        // Don't retry if user doesn't exist
-        if (error instanceof Error && error.message.includes("User not found")) {
-          this.cleanup();
-          return null;
-        }
-
-        // Exponential backoff: 1s, 2s, 4s
-        if (retryCount < maxRetries) {
-          await new Promise(resolve => 
-            setTimeout(resolve, Math.pow(2, retryCount - 1) * 1000)
-          );
-        }
-      }
-    }
-
-    // All retries failed
-    console.error("Auth initialization failed after retries:", lastError);
-    this.cleanup();
-    return null;
-  }
-
-  /**
-   * Subscribe to auth state changes
-   */
-  onAuthStateChange(
-    callback: (event: string, user: AuthUser | null) => void
-  ): { unsubscribe: () => void } {
-    const { data: { subscription } } = this.supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        if (session?.user) {
-          try {
-            // Fetch role from profiles table
-            const { data: profile } = await this.supabase
-              .from("profiles")
-              .select("role")
-              .eq("id", session.user.id)
-              .single();
-
-            const authUser: AuthUser = {
-              id: session.user.id,
-              email: session.user.email || "",
+          if (isMounted) {
+            setUser({
+              id: supabaseUser.id,
+              email: supabaseUser.email || "",
               role: (profile?.role as UserRole) || "customer",
-            };
-            callback(event, authUser);
-          } catch (error) {
-            // Use default role on error
-            const authUser: AuthUser = {
-              id: session.user.id,
-              email: session.user.email || "",
-              role: "customer",
-            };
-            callback(event, authUser);
+            });
+            setIsLoading(false);
           }
-        } else {
-          callback(event, null);
+        } catch {
+          // Profile fetch failed, use default role
+          if (isMounted) {
+            setUser({
+              id: supabaseUser.id,
+              email: supabaseUser.email || "",
+              role: "customer",
+            });
+            setIsLoading(false);
+          }
+        }
+      })
+      .catch(() => {
+        if (isMounted) {
+          setUser(null);
+          setIsLoading(false);
+        }
+      });
+
+    // Subscribe to auth changes (real-time updates)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        if (!isMounted) return;
+
+        if (event === "SIGNED_IN" && session?.user) {
+          // User logged in
+          const { data: profile } = await supabase
+            .from("profiles")
+            .select("role")
+            .eq("id", session.user.id)
+            .single();
+
+          setUser({
+            id: session.user.id,
+            email: session.user.email || "",
+            role: (profile?.role as UserRole) || "customer",
+          });
+          setIsLoading(false);
+        } else if (event === "SIGNED_OUT") {
+          // User logged out
+          setUser(null);
+          setIsLoading(false);
+        } else if (event === "TOKEN_REFRESHED" && session?.user) {
+          // Session refreshed (persists across refresh)
+          const { data: profile } = await supabase
+            .from("profiles")
+            .select("role")
+            .eq("id", session.user.id)
+            .single();
+
+          setUser({
+            id: session.user.id,
+            email: session.user.email || "",
+            role: (profile?.role as UserRole) || "customer",
+          });
+          setIsLoading(false);
         }
       }
     );
 
-    return {
-      unsubscribe: () => subscription.unsubscribe(),
-    };
-  }
-}
-
-// Create context
-const UserContext = createContext<AuthUser | undefined>(undefined);
-
-/**
- * User Provider Component
- * Manages auth state with proper cleanup and error handling
- */
-export function UserProvider({ children }: { children: React.ReactNode }) {
-  const [authUser, setAuthUser] = useState<AuthUser | undefined>(undefined);
-  const [isInitialized, setIsInitialized] = useState(false);
-  const authService = useCallback(() => new AuthService(), []);
-
-  useEffect(() => {
-    const service = authService();
-    let authSubscription: { unsubscribe: () => void } | null = null;
-
-    /**
-     * Initialize authentication state
-     */
-    const initializeAuth = async () => {
-      try {
-        const user = await service.getCurrentUser();
-        setAuthUser(user ?? undefined);
-      } catch (error) {
-        // Only log non-abort errors
-        if (!(error instanceof Error) || error.name !== "AbortError") {
-          console.error("Auth initialization error:", error);
-        }
-        setAuthUser(undefined);
-      } finally {
-        setIsInitialized(true);
-      }
-    };
-
-    // Initialize auth
-    initializeAuth();
-
-    // Subscribe to auth changes
-    authSubscription = service.onAuthStateChange((event, user) => {
-      setAuthUser(user ?? undefined);
-    });
-
-    // Cleanup on unmount
+    // Cleanup
     return () => {
-      authSubscription?.unsubscribe();
-      service.cleanup();
+      isMounted = false;
+      subscription.unsubscribe();
     };
-  }, [authService]);
+  }, []);
+
+  // Memoize context value to prevent unnecessary re-renders
+  const contextValue = useMemo(() => ({
+    user,
+    isLoading,
+    isAuthenticated: !!user,
+  }), [user, isLoading]);
 
   return (
-    <UserContext.Provider value={authUser}>
+    <UserContext.Provider value={contextValue}>
       {children}
     </UserContext.Provider>
   );
 }
 
 /**
- * Hook to get current authenticated user
- * Returns AuthUser with id, email, and role, or null if not authenticated
+ * Hook to get current user
+ * Returns user object or null if not authenticated
  */
 export function useUser(): AuthUser | null {
   const context = useContext(UserContext);
-  return context || null;
+  return context.user;
 }
 
 /**
  * Hook to check if user is authenticated
  */
 export function useIsAuthenticated(): boolean {
-  const user = useUser();
-  return !!user;
+  const context = useContext(UserContext);
+  return context.isAuthenticated;
+}
+
+/**
+ * Hook to check if auth is still loading
+ */
+export function useIsAuthLoading(): boolean {
+  const context = useContext(UserContext);
+  return context.isLoading;
 }
 
 /**
@@ -256,23 +187,4 @@ export function useIsAdmin(): boolean {
 export function useIsChiefAdmin(): boolean {
   const user = useUser();
   return user?.role === "chief_admin";
-}
-
-/**
- * Hook to check if auth is initialized
- * Useful for showing loading states
- */
-export function useIsAuthInitialized(): boolean {
-  const [isInitialized, setIsInitialized] = useState(false);
-  
-  useEffect(() => {
-    // Simple heuristic: if useUser returns anything other than undefined, auth is initialized
-    const checkInit = () => {
-      const user = useUser();
-      setIsInitialized(user !== undefined || user === null);
-    };
-    checkInit();
-  }, []);
-  
-  return isInitialized;
 }

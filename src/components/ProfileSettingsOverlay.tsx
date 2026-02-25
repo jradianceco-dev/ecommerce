@@ -76,7 +76,7 @@ export default function ProfileSettingsOverlay({
     preferred_language: "en",
   });
 
-  // Load profile when overlay opens
+  // Load profile when overlay opens AND user is authenticated
   useEffect(() => {
     if (isOpen && user) {
       loadProfile();
@@ -349,7 +349,7 @@ export default function ProfileSettingsOverlay({
                 )}
               </div>
 
-              {/* Admin Dashboard Link */}
+              {/* Admin Dashboard Link - Only for admin users */}
               {isAdminUser && (
                 <Link
                   href="/admin/dashboard"
@@ -502,6 +502,48 @@ export default function ProfileSettingsOverlay({
                   {isSendingReset ? "Sending..." : "Reset Password"}
                 </button>
               </div>
+
+              {/* Social Media Handles */}
+              <div className="pt-6 border-t border-gray-100">
+                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-4 text-center">
+                  Follow Us
+                </p>
+                <div className="flex justify-center gap-4">
+                  <Link
+                    href="https://www.instagram.com/jradiancecosmetics/?hl=de"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="p-2 bg-gray-50 rounded-full hover:bg-radiance-goldColor/10 transition-colors"
+                  >
+                    <Instagram size={18} className="text-radiance-charcoalTextColor hover:text-radiance-goldColor" />
+                  </Link>
+                  <Link
+                    href="https://www.facebook.com/jradianceco"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="p-2 bg-gray-50 rounded-full hover:bg-radiance-goldColor/10 transition-colors"
+                  >
+                    <Facebook size={18} className="text-radiance-charcoalTextColor hover:text-radiance-goldColor" />
+                  </Link>
+                  <Link
+                    href="https://twitter.com/jradianceco"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="p-2 bg-gray-50 rounded-full hover:bg-radiance-goldColor/10 transition-colors"
+                  >
+                    <Twitter size={18} className="text-radiance-charcoalTextColor hover:text-radiance-goldColor" />
+                  </Link>
+                </div>
+              </div>
+
+              {/* Logout Button */}
+              <button
+                onClick={handleLogout}
+                className="mx-auto flex items-center gap-2 text-red-500 text-xs font-bold p-3 hover:bg-red-50 rounded-lg transition-colors"
+              >
+                <LogOut size={16} />
+                Logout
+              </button>
             </>
           ) : (
             /* User is NOT signed in */
@@ -524,50 +566,6 @@ export default function ProfileSettingsOverlay({
                 <ChevronRight size={16} />
               </Link>
             </div>
-          )}
-
-          {/* Social Media Handles */}
-          <div className="pt-6 border-t border-gray-100">
-            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-4 text-center">
-              Follow Us
-            </p>
-            <div className="flex justify-center gap-4">
-              <Link
-                href="https://www.instagram.com/jradiancecosmetics/?hl=de"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="p-2 bg-gray-50 rounded-full hover:bg-radiance-goldColor/10 transition-colors"
-              >
-                <Instagram size={18} className="text-radiance-charcoalTextColor hover:text-radiance-goldColor" />
-              </Link>
-              <Link
-                href="https://www.facebook.com/jradianceco"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="p-2 bg-gray-50 rounded-full hover:bg-radiance-goldColor/10 transition-colors"
-              >
-                <Facebook size={18} className="text-radiance-charcoalTextColor hover:text-radiance-goldColor" />
-              </Link>
-              <Link
-                href="https://twitter.com/jradianceco"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="p-2 bg-gray-50 rounded-full hover:bg-radiance-goldColor/10 transition-colors"
-              >
-                <Twitter size={18} className="text-radiance-charcoalTextColor hover:text-radiance-goldColor" />
-              </Link>
-            </div>
-          </div>
-
-          {/* Logout Button */}
-          {user && (
-            <button
-              onClick={handleLogout}
-              className="mx-auto flex items-center gap-2 text-red-500 text-xs font-bold p-3 hover:bg-red-50 rounded-lg transition-colors"
-            >
-              <LogOut size={16} />
-              Logout
-            </button>
           )}
         </div>
       </div>

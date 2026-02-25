@@ -26,20 +26,11 @@ function OrderHistoryContent() {
   const [selectedOrder, setSelectedOrder] = useState<string | null>(
     searchParams.get("order")
   );
-  const [isAuthChecked, setIsAuthChecked] = useState(false);
 
-  // Wait for user to be defined (not undefined) before checking auth
+  // Load orders when user is authenticated
   useEffect(() => {
-    // Only check auth once user is loaded (not undefined)
-    if (user !== undefined) {
-      setIsAuthChecked(true);
-      if (!user) {
-        // User is null (not authenticated) - redirect
-        router.push("/shop/auth?redirect=/shop/history");
-      } else {
-        // User is authenticated - load orders
-        loadOrders();
-      }
+    if (user) {
+      loadOrders();
     }
   }, [user]);
 
@@ -52,18 +43,23 @@ function OrderHistoryContent() {
   async function loadOrders() {
     if (!user) return;
     setLoading(true);
-    const userOrders = await getUserOrders(user.id);
+    try {
+      const userOrders = await getUserOrders(user.id);
 
-    // Load items for each order
-    const ordersWithItems = await Promise.all(
-      userOrders.map(async (order) => {
-        const items = await getOrderItems(order.id);
-        return { ...order, items };
-      })
-    );
+      // Load items for each order
+      const ordersWithItems = await Promise.all(
+        userOrders.map(async (order) => {
+          const items = await getOrderItems(order.id);
+          return { ...order, items };
+        })
+      );
 
-    setOrders(ordersWithItems);
-    setLoading(false);
+      setOrders(ordersWithItems);
+    } catch (error) {
+      console.error("Error loading orders:", error);
+    } finally {
+      setLoading(false);
+    }
   }
 
   const getStatusIcon = (status: OrderStatus) => {
@@ -99,25 +95,33 @@ function OrderHistoryContent() {
     }
   };
 
-  if (!isAuthChecked) {
-    // Still checking auth - show loading
+  // Show loading while orders are being fetched
+  // Note: Middleware already verified auth, so we trust the user is authenticated
+  if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-radiance-goldColor mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading...</p>
+          <p className="mt-4 text-gray-600">Loading your orders...</p>
         </div>
       </div>
     );
   }
 
-  if (!user) {
-    // Auth check complete - user is not authenticated
+  // Show empty state if no orders
+  if (!loading && orders.length === 0) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-radiance-goldColor mx-auto"></div>
-          <p className="mt-4 text-gray-600">Redirecting to login...</p>
+        <div className="text-center bg-white p-8 rounded-2xl shadow-lg max-w-md">
+          <ShoppingBag size={64} className="mx-auto text-gray-300 mb-4" />
+          <h2 className="text-xl font-bold text-gray-900 mb-2">No orders yet</h2>
+          <p className="text-gray-600 mb-6">Start shopping to see your order history</p>
+          <button
+            onClick={() => router.push("/shop")}
+            className="bg-radiance-goldColor text-white px-8 py-3 rounded-xl font-bold hover:bg-radiance-charcoalTextColor transition-colors"
+          >
+            Start Shopping
+          </button>
         </div>
       </div>
     );

@@ -61,15 +61,10 @@ function AuthContent() {
   useEffect(() => {
     if (state?.message && !state.error && !state.requiresConfirmation) {
       // Add delay to ensure session cookie is properly set
-      // Then redirect and refresh to update auth context
       const timer = setTimeout(() => {
         // Use replace instead of push to prevent back button issues
         router.replace(redirectTo);
-        // Force a refresh to ensure UserContext picks up the new session
-        setTimeout(() => {
-          router.refresh();
-        }, 100);
-      }, 800); // 800ms delay ensures session is set
+      }, 500); // 500ms delay ensures session is set
 
       return () => clearTimeout(timer);
     }

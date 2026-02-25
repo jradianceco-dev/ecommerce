@@ -76,6 +76,12 @@ export default function ProductFeeds({
           });
         }
 
+        // Validate products array
+        if (!Array.isArray(newProducts)) {
+          console.warn("getProducts returned non-array:", newProducts);
+          newProducts = [];
+        }
+
         if (nextPage > 1) {
           setProducts((prev) => [...prev, ...newProducts]);
         } else {
@@ -87,7 +93,10 @@ export default function ProductFeeds({
       } catch (err) {
         const errorMessage = err instanceof Error ? err.message : "Failed to load products";
         setError(errorMessage);
-        console.error("Error fetching products:", err);
+        // Don't log abort errors
+        if (!errorMessage.includes('abort')) {
+          console.error("Error fetching products:", err);
+        }
       } finally {
         setLoading(false);
         setLoadingMore(false);

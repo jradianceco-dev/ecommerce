@@ -3,19 +3,22 @@ import { getProducts } from "@/utils/supabase/services-server";
 import { ProductFilters } from "@/types";
 
 interface ShopPageProps {
-  searchParams: { [key: string]: string | string[] | undefined };
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }
 
 export default async function ShopPage({ searchParams }: ShopPageProps) {
+  // Next.js 15: searchParams must be awaited
+  const params = await searchParams;
+  
   const filters: ProductFilters = {
     category:
-      typeof searchParams.category === "string"
-        ? searchParams.category
+      typeof params.category === "string"
+        ? params.category
         : undefined,
     search:
-      typeof searchParams.search === "string" ? searchParams.search : undefined,
-    limit: 12, // Set a default limit for the initial load
-    is_active: true, // Only show active products to customers
+      typeof params.search === "string" ? params.search : undefined,
+    limit: 12,
+    is_active: true,
   };
 
   const initialProducts = await getProducts(filters);
@@ -28,7 +31,7 @@ export default async function ShopPage({ searchParams }: ShopPageProps) {
           initialFilters={filters}
           title="JRadiance Cosmetics & Beauty Shop"
           subtitle="Discover the perfect products for your beauty needs."
-          skipInitialFetch={true} // Don't re-fetch since SSR provided data
+          skipInitialFetch={true}
         />
       </main>
     </div>

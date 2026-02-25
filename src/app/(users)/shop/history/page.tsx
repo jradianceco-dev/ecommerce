@@ -26,14 +26,22 @@ function OrderHistoryContent() {
   const [selectedOrder, setSelectedOrder] = useState<string | null>(
     searchParams.get("order")
   );
+  const [isAuthChecked, setIsAuthChecked] = useState(false);
 
+  // Wait for user to be defined (not undefined) before checking auth
   useEffect(() => {
-    if (!user) {
-      router.push("/shop/auth?redirect=/shop/history");
-      return;
+    // Only check auth once user is loaded (not undefined)
+    if (user !== undefined) {
+      setIsAuthChecked(true);
+      if (!user) {
+        // User is null (not authenticated) - redirect
+        router.push("/shop/auth?redirect=/shop/history");
+      } else {
+        // User is authenticated - load orders
+        loadOrders();
+      }
     }
-    loadOrders();
-  }, [user, router]);
+  }, [user]);
 
   useEffect(() => {
     if (selectedOrder) {
@@ -45,7 +53,7 @@ function OrderHistoryContent() {
     if (!user) return;
     setLoading(true);
     const userOrders = await getUserOrders(user.id);
-    
+
     // Load items for each order
     const ordersWithItems = await Promise.all(
       userOrders.map(async (order) => {
@@ -53,7 +61,7 @@ function OrderHistoryContent() {
         return { ...order, items };
       })
     );
-    
+
     setOrders(ordersWithItems);
     setLoading(false);
   }
@@ -91,7 +99,20 @@ function OrderHistoryContent() {
     }
   };
 
+  if (!isAuthChecked) {
+    // Still checking auth - show loading
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-radiance-goldColor mx-auto"></div>
+          <p className="mt-4 text-gray-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
   if (!user) {
+    // Auth check complete - user is not authenticated
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">

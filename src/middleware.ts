@@ -143,7 +143,8 @@ export async function middleware(req: NextRequest) {
       }
     } catch (error) {
       console.error("[Middleware] Customer auth error:", error);
-      // Allow request to proceed on auth service failure
+      // Allow request to proceed on auth service failure - let page handle it
+      return NextResponse.next();
     }
   }
 

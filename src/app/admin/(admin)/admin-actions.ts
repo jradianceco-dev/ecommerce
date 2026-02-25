@@ -1317,20 +1317,55 @@ export async function getSalesStats(
   try {
     const supabase = createStaticClient();
 
-    // Get all completed orders
-    const { data: orders, error } = await supabase
-      .from("orders")
-      .select("total_amount, status, created_at")
-      .eq("payment_status", "completed");
+    // Calculate date range based on period
+    let dateFilter = "";
+    const now = new Date();
+    let startDate: Date;
 
-    if (error) throw error;
+    switch (period) {
+      case "day":
+        startDate = new Date(now);
+        startDate.setDate(startDate.getDate() - 1);
+        dateFilter = startDate.toISOString();
+        break;
+      case "week":
+        startDate = new Date(now);
+        startDate.setDate(startDate.getDate() - 7);
+        dateFilter = startDate.toISOString();
+        break;
+      case "month":
+        startDate = new Date(now);
+        startDate.setMonth(startDate.getMonth() - 1);
+        dateFilter = startDate.toISOString();
+        break;
+      case "all":
+      default:
+        dateFilter = "";
+        break;
+    }
+
+    // Build query with optional date filter
+    let query = supabase
+      .from("orders")
+      .select("id, order_number, total_amount, status, created_at")
+      .eq("payment_status", "completed")
+      .order("created_at", { ascending: false });
+
+    if (dateFilter) {
+      query = query.gte("created_at", dateFilter);
+    }
+
+    const { data: orders, error } = await query;
+
+    if (error) {
+      console.error("Error fetching orders:", error.message);
+      throw error;
+    }
 
     // Calculate statistics
-    const totalRevenue =
-      orders?.reduce((sum, order) => sum + order.total_amount, 0) || 0;
+    const totalRevenue = orders?.reduce((sum, order) => sum + order.total_amount, 0) || 0;
     const totalOrders = orders?.length || 0;
-    const completedOrders =
-      orders?.filter((o) => o.status === "delivered").length || 0;
+    const completedOrders = orders?.filter((o) => o.status === "delivered").length || 0;
 
     return {
       success: true,
@@ -1338,11 +1373,12 @@ export async function getSalesStats(
         totalRevenue,
         totalOrders,
         completedOrders,
-        orders,
+        orders: orders || [],
       },
     };
   } catch (error) {
-    console.error("Error fetching sales stats:", error);
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    console.error("Error fetching sales stats:", errorMessage);
     return {
       success: false,
       error: "Failed to fetch sales statistics",

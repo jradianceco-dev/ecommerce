@@ -85,10 +85,20 @@ export async function getProducts(
       ascending: false,
     });
 
-    if (error) throw error;
+    if (error) {
+      // Don't log empty errors or abort errors
+      if (error.message && !error.message.includes('abort')) {
+        console.error("Error fetching products:", error.message);
+      }
+      return [];
+    }
     return data || [];
   } catch (error) {
-    console.error("Error fetching products:", error);
+    // Don't log empty errors or abort errors
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    if (errorMessage && !errorMessage.includes('abort')) {
+      console.error("Error fetching products:", errorMessage);
+    }
     return [];
   }
 }
@@ -278,7 +288,13 @@ export async function getProductAverageRating(
       .select("rating")
       .eq("product_id", productId);
 
-    if (error) throw error;
+    if (error) {
+      // Don't log empty errors or abort errors
+      if (error.message && !error.message.includes('abort')) {
+        console.error("Error fetching average rating:", error.message);
+      }
+      return { averageRating: 0, totalReviews: 0 };
+    }
 
     if (!data || data.length === 0) {
       return { averageRating: 0, totalReviews: 0 };
@@ -293,7 +309,11 @@ export async function getProductAverageRating(
       totalReviews,
     };
   } catch (error) {
-    console.error("Error fetching average rating:", error);
+    // Don't log empty errors or abort errors
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    if (errorMessage && !errorMessage.includes('abort')) {
+      console.error("Error fetching average rating:", errorMessage);
+    }
     return { averageRating: 0, totalReviews: 0 };
   }
 }

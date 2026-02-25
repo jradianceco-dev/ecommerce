@@ -63,7 +63,11 @@ function ProductDetailContent({
         const { averageRating, totalReviews } = await getProductAverageRating(product.id);
         if (!aborted) setRating({ average: averageRating, count: totalReviews });
       } catch (error) {
-        console.error("Error loading product data:", error);
+        // Silently handle errors (don't log abort errors)
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        if (!aborted && errorMessage && !errorMessage.includes('abort')) {
+          console.error("Error loading product data:", errorMessage);
+        }
       }
     }
 

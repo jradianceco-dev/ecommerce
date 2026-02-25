@@ -45,6 +45,8 @@ export default function ProductCard({
 
   // Fetch product rating on mount
   useEffect(() => {
+    let aborted = false;
+
     async function loadRating() {
       try {
         const { getProductAverageRating } = await import(
@@ -52,12 +54,22 @@ export default function ProductCard({
         );
         const { averageRating, totalReviews } =
           await getProductAverageRating(product.id);
-        setRating({ average: averageRating, count: totalReviews });
+        if (!aborted) {
+          setRating({ average: averageRating, count: totalReviews });
+        }
       } catch (error) {
-        console.error("Error loading rating:", error);
+        // Silently handle errors (don't log abort errors)
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        if (!aborted && errorMessage && !errorMessage.includes('abort')) {
+          console.error("Error loading rating:", errorMessage);
+        }
       }
     }
     loadRating();
+
+    return () => {
+      aborted = true;
+    };
   }, [product.id]);
 
   // Calculate display price

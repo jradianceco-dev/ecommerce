@@ -68,6 +68,13 @@ function AuthContent() {
     }
   }, [state, router, redirectTo]);
 
+  // Check if error is connection-related
+  const isConnectionError =
+    state?.error?.includes("timeout") ||
+    state?.error?.includes("unavailable") ||
+    state?.error?.includes("fetch failed") ||
+    state?.error?.includes("network");
+
   const inputClass =
     "w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-100 rounded-xl text-sm focus:ring-1 focus:ring-radiance-goldColor outline-none transition-all";
 
@@ -87,8 +94,21 @@ function AuthContent() {
           </p>
         </div>
 
+        {/* Connection Error Banner */}
+        {isConnectionError && (
+          <div
+            className="p-4 bg-orange-50 border border-orange-100 text-orange-700 text-xs font-bold rounded-xl text-center flex items-center justify-center gap-2"
+            role="alert"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <span>Service Temporarily Unavailable</span>
+          </div>
+        )}
+
         {/* Display Messages from Server Action */}
-        {state?.error && (
+        {state?.error && !isConnectionError && (
           <div className="p-3 bg-red-50 border border-red-100 text-red-600 text-xs font-bold rounded-xl animate-in fade-in zoom-in duration-200">
             {state.error}
           </div>

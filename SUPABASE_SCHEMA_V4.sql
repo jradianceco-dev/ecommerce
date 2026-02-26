@@ -621,104 +621,94 @@ CREATE POLICY "profiles_select_public" ON public.profiles FOR SELECT
 CREATE POLICY "profiles_select_own" ON public.profiles FOR SELECT
   USING (auth.uid() = id);
 
--- 3. Admins can view all profiles
-CREATE POLICY "profiles_select_admin" ON public.profiles FOR SELECT
-  USING (
-    EXISTS (
-      SELECT 1 FROM auth.users 
-      WHERE auth.users.id = auth.uid() 
-      AND auth.users.raw_user_meta_data->>'role' IN ('admin', 'agent', 'chief_admin')
-    )
-  );
-
--- 4. Users can update their own profile
+-- 3. Users can update their own profile
 CREATE POLICY "profiles_update_own" ON public.profiles FOR UPDATE
   USING (auth.uid() = id)
   WITH CHECK (auth.uid() = id);
 
--- 5. Chief admin can update any profile
+-- 4. Chief admin can update any profile (check via admin_staff table instead)
 CREATE POLICY "profiles_update_chief_admin" ON public.profiles FOR UPDATE
   USING (
     EXISTS (
-      SELECT 1 FROM auth.users 
-      WHERE auth.users.id = auth.uid() 
-      AND auth.users.raw_user_meta_data->>'role' = 'chief_admin'
+      SELECT 1 FROM public.admin_staff 
+      WHERE id = auth.uid() 
+      AND position = 'Chief Administrator'
     )
   );
 
 -- ADMIN STAFF POLICIES
--- 6. Admins can view admin staff
+-- 5. Admins can view admin staff
 CREATE POLICY "admin_staff_select_admin" ON public.admin_staff FOR SELECT
   USING (
     EXISTS (
-      SELECT 1 FROM auth.users 
-      WHERE auth.users.id = auth.uid() 
-      AND auth.users.raw_user_meta_data->>'role' IN ('admin', 'chief_admin', 'agent')
+      SELECT 1 FROM public.profiles 
+      WHERE id = auth.uid() 
+      AND role IN ('admin', 'agent', 'chief_admin')
     )
   );
 
--- 7. Chief admin can insert admin staff
+-- 6. Chief admin can insert admin staff
 CREATE POLICY "admin_staff_insert_chief_admin" ON public.admin_staff FOR INSERT
   WITH CHECK (
     EXISTS (
-      SELECT 1 FROM auth.users 
-      WHERE auth.users.id = auth.uid() 
-      AND auth.users.raw_user_meta_data->>'role' = 'chief_admin'
+      SELECT 1 FROM public.profiles 
+      WHERE id = auth.uid() 
+      AND role = 'chief_admin'
     )
   );
 
--- 8. Chief admin can update admin staff
+-- 7. Chief admin can update admin staff
 CREATE POLICY "admin_staff_update_chief_admin" ON public.admin_staff FOR UPDATE
   USING (
     EXISTS (
-      SELECT 1 FROM auth.users 
-      WHERE auth.users.id = auth.uid() 
-      AND auth.users.raw_user_meta_data->>'role' = 'chief_admin'
+      SELECT 1 FROM public.profiles 
+      WHERE id = auth.uid() 
+      AND role = 'chief_admin'
     )
   );
 
 -- PRODUCTS POLICIES
--- 9. Public can view active products
+-- 8. Public can view active products
 CREATE POLICY "products_select_public" ON public.products FOR SELECT
   USING (is_active = true);
 
--- 10. Admins can view all products (including inactive)
+-- 9. Admins can view all products (including inactive)
 CREATE POLICY "products_select_admin" ON public.products FOR SELECT
   USING (
     EXISTS (
-      SELECT 1 FROM auth.users 
-      WHERE auth.users.id = auth.uid() 
-      AND auth.users.raw_user_meta_data->>'role' IN ('admin', 'agent', 'chief_admin')
+      SELECT 1 FROM public.profiles 
+      WHERE id = auth.uid() 
+      AND role IN ('admin', 'agent', 'chief_admin')
     )
   );
 
--- 11. Admins/Agents can insert products
+-- 10. Admins/Agents can insert products
 CREATE POLICY "products_insert_admin" ON public.products FOR INSERT
   WITH CHECK (
     EXISTS (
-      SELECT 1 FROM auth.users 
-      WHERE auth.users.id = auth.uid() 
-      AND auth.users.raw_user_meta_data->>'role' IN ('admin', 'agent', 'chief_admin')
+      SELECT 1 FROM public.profiles 
+      WHERE id = auth.uid() 
+      AND role IN ('admin', 'agent', 'chief_admin')
     )
   );
 
--- 12. Admins/Agents can update products
+-- 11. Admins/Agents can update products
 CREATE POLICY "products_update_admin" ON public.products FOR UPDATE
   USING (
     EXISTS (
-      SELECT 1 FROM auth.users 
-      WHERE auth.users.id = auth.uid() 
-      AND auth.users.raw_user_meta_data->>'role' IN ('admin', 'agent', 'chief_admin')
+      SELECT 1 FROM public.profiles 
+      WHERE id = auth.uid() 
+      AND role IN ('admin', 'agent', 'chief_admin')
     )
   );
 
--- 13. Admins/Chief Admins can delete products
+-- 12. Admins/Chief Admins can delete products
 CREATE POLICY "products_delete_admin" ON public.products FOR DELETE
   USING (
     EXISTS (
-      SELECT 1 FROM auth.users 
-      WHERE auth.users.id = auth.uid() 
-      AND auth.users.raw_user_meta_data->>'role' IN ('admin', 'chief_admin')
+      SELECT 1 FROM public.profiles 
+      WHERE id = auth.uid() 
+      AND role IN ('admin', 'chief_admin')
     )
   );
 
@@ -761,9 +751,9 @@ CREATE POLICY "orders_select_own" ON public.orders FOR SELECT
 CREATE POLICY "orders_select_admin" ON public.orders FOR SELECT
   USING (
     EXISTS (
-      SELECT 1 FROM auth.users 
-      WHERE auth.users.id = auth.uid() 
-      AND auth.users.raw_user_meta_data->>'role' IN ('admin', 'agent', 'chief_admin')
+      SELECT 1 FROM public.profiles 
+      WHERE id = auth.uid() 
+      AND role IN ('admin', 'agent', 'chief_admin')
     )
   );
 
@@ -775,9 +765,9 @@ CREATE POLICY "orders_insert_own" ON public.orders FOR INSERT
 CREATE POLICY "orders_update_admin" ON public.orders FOR UPDATE
   USING (
     EXISTS (
-      SELECT 1 FROM auth.users 
-      WHERE auth.users.id = auth.uid() 
-      AND auth.users.raw_user_meta_data->>'role' IN ('admin', 'agent', 'chief_admin')
+      SELECT 1 FROM public.profiles 
+      WHERE id = auth.uid() 
+      AND role IN ('admin', 'agent', 'chief_admin')
     )
   );
 
@@ -792,9 +782,9 @@ CREATE POLICY "order_items_select_own" ON public.order_items FOR SELECT
 CREATE POLICY "order_items_select_admin" ON public.order_items FOR SELECT
   USING (
     EXISTS (
-      SELECT 1 FROM auth.users 
-      WHERE auth.users.id = auth.uid() 
-      AND auth.users.raw_user_meta_data->>'role' IN ('admin', 'agent', 'chief_admin')
+      SELECT 1 FROM public.profiles 
+      WHERE id = auth.uid() 
+      AND role IN ('admin', 'agent', 'chief_admin')
     )
   );
 
@@ -816,9 +806,9 @@ CREATE POLICY "product_reviews_delete_own_admin" ON public.product_reviews FOR D
   USING (
     auth.uid() = user_id OR 
     EXISTS (
-      SELECT 1 FROM auth.users 
-      WHERE auth.users.id = auth.uid() 
-      AND auth.users.raw_user_meta_data->>'role' IN ('admin', 'chief_admin')
+      SELECT 1 FROM public.profiles 
+      WHERE id = auth.uid() 
+      AND role IN ('admin', 'chief_admin')
     )
   );
 
@@ -827,9 +817,9 @@ CREATE POLICY "product_reviews_delete_own_admin" ON public.product_reviews FOR D
 CREATE POLICY "admin_activity_logs_select_admin" ON public.admin_activity_logs FOR SELECT
   USING (
     EXISTS (
-      SELECT 1 FROM auth.users 
-      WHERE auth.users.id = auth.uid() 
-      AND auth.users.raw_user_meta_data->>'role' IN ('admin', 'chief_admin')
+      SELECT 1 FROM public.profiles 
+      WHERE id = auth.uid() 
+      AND role IN ('admin', 'chief_admin')
     )
   );
 
@@ -839,9 +829,9 @@ CREATE POLICY "issues_select_own_admin" ON public.issues FOR SELECT
   USING (
     reported_by = auth.uid() OR
     EXISTS (
-      SELECT 1 FROM auth.users 
-      WHERE auth.users.id = auth.uid() 
-      AND auth.users.raw_user_meta_data->>'role' IN ('admin', 'agent', 'chief_admin')
+      SELECT 1 FROM public.profiles 
+      WHERE id = auth.uid() 
+      AND role IN ('admin', 'agent', 'chief_admin')
     )
   );
 
@@ -853,9 +843,9 @@ CREATE POLICY "issues_insert_authenticated" ON public.issues FOR INSERT
 CREATE POLICY "issues_update_admin" ON public.issues FOR UPDATE
   USING (
     EXISTS (
-      SELECT 1 FROM auth.users 
-      WHERE auth.users.id = auth.uid() 
-      AND auth.users.raw_user_meta_data->>'role' IN ('admin', 'agent', 'chief_admin')
+      SELECT 1 FROM public.profiles 
+      WHERE id = auth.uid() 
+      AND role IN ('admin', 'agent', 'chief_admin')
     )
   );
 
@@ -863,9 +853,9 @@ CREATE POLICY "issues_update_admin" ON public.issues FOR UPDATE
 CREATE POLICY "issues_delete_chief_admin" ON public.issues FOR DELETE
   USING (
     EXISTS (
-      SELECT 1 FROM auth.users 
-      WHERE auth.users.id = auth.uid() 
-      AND auth.users.raw_user_meta_data->>'role' = 'chief_admin'
+      SELECT 1 FROM public.profiles 
+      WHERE id = auth.uid() 
+      AND role = 'chief_admin'
     )
   );
 
@@ -874,9 +864,9 @@ CREATE POLICY "issues_delete_chief_admin" ON public.issues FOR DELETE
 CREATE POLICY "sales_analytics_select_admin" ON public.sales_analytics FOR SELECT
   USING (
     EXISTS (
-      SELECT 1 FROM auth.users 
-      WHERE auth.users.id = auth.uid() 
-      AND auth.users.raw_user_meta_data->>'role' IN ('admin', 'agent', 'chief_admin')
+      SELECT 1 FROM public.profiles 
+      WHERE id = auth.uid() 
+      AND role IN ('admin', 'agent', 'chief_admin')
     )
   );
 
@@ -884,9 +874,9 @@ CREATE POLICY "sales_analytics_select_admin" ON public.sales_analytics FOR SELEC
 CREATE POLICY "sales_analytics_manage_chief_admin" ON public.sales_analytics FOR ALL
   USING (
     EXISTS (
-      SELECT 1 FROM auth.users 
-      WHERE auth.users.id = auth.uid() 
-      AND auth.users.raw_user_meta_data->>'role' = 'chief_admin'
+      SELECT 1 FROM public.profiles 
+      WHERE id = auth.uid() 
+      AND role = 'chief_admin'
     )
   );
 

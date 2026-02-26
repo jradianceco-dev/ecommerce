@@ -20,6 +20,8 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { UserRoundPen, Mail, Lock, User, Phone, Loader2 } from "lucide-react";
 import { customerSignup, customerLogin } from "./actions";
 import type { AuthState } from "@/types";
+import { useRefreshUser } from "@/context/UserContext";
+import { useToast } from "@/context/ToastContext";
 
 // Loading fallback for Suspense
 function AuthLoadingFallback() {
@@ -50,6 +52,8 @@ function AuthContent() {
   const searchParams = useSearchParams();
   const redirectTo = searchParams.get("redirect") || "/shop";
   const isConfirmed = searchParams.get("confirmed") === "true";
+  const refreshUser = useRefreshUser();
+  const { success, error: showError } = useToast();
 
   // Use appropriate action based on mode
   const [state, formAction, isPending] = useActionState<
@@ -57,18 +61,20 @@ function AuthContent() {
     FormData
   >(isLogin ? customerLogin : customerSignup, null);
 
-  // Handle successful login/signup
+  // Handle successful login/signup - refresh user context
   useEffect(() => {
     if (state?.message && !state.error && !state.requiresConfirmation) {
-      // Add delay to ensure session cookie is properly set
-      const timer = setTimeout(() => {
-        // Use replace instead of push to prevent back button issues
-        router.replace(redirectTo);
-      }, 500); // 500ms delay ensures session is set
-
-      return () => clearTimeout(timer);
+      // First refresh user context
+      refreshUser().then(() => {
+        // Show success message
+        success("Login successful!");
+        // Then redirect after short delay
+        setTimeout(() => {
+          router.replace(redirectTo);
+        }, 300);
+      });
     }
-  }, [state, router, redirectTo]);
+  }, [state, refreshUser, router, redirectTo, success]);
 
   // Check if error is connection-related
   const isConnectionError =

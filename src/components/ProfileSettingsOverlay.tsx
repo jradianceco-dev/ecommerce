@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useCallback } from "react";
 import {
   X,
   Share2,
@@ -68,6 +68,7 @@ export default function ProfileSettingsOverlay({
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
   const [isSendingReset, setIsSendingReset] = useState(false);
   const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [isLoadingProfile, setIsLoadingProfile] = useState(false);
   const [formData, setFormData] = useState({
     full_name: "",
     phone: "",
@@ -79,7 +80,8 @@ export default function ProfileSettingsOverlay({
   // Load profile when overlay opens AND user is authenticated
   useEffect(() => {
     if (isOpen && user) {
-      loadProfile();
+      setIsLoadingProfile(true);
+      loadProfile().finally(() => setIsLoadingProfile(false));
     }
   }, [isOpen, user]);
 
@@ -96,7 +98,15 @@ export default function ProfileSettingsOverlay({
     }
   }, [profile]);
 
-  async function loadProfile() {
+  // Reset state when overlay closes
+  useEffect(() => {
+    if (!isOpen) {
+      setShowEditForm(false);
+      setProfile(null);
+    }
+  }, [isOpen]);
+
+  const loadProfile = useCallback(async () => {
     try {
       const result = await getCurrentUserProfile();
       if (result?.success && result.profile) {
@@ -105,9 +115,9 @@ export default function ProfileSettingsOverlay({
     } catch (error) {
       console.error("Error loading profile:", error);
     }
-  }
+  }, []);
 
-  const handleLogout = async () => {
+  const handleLogout = useCallback(async () => {
     try {
       const supabase = createClient();
       await supabase.auth.signOut();
@@ -118,17 +128,16 @@ export default function ProfileSettingsOverlay({
       console.error("Logout error:", error);
       showError("Failed to logout");
     }
-  };
+  }, [success, showError, onClose, router]);
 
-  const handleAvatarClick = () => {
+  const handleAvatarClick = useCallback(() => {
     fileInputRef.current?.click();
-  };
+  }, []);
 
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Validate file
     if (!file.type.startsWith("image/")) {
       showError("Please select an image file");
       return;
@@ -161,9 +170,9 @@ export default function ProfileSettingsOverlay({
         fileInputRef.current.value = "";
       }
     }
-  };
+  }, [success, showError]);
 
-  const handleDeleteAvatar = async () => {
+  const handleDeleteAvatar = useCallback(async () => {
     if (!confirm("Are you sure you want to delete your avatar?")) return;
 
     try {
@@ -178,9 +187,9 @@ export default function ProfileSettingsOverlay({
       console.error("Delete avatar error:", error);
       showError("Failed to delete avatar");
     }
-  };
+  }, [success, showError]);
 
-  const handleSaveProfile = async () => {
+  const handleSaveProfile = useCallback(async () => {
     setIsEditing(true);
     try {
       const updateFormData = new FormData();
@@ -203,9 +212,9 @@ export default function ProfileSettingsOverlay({
     } finally {
       setIsEditing(false);
     }
-  };
+  }, [formData, success, showError, loadProfile]);
 
-  const handlePasswordReset = async () => {
+  const handlePasswordReset = useCallback(async () => {
     if (!user?.email) return;
     
     if (!confirm(`Send password reset email to ${user.email}?`)) return;
@@ -228,9 +237,9 @@ export default function ProfileSettingsOverlay({
     } finally {
       setIsSendingReset(false);
     }
-  };
+  }, [user, success, showError]);
 
-  const handleShare = async () => {
+  const handleShare = useCallback(async () => {
     if (navigator.share) {
       try {
         await navigator.share({
@@ -243,11 +252,10 @@ export default function ProfileSettingsOverlay({
         console.error("Share error:", error);
       }
     } else {
-      // Fallback: copy to clipboard
       await navigator.clipboard.writeText(window.location.href);
       success("Link copied to clipboard!");
     }
-  };
+  }, [success]);
 
   if (!isOpen) return null;
 
@@ -324,7 +332,7 @@ export default function ProfileSettingsOverlay({
                 {/* Name and Role */}
                 <div className="mt-4">
                   <h3 className="font-bold text-lg text-radiance-charcoalTextColor">
-                    {profile?.full_name || "User"}
+                    {isLoadingProfile ? "Loading..." : (profile?.full_name || "User")}
                   </h3>
                   <div className="flex items-center justify-center gap-2 mt-1">
                     <span className="text-[10px] text-gray-500 uppercase font-medium">
@@ -349,7 +357,7 @@ export default function ProfileSettingsOverlay({
                 )}
               </div>
 
-              {/* Admin Dashboard Link - Only for admin users */}
+              {/* Admin Dashboard Link */}
               {isAdminUser && (
                 <Link
                   href="/admin/dashboard"

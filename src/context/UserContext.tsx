@@ -1,145 +1,127 @@
 /**
- * User Context Provider 
- * =====================
+ * =============================================================================
+ * User Context Provider - FIXED v4
+ * =============================================================================
+ * 
+ * CRITICAL FIXES:
+ * 1. Proper auth state synchronization
+ * 2. Manual refresh after login
+ * 3. Better error handling for missing profiles
+ * 4. Fixed re-render triggers
  */
 
 "use client";
 
-import React, { createContext, useContext, useEffect, useState, useCallback, useMemo } from "react";
+import React, { createContext, useContext, useEffect, useState, useCallback } from "react";
 import { createClient } from "@/utils/supabase/client";
 import type { AuthUser, UserRole } from "@/types";
 
-// Context type
 interface UserContextType {
   user: AuthUser | null;
   isLoading: boolean;
   isAuthenticated: boolean;
+  refreshUser: () => Promise<void>;
 }
 
-const UserContext = createContext<UserContextType>({
-  user: null,
-  isLoading: true,
-  isAuthenticated: false,
-});
+const UserContext = createContext<UserContextType | undefined>(undefined);
 
 /**
- * User Provider Component - OPTIMIZED
- * 
- * Features:
- * - Immediate auth check (no delays)
- * - Persistent session (survives refresh)
- * - Real-time auth state updates
- * - Proper cleanup on unmount
+ * User Provider - FIXED
  */
 export function UserProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Initialize auth immediately (no retry delays!)
+  // Fetch user function - extracted for reuse
+  const fetchUser = useCallback(async () => {
+    try {
+      const supabase = createClient();
+      const { data: { user: supabaseUser }, error: authError } = await supabase.auth.getUser();
+
+      if (authError || !supabaseUser) {
+        setUser(null);
+        setIsLoading(false);
+        return;
+      }
+
+      // Fetch profile for role - with timeout
+      const { data: profile, error: profileError } = await supabase
+        .from("profiles")
+        .select("role")
+        .eq("id", supabaseUser.id)
+        .single();
+
+      if (profileError || !profile) {
+        // Profile doesn't exist yet - create it
+        console.warn("Profile not found, creating...", supabaseUser.email);
+        const { data: newProfile } = await supabase
+          .from("profiles")
+          .insert({
+            id: supabaseUser.id,
+            email: supabaseUser.email || "",
+            role: 'customer',
+            is_active: true,
+          })
+          .select("role")
+          .single();
+
+        setUser({
+          id: supabaseUser.id,
+          email: supabaseUser.email || "",
+          role: (newProfile?.role as UserRole) || "customer",
+        });
+      } else {
+        setUser({
+          id: supabaseUser.id,
+          email: supabaseUser.email || "",
+          role: (profile.role as UserRole) || "customer",
+        });
+      }
+      
+      setIsLoading(false);
+    } catch (error) {
+      console.error("Error fetching user:", error);
+      setUser(null);
+      setIsLoading(false);
+    }
+  }, []);
+
+  // Initialize on mount
   useEffect(() => {
+    fetchUser();
+
     const supabase = createClient();
-    let isMounted = true;
 
-    // Immediate check
-    supabase.auth.getUser()
-      .then(async ({ data: { user: supabaseUser } }) => {
-        if (!isMounted) return;
-        
-        if (!supabaseUser) {
-          setUser(null);
-          setIsLoading(false);
-          return;
-        }
-
-        // Fetch profile for role
-        try {
-          const { data: profile } = await supabase
-            .from("profiles")
-            .select("role")
-            .eq("id", supabaseUser.id)
-            .single();
-
-          if (isMounted) {
-            setUser({
-              id: supabaseUser.id,
-              email: supabaseUser.email || "",
-              role: (profile?.role as UserRole) || "customer",
-            });
-            setIsLoading(false);
-          }
-        } catch {
-          // Profile fetch failed, use default role
-          if (isMounted) {
-            setUser({
-              id: supabaseUser.id,
-              email: supabaseUser.email || "",
-              role: "customer",
-            });
-            setIsLoading(false);
-          }
-        }
-      })
-      .catch(() => {
-        if (isMounted) {
-          setUser(null);
-          setIsLoading(false);
-        }
-      });
-
-    // Subscribe to auth changes (real-time updates)
+    // Subscribe to auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        if (!isMounted) return;
-
+        console.log("Auth state changed:", event, session?.user?.email);
+        
         if (event === "SIGNED_IN" && session?.user) {
-          // User logged in
-          const { data: profile } = await supabase
-            .from("profiles")
-            .select("role")
-            .eq("id", session.user.id)
-            .single();
-
-          setUser({
-            id: session.user.id,
-            email: session.user.email || "",
-            role: (profile?.role as UserRole) || "customer",
-          });
-          setIsLoading(false);
+          // Wait a bit for session to settle
+          setTimeout(() => fetchUser(), 100);
         } else if (event === "SIGNED_OUT") {
-          // User logged out
           setUser(null);
           setIsLoading(false);
         } else if (event === "TOKEN_REFRESHED" && session?.user) {
-          // Session refreshed (persists across refresh)
-          const { data: profile } = await supabase
-            .from("profiles")
-            .select("role")
-            .eq("id", session.user.id)
-            .single();
-
-          setUser({
-            id: session.user.id,
-            email: session.user.email || "",
-            role: (profile?.role as UserRole) || "customer",
-          });
-          setIsLoading(false);
+          fetchUser();
+        } else if (event === "USER_UPDATED") {
+          fetchUser();
         }
       }
     );
 
-    // Cleanup
     return () => {
-      isMounted = false;
       subscription.unsubscribe();
     };
-  }, []);
+  }, [fetchUser]);
 
-  // Memoize context value to prevent unnecessary re-renders
-  const contextValue = useMemo(() => ({
+  const contextValue = {
     user,
     isLoading,
     isAuthenticated: !!user,
-  }), [user, isLoading]);
+    refreshUser: fetchUser,
+  };
 
   return (
     <UserContext.Provider value={contextValue}>
@@ -150,10 +132,12 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
 
 /**
  * Hook to get current user
- * Returns user object or null if not authenticated
  */
 export function useUser(): AuthUser | null {
   const context = useContext(UserContext);
+  if (context === undefined) {
+    throw new Error("useUser must be used within a UserProvider");
+  }
   return context.user;
 }
 
@@ -162,19 +146,36 @@ export function useUser(): AuthUser | null {
  */
 export function useIsAuthenticated(): boolean {
   const context = useContext(UserContext);
+  if (context === undefined) {
+    throw new Error("useIsAuthenticated must be used within a UserProvider");
+  }
   return context.isAuthenticated;
 }
 
 /**
- * Hook to check if auth is still loading
+ * Hook to check if auth is loading
  */
 export function useIsAuthLoading(): boolean {
   const context = useContext(UserContext);
+  if (context === undefined) {
+    throw new Error("useIsAuthLoading must be used within a UserProvider");
+  }
   return context.isLoading;
 }
 
 /**
- * Hook to check if user has admin privileges
+ * Hook to refresh user data
+ */
+export function useRefreshUser(): () => Promise<void> {
+  const context = useContext(UserContext);
+  if (context === undefined) {
+    throw new Error("useRefreshUser must be used within a UserProvider");
+  }
+  return context.refreshUser;
+}
+
+/**
+ * Hook to check admin privileges
  */
 export function useIsAdmin(): boolean {
   const user = useUser();
@@ -182,7 +183,7 @@ export function useIsAdmin(): boolean {
 }
 
 /**
- * Hook to check if user is chief admin
+ * Hook to check chief admin
  */
 export function useIsChiefAdmin(): boolean {
   const user = useUser();

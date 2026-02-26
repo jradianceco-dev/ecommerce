@@ -1,24 +1,41 @@
 /**
- * Product Detail Page - Client Component
+ * =============================================================================
+ * Product Detail Client Component - REBUILT v2
+ * =============================================================================
  * 
- * Handles interactive features:
- * - Add to cart
- * - Wishlist toggle
- * - Share product
- * - Quantity selector
- * - Image gallery
+ * Client-side interactive features with modern UI
  */
 
 "use client";
 
-import { useState, useEffect, Suspense } from "react";
+import { useState, useEffect, useCallback, Suspense } from "react";
 import Image from "next/image";
 import { useSearchParams } from "next/navigation";
-import { Star, ShoppingCart, Heart, Share2, Check, Plus, Minus, X } from "lucide-react";
+import {
+  Star,
+  ShoppingCart,
+  Heart,
+  Share2,
+  Check,
+  Truck,
+  Shield,
+  RotateCcw,
+  Plus,
+  Minus,
+  Video,
+  ChevronLeft,
+  ChevronRight,
+} from "lucide-react";
 import { Product } from "@/types";
-import { addToCart, addToWishlist, removeFromWishlist, isInWishlist, getProductAverageRating } from "@/utils/supabase/services";
+import {
+  addToCart,
+  addToWishlist,
+  removeFromWishlist,
+  isInWishlist,
+} from "@/utils/supabase/services";
 import { useUser } from "@/context/UserContext";
 import { useToast } from "@/context/ToastContext";
+import RichViewer from "@/components/products/RichViewer";
 
 interface ProductDetailClientProps {
   product: Product;
@@ -26,6 +43,7 @@ interface ProductDetailClientProps {
   hasDiscount: boolean;
   discountPercentage: number;
   displayPrice: number;
+  ratingData: { averageRating: number; totalReviews: number };
 }
 
 function ProductDetailContent({
@@ -34,52 +52,39 @@ function ProductDetailContent({
   hasDiscount,
   discountPercentage,
   displayPrice,
+  ratingData,
 }: ProductDetailClientProps) {
   const user = useUser();
   const { success, error: showError } = useToast();
-  const searchParams = useSearchParams();
   
   const [quantity, setQuantity] = useState(1);
   const [isWishlisted, setIsWishlisted] = useState(false);
   const [wishlistLoading, setWishlistLoading] = useState(false);
   const [cartLoading, setCartLoading] = useState(false);
   const [shareLoading, setShareLoading] = useState(false);
-  const [selectedImage, setSelectedImage] = useState(0);
-  const [rating, setRating] = useState<{ average: number; count: number }>({ average: 0, count: 0 });
+  const [selectedImageIndex, setSelectedImageIndex] = useState(0);
 
-  // Load wishlist status and rating on mount
+  // All media (images + videos)
+  const allMedia = [
+    ...(product.images || []),
+    ...(Array.isArray(product.attributes?.videos) ? product.attributes.videos : []),
+  ];
+
+  // Check if current media is video
+  const isVideo = (index: number) => {
+    const media = allMedia[index];
+    return media?.match(/\.(mp4|webm|mov)$/i);
+  };
+
+  // Check if product is in wishlist on mount
   useEffect(() => {
-    let aborted = false;
-
-    async function loadData() {
-      try {
-        // Load wishlist status
-        if (user) {
-          const wishlisted = await isInWishlist(user.id, product.id);
-          if (!aborted) setIsWishlisted(wishlisted);
-        }
-
-        // Load rating
-        const { averageRating, totalReviews } = await getProductAverageRating(product.id);
-        if (!aborted) setRating({ average: averageRating, count: totalReviews });
-      } catch (error) {
-        // Silently handle errors (don't log abort errors)
-        const errorMessage = error instanceof Error ? error.message : String(error);
-        if (!aborted && errorMessage && !errorMessage.includes('abort')) {
-          console.error("Error loading product data:", errorMessage);
-        }
-      }
+    if (user) {
+      isInWishlist(user.id, product.id).then(setIsWishlisted);
     }
-
-    loadData();
-
-    return () => {
-      aborted = true;
-    };
   }, [user, product.id]);
 
   // Handle add to cart
-  const handleAddToCart = async () => {
+  const handleAddToCart = useCallback(async () => {
     if (!user) {
       showError("Please log in to add items to cart");
       return;
@@ -95,15 +100,14 @@ function ProductDetailContent({
         showError("Failed to add to cart");
       }
     } catch (error) {
-      console.error("Error adding to cart:", error);
       showError("Failed to add to cart");
     } finally {
       setCartLoading(false);
     }
-  };
+  }, [user, product.id, product.name, quantity, success, showError]);
 
   // Handle wishlist toggle
-  const handleWishlistToggle = async () => {
+  const handleWishlistToggle = useCallback(async () => {
     if (!user) {
       showError("Please log in to manage wishlist");
       return;
@@ -125,15 +129,14 @@ function ProductDetailContent({
         }
       }
     } catch (error) {
-      console.error("Error updating wishlist:", error);
       showError("Failed to update wishlist");
     } finally {
       setWishlistLoading(false);
     }
-  };
+  }, [user, product.id, isWishlisted, success, showError]);
 
   // Handle share
-  const handleShare = async () => {
+  const handleShare = useCallback(async () => {
     setShareLoading(true);
     try {
       const shareData = {
@@ -146,7 +149,6 @@ function ProductDetailContent({
         await navigator.share(shareData);
         success("Thanks for sharing!");
       } else {
-        // Fallback: copy to clipboard
         await navigator.clipboard.writeText(window.location.href);
         success("Link copied to clipboard!");
       }
@@ -157,56 +159,31 @@ function ProductDetailContent({
     } finally {
       setShareLoading(false);
     }
-  };
+  }, [product.name, success]);
 
   // Handle quantity change
-  const handleQuantityChange = (delta: number) => {
+  const handleQuantityChange = useCallback((delta: number) => {
     const newQuantity = Math.max(1, Math.min(quantity + delta, product.stock_quantity));
     setQuantity(newQuantity);
-  };
+  }, [quantity, product.stock_quantity]);
 
-  // Render star rating
-  const renderStars = () => {
-    const fullStars = Math.floor(rating.average);
-    const hasHalfStar = rating.average % 1 >= 0.5;
-    const emptyStars = 5 - fullStars - (hasHalfStar ? 1 : 0);
+  // Handle image navigation
+  const goToPreviousImage = useCallback(() => {
+    setSelectedImageIndex((prev) => (prev > 0 ? prev - 1 : allMedia.length - 1));
+  }, [allMedia.length]);
 
-    return (
-      <div className="flex items-center gap-2">
-        <div className="flex">
-          {[...Array(fullStars)].map((_, i) => (
-            <Star key={`full-${i}`} size={16} className="text-yellow-400 fill-current" />
-          ))}
-          {hasHalfStar && (
-            <div className="relative">
-              <Star size={16} className="text-gray-300" />
-              <div className="absolute top-0 left-0 overflow-hidden w-1/2">
-                <Star size={16} className="text-yellow-400 fill-current" />
-              </div>
-            </div>
-          )}
-          {[...Array(emptyStars)].map((_, i) => (
-            <Star key={`empty-${i}`} size={16} className="text-gray-300" />
-          ))}
-        </div>
-        <span className="text-sm text-gray-600">
-          {rating.average > 0 ? rating.average.toFixed(1) : "No"} reviews
-          {rating.count > 0 && ` (${rating.count})`}
-        </span>
-      </div>
-    );
-  };
+  const goToNextImage = useCallback(() => {
+    setSelectedImageIndex((prev) => (prev < allMedia.length - 1 ? prev + 1 : 0));
+  }, [allMedia.length]);
 
-  // All media (images + videos)
-  const allMedia = [
-    ...(product.images || []),
-  ];
+  const isOutOfStock = product.stock_quantity <= 0;
+  const isLowStock = product.stock_quantity > 0 && product.stock_quantity <= 5;
 
   return (
     <div className="min-h-screen bg-radiance-creamBackgroundColor text-radiance-charcoalTextColor">
-      <article className="mx-auto max-w-7xl px-4 md:px-8 py-12">
+      <article className="mx-auto max-w-6xl px-4 md:px-6 py-8">
         {/* Breadcrumb Navigation */}
-        <nav className="mb-8 text-sm" aria-label="Breadcrumb">
+        <nav className="mb-6 text-sm" aria-label="Breadcrumb">
           <ol className="flex items-center space-x-2 flex-wrap">
             {breadcrumbItems.map((item, index) => (
               <li key={item.position} className="flex items-center">
@@ -216,7 +193,10 @@ function ProductDetailContent({
                     {item.name}
                   </span>
                 ) : (
-                  <a href={item.url} className="text-radiance-goldColor hover:underline">
+                  <a
+                    href={item.url}
+                    className="text-radiance-goldColor hover:underline"
+                  >
                     {item.name}
                   </a>
                 )}
@@ -225,19 +205,31 @@ function ProductDetailContent({
           </ol>
         </nav>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
-          {/* Product Images */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          {/* Product Images Section */}
           <section aria-label="Product images" className="space-y-4">
-            <div className="relative aspect-square bg-gray-100 rounded-2xl overflow-hidden">
-              {allMedia[selectedImage] ? (
-                <Image
-                  src={allMedia[selectedImage]}
-                  alt={`${product.name} - Image ${selectedImage + 1}`}
-                  fill
-                  className="object-cover"
-                  priority
-                  sizes="(max-width: 768px) 100vw, 50vw"
-                />
+            {/* Main Image */}
+            <div className="relative aspect-square bg-gray-100 rounded-xl overflow-hidden shadow-lg">
+              {allMedia[selectedImageIndex] ? (
+                isVideo(selectedImageIndex) ? (
+                  <video
+                    src={allMedia[selectedImageIndex]}
+                    className="w-full h-full object-cover"
+                    controls
+                    autoPlay
+                    loop
+                    muted
+                  />
+                ) : (
+                  <Image
+                    src={allMedia[selectedImageIndex]}
+                    alt={`${product.name} - Image ${selectedImageIndex + 1}`}
+                    fill
+                    className="object-cover"
+                    priority
+                    sizes="(max-width: 768px) 100vw, 50vw"
+                  />
+                )
               ) : (
                 <div className="w-full h-full flex items-center justify-center text-gray-400">
                   <ShoppingCart size={64} />
@@ -246,8 +238,35 @@ function ProductDetailContent({
 
               {/* Discount Badge */}
               {hasDiscount && (
-                <div className="absolute top-4 right-4 bg-red-500 text-white px-3 py-1.5 rounded-full text-sm font-bold">
-                  -{discountPercentage}%
+                <div className="absolute top-4 right-4 bg-red-500 text-white px-4 py-2 rounded-full text-sm font-bold shadow-lg">
+                  -{discountPercentage}% OFF
+                </div>
+              )}
+
+              {/* Navigation Arrows */}
+              {allMedia.length > 1 && (
+                <>
+                  <button
+                    onClick={goToPreviousImage}
+                    className="absolute left-2 top-1/2 -translate-y-1/2 bg-white/90 hover:bg-white p-2 rounded-full shadow-lg transition-all"
+                    aria-label="Previous image"
+                  >
+                    <ChevronLeft size={20} />
+                  </button>
+                  <button
+                    onClick={goToNextImage}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 bg-white/90 hover:bg-white p-2 rounded-full shadow-lg transition-all"
+                    aria-label="Next image"
+                  >
+                    <ChevronRight size={20} />
+                  </button>
+                </>
+              )}
+
+              {/* Image Counter */}
+              {allMedia.length > 1 && (
+                <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-black/70 text-white px-3 py-1 rounded-full text-xs font-medium backdrop-blur-sm">
+                  {selectedImageIndex + 1} / {allMedia.length}
                 </div>
               )}
             </div>
@@ -255,28 +274,36 @@ function ProductDetailContent({
             {/* Thumbnail Gallery */}
             {allMedia.length > 1 && (
               <div className="grid grid-cols-4 gap-3">
-                {allMedia.map((image, index) => (
+                {allMedia.map((media, index) => (
                   <button
                     key={index}
-                    onClick={() => setSelectedImage(index)}
-                    className={`relative aspect-square rounded-lg overflow-hidden border-2 transition-colors ${
-                      selectedImage === index ? "border-radiance-goldColor" : "border-gray-200"
+                    onClick={() => setSelectedImageIndex(index)}
+                    className={`relative aspect-square rounded-lg overflow-hidden border-2 transition-all ${
+                      selectedImageIndex === index
+                        ? "border-radiance-goldColor shadow-md"
+                        : "border-gray-200 hover:border-gray-300"
                     }`}
                   >
-                    <Image
-                      src={image}
-                      alt={`${product.name} - Thumbnail ${index + 1}`}
-                      fill
-                      className="object-cover"
-                      sizes="(max-width: 768px) 25vw, 12vw"
-                    />
+                    {isVideo(index) ? (
+                      <div className="w-full h-full bg-gray-900 flex items-center justify-center">
+                        <Video size={24} className="text-white" />
+                      </div>
+                    ) : (
+                      <Image
+                        src={media}
+                        alt={`${product.name} - Thumbnail ${index + 1}`}
+                        fill
+                        className="object-cover"
+                        sizes="(max-width: 768px) 25vw, 12vw"
+                      />
+                    )}
                   </button>
                 ))}
               </div>
             )}
           </section>
 
-          {/* Product Info */}
+          {/* Product Info Section */}
           <section aria-label="Product details" className="space-y-6">
             {/* Category and SKU */}
             <div className="space-y-2">
@@ -289,12 +316,31 @@ function ProductDetailContent({
             </div>
 
             {/* Product Name */}
-            <h1 className="text-3xl md:text-4xl font-black text-radiance-charcoalTextColor leading-tight">
+            <h1 className="text-3xl font-black text-radiance-charcoalTextColor leading-tight">
               {product.name}
             </h1>
 
             {/* Rating */}
-            {renderStars()}
+            <div className="flex items-center gap-3">
+              <div className="flex">
+                {[1, 2, 3, 4, 5].map((star) => (
+                  <Star
+                    key={star}
+                    size={18}
+                    className={`${
+                      star <= Math.round(ratingData.averageRating)
+                        ? "text-yellow-400 fill-current"
+                        : "text-gray-300"
+                    }`}
+                  />
+                ))}
+              </div>
+              <span className="text-sm text-gray-600">
+                {ratingData.averageRating > 0
+                  ? `${ratingData.averageRating.toFixed(1)} (${ratingData.totalReviews} reviews)`
+                  : "No reviews yet"}
+              </span>
+            </div>
 
             {/* Price */}
             <div className="flex items-baseline gap-3">
@@ -310,16 +356,20 @@ function ProductDetailContent({
 
             {/* Stock Status */}
             <div className="flex items-center gap-2">
-              {product.stock_quantity > 0 ? (
-                <div className="flex items-center gap-2 text-green-600 bg-green-50 px-3 py-1.5 rounded-full">
-                  <Check size={16} />
-                  <span className="text-sm font-bold">In Stock</span>
-                  <span className="text-xs text-green-700">({product.stock_quantity} available)</span>
+              {isOutOfStock ? (
+                <div className="flex items-center gap-2 text-red-600 bg-red-50 px-4 py-2 rounded-full">
+                  <Check size={18} />
+                  <span className="text-sm font-bold">Out of Stock</span>
+                </div>
+              ) : isLowStock ? (
+                <div className="flex items-center gap-2 text-orange-600 bg-orange-50 px-4 py-2 rounded-full">
+                  <Check size={18} />
+                  <span className="text-sm font-bold">Only {product.stock_quantity} left - Order soon!</span>
                 </div>
               ) : (
-                <div className="flex items-center gap-2 text-red-600 bg-red-50 px-3 py-1.5 rounded-full">
-                  <X size={16} />
-                  <span className="text-sm font-bold">Out of Stock</span>
+                <div className="flex items-center gap-2 text-green-600 bg-green-50 px-4 py-2 rounded-full">
+                  <Check size={18} />
+                  <span className="text-sm font-bold">In Stock ({product.stock_quantity} available)</span>
                 </div>
               )}
             </div>
@@ -329,7 +379,7 @@ function ProductDetailContent({
               <div className="space-y-3">
                 <h2 className="font-bold text-lg text-radiance-charcoalTextColor">Description</h2>
                 <div className="prose prose-zinc prose-sm max-w-none text-gray-700">
-                  <p className="text-sm leading-relaxed">{product.description.replace(/<[^>]*>/g, '')}</p>
+                  <RichViewer content={product.description} />
                 </div>
               </div>
             )}
@@ -339,20 +389,22 @@ function ProductDetailContent({
               <div className="space-y-3">
                 <h2 className="font-bold text-lg text-radiance-charcoalTextColor">Product Details</h2>
                 <div className="grid grid-cols-2 gap-3">
-                  {Object.entries(product.attributes).map(([key, value]) => (
-                    <div key={key} className="text-sm bg-white px-3 py-2 rounded-lg border border-gray-100">
-                      <span className="font-semibold capitalize text-gray-700">
-                        {key.replace(/_/g, " ")}:
-                      </span>
-                      <span className="ml-2 text-gray-600">{String(value)}</span>
-                    </div>
-                  ))}
+                  {Object.entries(product.attributes)
+                    .filter(([key]) => key !== "videos")
+                    .map(([key, value]) => (
+                      <div key={key} className="text-sm bg-white px-3 py-2 rounded-lg border border-gray-100">
+                        <span className="font-semibold capitalize text-gray-700">
+                          {key.replace(/_/g, " ")}:
+                        </span>
+                        <span className="ml-2 text-gray-600">{String(value)}</span>
+                      </div>
+                    ))}
                 </div>
               </div>
             )}
 
             {/* Action Buttons */}
-            {product.stock_quantity > 0 && (
+            {!isOutOfStock && (
               <div className="space-y-4 pt-6 border-t border-gray-200">
                 {/* Quantity Selector */}
                 <div>
@@ -365,7 +417,7 @@ function ProductDetailContent({
                     >
                       <Minus size={18} />
                     </button>
-                    <span className="text-xl font-bold w-12 text-center">{quantity}</span>
+                    <span className="text-xl font-bold w-16 text-center">{quantity}</span>
                     <button
                       onClick={() => handleQuantityChange(1)}
                       className="p-3 border-2 border-gray-200 rounded-xl hover:border-radiance-goldColor hover:bg-radiance-goldColor/10 transition-colors"
@@ -373,9 +425,6 @@ function ProductDetailContent({
                     >
                       <Plus size={18} />
                     </button>
-                    <span className="text-xs text-gray-500 ml-2">
-                      Max: {product.stock_quantity}
-                    </span>
                   </div>
                 </div>
 
@@ -387,7 +436,10 @@ function ProductDetailContent({
                     className="flex-1 bg-radiance-charcoalTextColor text-white py-4 px-6 rounded-full font-bold text-base hover:bg-radiance-goldColor transition-all shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                   >
                     {cartLoading ? (
-                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                      <>
+                        <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                        Adding...
+                      </>
                     ) : (
                       <>
                         <ShoppingCart size={20} />
@@ -401,7 +453,7 @@ function ProductDetailContent({
                     className={`p-4 rounded-full border-2 transition-all ${
                       isWishlisted
                         ? "bg-red-500 border-red-500 text-white"
-                        : "border-gray-300 text-gray-600 hover:bg-gray-50 hover:text-red-500"
+                        : "border-gray-300 text-gray-600 hover:bg-red-50 hover:text-red-500 hover:border-red-300"
                     } disabled:opacity-50`}
                     aria-label="Add to wishlist"
                   >
@@ -428,17 +480,26 @@ function ProductDetailContent({
                 {/* Trust Badges */}
                 <div className="pt-4 border-t border-gray-100">
                   <div className="grid grid-cols-3 gap-4 text-center">
-                    <div className="text-xs">
-                      <p className="font-bold text-gray-700">✓ Authentic</p>
-                      <p className="text-gray-500">100% Original</p>
+                    <div className="flex flex-col items-center gap-2">
+                      <Truck size={24} className="text-radiance-goldColor" />
+                      <div>
+                        <p className="text-xs font-bold text-gray-700">Fast Delivery</p>
+                        <p className="text-xs text-gray-500">Nationwide</p>
+                      </div>
                     </div>
-                    <div className="text-xs">
-                      <p className="font-bold text-gray-700">🚚 Fast Delivery</p>
-                      <p className="text-gray-500">Nationwide</p>
+                    <div className="flex flex-col items-center gap-2">
+                      <Shield size={24} className="text-radiance-goldColor" />
+                      <div>
+                        <p className="text-xs font-bold text-gray-700">Secure Payment</p>
+                        <p className="text-xs text-gray-500">Paystack</p>
+                      </div>
                     </div>
-                    <div className="text-xs">
-                      <p className="font-bold text-gray-700">💳 Secure Payment</p>
-                      <p className="text-gray-500">Paystack Protected</p>
+                    <div className="flex flex-col items-center gap-2">
+                      <RotateCcw size={24} className="text-radiance-goldColor" />
+                      <div>
+                        <p className="text-xs font-bold text-gray-700">Easy Returns</p>
+                        <p className="text-xs text-gray-500">7 Days</p>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -446,29 +507,19 @@ function ProductDetailContent({
             )}
           </section>
         </div>
-
-        {/* Additional Product Information Section */}
-        <section className="mt-16 pt-8 border-t border-gray-200">
-          <h2 className="text-2xl font-bold mb-6">Product Information</h2>
-          <div className="prose prose-zinc max-w-none">
-            <p className="text-gray-700 leading-relaxed">
-              {product.description || `Discover ${product.name}, a premium ${product.category.toLowerCase()} product from JRADIANCE. Designed for quality and authenticity.`}
-            </p>
-          </div>
-        </section>
       </article>
     </div>
   );
 }
 
 /**
- * ProductDetailClient with Suspense boundary for useSearchParams
+ * ProductDetailClient with Suspense boundary
  */
 export default function ProductDetailClient(props: ProductDetailClientProps) {
   return (
     <Suspense fallback={
       <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-radiance-goldColor"></div>
+        <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-radiance-goldColor"></div>
       </div>
     }>
       <ProductDetailContent {...props} />

@@ -73,85 +73,60 @@ export default function DashboardPage() {
     try {
       const supabase = createClient();
 
-      // Get product stats
-      const [{ count: totalProducts }, { count: activeProducts }] =
-        await Promise.all([
-          supabase.from("products").select("*", { count: "exact", head: true }),
-          supabase
-            .from("products")
-            .select("*", { count: "exact", head: true })
-            .eq("is_active", true),
-        ]);
+      // Fetch all stats in parallel with proper error handling
+      const [
+        productsResult,
+        activeProductsResult,
+        ordersResult,
+        pendingOrdersResult,
+        revenueResult,
+        customersResult,
+        lowStockResult,
+      ] = await Promise.allSettled([
+        supabase.from("products").select("*", { count: "exact", head: true }),
+        supabase.from("products").select("*", { count: "exact", head: true }).eq("is_active", true),
+        supabase.from("orders").select("*", { count: "exact", head: true }),
+        supabase.from("orders").select("*", { count: "exact", head: true }).eq("status", "pending"),
+        supabase.from("orders").select("total_amount, created_at").eq("payment_status", "completed"),
+        supabase.from("profiles").select("*", { count: "exact", head: true }).eq("role", "customer"),
+        supabase.from("products").select("*", { count: "exact", head: true }).lte("stock_quantity", 10).eq("is_active", true),
+      ]);
 
       if (aborted) return;
 
-      // Get order stats
-      const [{ count: totalOrders }, { count: pendingOrders }] =
-        await Promise.all([
-          supabase.from("orders").select("*", { count: "exact", head: true }),
-          supabase
-            .from("orders")
-            .select("*", { count: "exact", head: true })
-            .eq("status", "pending"),
-        ]);
+      // Extract counts safely
+      const totalProducts = productsResult.status === 'fulfilled' ? productsResult.value.count || 0 : 0;
+      const activeProducts = activeProductsResult.status === 'fulfilled' ? activeProductsResult.value.count || 0 : 0;
+      const totalOrders = ordersResult.status === 'fulfilled' ? ordersResult.value.count || 0 : 0;
+      const pendingOrders = pendingOrdersResult.status === 'fulfilled' ? pendingOrdersResult.value.count || 0 : 0;
+      const totalCustomers = customersResult.status === 'fulfilled' ? customersResult.value.count || 0 : 0;
+      const lowStockProducts = lowStockResult.status === 'fulfilled' ? lowStockResult.value.count || 0 : 0;
 
-      if (aborted) return;
-
-      // Get revenue stats
-      const { data: revenueData } = await supabase
-        .from("orders")
-        .select("total_amount")
-        .eq("payment_status", "completed");
-
-      const totalRevenue =
-        revenueData?.reduce((sum, order) => sum + order.total_amount, 0) || 0;
-
-      if (aborted) return;
-
-      // Monthly revenue (last 30 days)
-      const thirtyDaysAgo = new Date();
-      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-      const { data: monthlyRevenueData } = await supabase
-        .from("orders")
-        .select("total_amount")
-        .eq("payment_status", "completed")
-        .gte("created_at", thirtyDaysAgo.toISOString());
-
-      const monthlyRevenue =
-        monthlyRevenueData?.reduce(
-          (sum, order) => sum + order.total_amount,
-          0,
-        ) || 0;
-
-      if (aborted) return;
-
-      // Get customer count
-      const { count: totalCustomers } = await supabase
-        .from("profiles")
-        .select("*", { count: "exact", head: true })
-        .eq("role", "customer");
-
-      if (aborted) return;
-
-      // Get low stock products
-      const { count: lowStockProducts } = await supabase
-        .from("products")
-        .select("*", { count: "exact", head: true })
-        .lte("stock_quantity", 10)
-        .eq("is_active", true);
-
-      if (!aborted) {
-        setStats({
-          totalProducts: totalProducts || 0,
-          activeProducts: activeProducts || 0,
-          totalOrders: totalOrders || 0,
-          pendingOrders: pendingOrders || 0,
-          totalRevenue,
-          monthlyRevenue,
-          totalCustomers: totalCustomers || 0,
-          lowStockProducts: lowStockProducts || 0,
-        });
+      // Calculate revenue
+      let totalRevenue = 0;
+      let monthlyRevenue = 0;
+      
+      if (revenueResult.status === 'fulfilled' && revenueResult.value.data) {
+        totalRevenue = revenueResult.value.data.reduce((sum, order) => sum + (order.total_amount || 0), 0);
+        
+        // Calculate monthly revenue (last 30 days)
+        const thirtyDaysAgo = new Date();
+        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+        monthlyRevenue = revenueResult.value.data
+          .filter(order => new Date(order.created_at) >= thirtyDaysAgo)
+          .reduce((sum, order) => sum + (order.total_amount || 0), 0);
       }
+
+      setStats({
+        totalProducts,
+        activeProducts,
+        totalOrders,
+        pendingOrders,
+        totalRevenue,
+        monthlyRevenue,
+        totalCustomers,
+        lowStockProducts,
+      });
     } catch (error) {
       if (!aborted) {
         console.error("Error loading dashboard data:", error);

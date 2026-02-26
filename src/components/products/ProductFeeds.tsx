@@ -328,9 +328,9 @@ export default function ProductFeeds({
         {/* Products Grid */}
         {products.length > 0 ? (
           <div
-            className={`grid gap-6 ${
+            className={`grid gap-4 md:gap-6 ${
               viewMode === "grid"
-                ? "grid-cols-2 md:grid-cols-3 lg:grid-cols-4"
+                ? "grid-cols-2 md:grid-cols-3 lg:grid-cols-4 justify-items-center"
                 : "grid-cols-1 md:grid-cols-2"
             }`}
           >
@@ -338,6 +338,7 @@ export default function ProductFeeds({
               <ProductCard
                 key={product.id}
                 product={product}
+                viewMode={viewMode === "grid" ? "vertical" : "horizontal"}
               />
             ))}
           </div>

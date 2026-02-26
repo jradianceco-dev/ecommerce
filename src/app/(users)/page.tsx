@@ -1,406 +1,388 @@
-import { Metadata } from "next";
-import Image from "next/image";
+/**
+ * =============================================================================
+ * Landing Page - REDESIGNED
+ * =============================================================================
+ * 
+ * Modern, intuitive landing page with:
+ * - Hero section with CTA
+ * - Featured categories
+ * - Trending products
+ * - Best sellers
+ * - Brand values
+ * - Newsletter signup
+ * - Social proof
+ */
+
+"use client";
+
+import { useState, useEffect } from "react";
 import Link from "next/link";
-import {
+import Image from "next/image";
+import { 
+  ShoppingBag, 
+  Star, 
+  Truck, 
+  Shield, 
+  Heart, 
+  ArrowRight,
   Sparkles,
-  Leaf,
-  ShieldCheck,
-  Star,
-  SearchIcon,
-  Play,
-  Facebook,
-  Instagram,
-  X,
-  Youtube,
+  Award,
+  Users,
+  CheckCircle
 } from "lucide-react";
-import ProductFeeds from "@/components/products/ProductFeeds";
-import {
-  getTrendingProducts,
-  getBestSellerProducts,
-  getProducts,
-} from "@/utils/supabase/services-server";
+import { getProducts, getTrendingProducts, getBestSellerProducts } from "@/utils/supabase/services-server";
+import ProductCard from "@/components/products/ProductCard";
+import type { Product } from "@/types";
 
-// Section wrapper for consistent vertical spacing
-const sectionClass = `
-  py-12 md:py-20
-`;
+export default function LandingPage() {
+  const [trendingProducts, setTrendingProducts] = useState<Product[]>([]);
+  const [bestSellers, setBestSellers] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
 
-export const metadata: Metadata = {
-  title: {
-    default: "JRADIANCE STORE | Organic body care and beauty products ",
-    template: "%s | JRADIANCE STORE",
-  },
-  description:
-    "JRADIANCE is a digital market place to shop for organic body care and beauty products",
-  openGraph: {
-    title: "JRADIANCE STORE",
-    description: "Shop for organic body care and beauty products.",
-    url: `${process.env.NEXT_PUBLIC_SITE_URL}`,
-    siteName: "JRADIANCE",
-    images: [{ url: "/logo-removebg.png", width: 1200, height: 630 }],
-    type: "website",
-  },
-  alternates: { canonical: `${process.env.NEXT_PUBLIC_SITE_URL}` },
-};
+  useEffect(() => {
+    async function loadProducts() {
+      const [trending, bestSelling] = await Promise.all([
+        getTrendingProducts(8),
+        getBestSellerProducts(8),
+      ]);
+      setTrendingProducts(trending);
+      setBestSellers(bestSelling);
+      setLoading(false);
+    }
+    loadProducts();
+  }, []);
 
-export default async function LandingPage() {
-  const [trendingProducts, bestSellerProducts, initialMainProducts] =
-    await Promise.all([
-      getTrendingProducts(4),
-      getBestSellerProducts(4),
-      getProducts({ limit: 8 }),
-    ]);
+  const categories = [
+    { name: "Skincare", icon: "✨", color: "from-pink-500 to-rose-500" },
+    { name: "Makeup", icon: "💄", color: "from-purple-500 to-pink-500" },
+    { name: "Hair Care", icon: "💇", color: "from-blue-500 to-cyan-500" },
+    { name: "Fragrance", icon: "🌸", color: "from-amber-500 to-orange-500" },
+  ];
+
+  const features = [
+    {
+      icon: Truck,
+      title: "Free Delivery",
+      description: "On orders over ₦50,000",
+    },
+    {
+      icon: Shield,
+      title: "Secure Payment",
+      description: "100% secure transactions",
+    },
+    {
+      icon: Heart,
+      title: "Love Guarantee",
+      description: "30-day return policy",
+    },
+    {
+      icon: Award,
+      title: "Premium Quality",
+      description: "Authentic products only",
+    },
+  ];
 
   return (
-    <div className="min-h-screen bg-radiance-creamBackgroundColor text-radiance-charcoalTextColor">
-      <main className="mx-auto max-w-7xl px-4 md:px-8">
-        {/* Heroes section */}
-        <section className={sectionClass}>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
-            {/* Hero Texts */}
-            <div className="heroe-texts space-y-6 order-2 md:order-1">
-              <div className="space-y-2">
-                <p className="text-radiance-goldColor font-bold tracking-widest text-sm uppercase">
-                  Welcome to
-                </p>
-                <h1 className="text-5xl md:text-7xl font-black leading-tight tracking-tighter">
-                  JRADIANCE
-                </h1>
-                <p className="text-lg md:text-xl text-gray-600 max-w-md leading-relaxed">
-                  Experience the glow of nature with our premium organic
-                  cosmetics and beauty essentials.
-                </p>
+    <div className="min-h-screen bg-gradient-to-b from-white via-radiance-creamBackgroundColor to-white">
+      {/* Hero Section */}
+      <section className="relative min-h-[90vh] flex items-center justify-center overflow-hidden bg-gradient-to-br from-radiance-charcoalTextColor via-gray-900 to-black">
+        {/* Animated Background */}
+        <div className="absolute inset-0">
+          <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-radiance-goldColor/10 rounded-full blur-3xl animate-pulse" />
+          <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-radiance-goldColor/10 rounded-full blur-3xl animate-pulse delay-1000" />
+        </div>
+
+        <div className="relative z-10 text-center px-4 max-w-5xl mx-auto">
+          {/* Badge */}
+          <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-sm px-6 py-3 rounded-full text-radiance-goldColor text-sm font-semibold mb-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
+            <Sparkles size={18} />
+            <span>Premium Beauty & Skincare</span>
+          </div>
+
+          {/* Main Heading */}
+          <h1 className="text-5xl md:text-7xl lg:text-8xl font-black text-white mb-6 leading-tight animate-in fade-in slide-in-from-bottom-8 duration-1000">
+            Discover Your
+            <span className="block bg-gradient-to-r from-radiance-goldColor to-yellow-300 bg-clip-text text-transparent">
+              Natural Radiance
+            </span>
+          </h1>
+
+          {/* Subtitle */}
+          <p className="text-xl md:text-2xl text-gray-300 mb-10 max-w-3xl mx-auto animate-in fade-in slide-in-from-bottom-12 duration-1000 delay-200">
+            Premium cosmetics and skincare products for the modern you. 
+            Authentic, affordable, and absolutely beautiful.
+          </p>
+
+          {/* CTA Buttons */}
+          <div className="flex flex-col sm:flex-row gap-4 justify-center animate-in fade-in slide-in-from-bottom-16 duration-1000 delay-300">
+            <Link
+              href="/shop"
+              className="group bg-radiance-goldColor text-white px-10 py-5 rounded-full font-bold text-lg hover:bg-white hover:text-radiance-charcoalTextColor transition-all shadow-2xl hover:shadow-radiance-goldColor/50 flex items-center justify-center gap-3"
+            >
+              <ShoppingBag size={24} />
+              Shop Now
+              <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" />
+            </Link>
+            <Link
+              href="/about-us"
+              className="bg-white/10 backdrop-blur-sm text-white px-10 py-5 rounded-full font-bold text-lg hover:bg-white/20 transition-all border border-white/30 flex items-center justify-center"
+            >
+              Learn More
+            </Link>
+          </div>
+
+          {/* Stats */}
+          <div className="grid grid-cols-3 gap-8 mt-16 pt-16 border-t border-white/10">
+            <div className="text-center">
+              <div className="text-4xl md:text-5xl font-black text-radiance-goldColor mb-2">10K+</div>
+              <div className="text-sm text-gray-400">Happy Customers</div>
+            </div>
+            <div className="text-center">
+              <div className="text-4xl md:text-5xl font-black text-radiance-goldColor mb-2">500+</div>
+              <div className="text-sm text-gray-400">Premium Products</div>
+            </div>
+            <div className="text-center">
+              <div className="text-4xl md:text-5xl font-black text-radiance-goldColor mb-2">99%</div>
+              <div className="text-sm text-gray-400">Satisfaction Rate</div>
+            </div>
+          </div>
+        </div>
+
+        {/* Scroll Indicator */}
+        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 animate-bounce">
+          <div className="w-6 h-10 border-2 border-white/30 rounded-full flex items-start justify-center p-2">
+            <div className="w-1 h-2 bg-white/50 rounded-full animate-pulse" />
+          </div>
+        </div>
+      </section>
+
+      {/* Features Section */}
+      <section className="py-20 px-4 bg-white">
+        <div className="max-w-7xl mx-auto">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
+            {features.map((feature, index) => (
+              <div
+                key={index}
+                className="text-center group p-6 rounded-2xl hover:bg-radiance-creamBackgroundColor transition-all duration-300"
+              >
+                <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-radiance-goldColor to-yellow-400 rounded-2xl mb-4 group-hover:scale-110 transition-transform shadow-lg">
+                  <feature.icon className="text-white" size={32} />
+                </div>
+                <h3 className="font-bold text-lg text-gray-900 mb-2">{feature.title}</h3>
+                <p className="text-sm text-gray-600">{feature.description}</p>
               </div>
+            ))}
+          </div>
+        </div>
+      </section>
 
-              {/* Feature Tags */}
-              <ul className="flex flex-wrap gap-4 pt-4">
-                <li className="flex items-center gap-2 bg-white/50 backdrop-blur-sm border border-gray-100 px-4 py-2 rounded-full text-xs font-bold">
-                  <Sparkles size={14} className="text-radiance-goldColor" />{" "}
-                  Natural Beauty
-                </li>
-                <li className="flex items-center gap-2 bg-white/50 backdrop-blur-sm border border-gray-100 px-4 py-2 rounded-full text-xs font-bold">
-                  <Leaf size={14} className="text-radiance-goldColor" /> Organic
-                  Products
-                </li>
-                <li className="flex items-center gap-2 bg-white/50 backdrop-blur-sm border border-gray-100 px-4 py-2 rounded-full text-xs font-bold">
-                  <ShieldCheck size={14} className="text-radiance-goldColor" />{" "}
-                  Eco-friendly
-                </li>
-              </ul>
+      {/* Categories Section */}
+      <section className="py-20 px-4">
+        <div className="max-w-7xl mx-auto">
+          <div className="text-center mb-12">
+            <h2 className="text-4xl md:text-5xl font-black text-gray-900 mb-4">
+              Shop by Category
+            </h2>
+            <p className="text-xl text-gray-600">Find exactly what you need</p>
+          </div>
 
-              <div className="pt-6">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+            {categories.map((category) => (
+              <Link
+                key={category.name}
+                href={`/shop?category=${category.name.toLowerCase().replace(' ', '-')}`}
+                className="group relative overflow-hidden rounded-3xl aspect-square"
+              >
+                <div className={`absolute inset-0 bg-gradient-to-br ${category.color} opacity-90 group-hover:opacity-100 transition-opacity`} />
+                <div className="absolute inset-0 flex flex-col items-center justify-center text-white">
+                  <div className="text-6xl mb-4">{category.icon}</div>
+                  <h3 className="text-2xl font-bold">{category.name}</h3>
+                  <ArrowRight size={24} className="mt-4 opacity-0 group-hover:opacity-100 -translate-x-4 group-hover:translate-x-0 transition-all" />
+                </div>
+              </Link>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Trending Products */}
+      <section className="py-20 px-4 bg-white">
+        <div className="max-w-7xl mx-auto">
+          <div className="flex items-center justify-between mb-12">
+            <div>
+              <h2 className="text-4xl md:text-5xl font-black text-gray-900 mb-2">
+                Trending Now 🔥
+              </h2>
+              <p className="text-xl text-gray-600">What everyone's loving right now</p>
+            </div>
+            <Link
+              href="/shop"
+              className="hidden md:flex items-center gap-2 text-radiance-goldColor font-bold hover:underline underline-offset-4"
+            >
+              View All
+              <ArrowRight size={20} />
+            </Link>
+          </div>
+
+          {loading ? (
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+              {[...Array(8)].map((_, i) => (
+                <div key={i} className="bg-gray-100 rounded-2xl aspect-[3/4] animate-pulse" />
+              ))}
+            </div>
+          ) : (
+            <>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+                {trendingProducts.map((product) => (
+                  <ProductCard
+                    key={product.id}
+                    product={product}
+                    showQuickAdd={true}
+                  />
+                ))}
+              </div>
+              <div className="mt-12 text-center md:hidden">
                 <Link
                   href="/shop"
-                  className="bg-radiance-charcoalTextColor text-white px-8 py-4 rounded-full font-bold text-sm hover:bg-radiance-goldColor transition-all shadow-xl inline-block"
+                  className="inline-flex items-center gap-2 bg-radiance-goldColor text-white px-8 py-4 rounded-full font-bold hover:bg-radiance-charcoalTextColor transition-colors"
                 >
-                  Explore Collection
+                  View All Products
+                  <ArrowRight size={20} />
                 </Link>
               </div>
-            </div>
+            </>
+          )}
+        </div>
+      </section>
 
-            {/* Hero Image Container */}
-            <div className="heroe-image-persona order-1 md:order-2">
-              <div className="relative aspect-4/5 w-full rounded-3xl overflow-hidden ">
-                <Image
-                  src="/beauty-model-removebg.png"
-                  alt="JRADIANCE beauty model"
-                  fill
-                  sizes="(max-width: 768px) 100vw, 50vw"
-                  priority
-                  className="object-cover hover:scale-105 transition-transform duration-700"
-                />
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* Presentation Slide Section */}
-        <section className={sectionClass}>
-          <h2 className="text-3xl font-black tracking-tight mb-8 text-center">
-            Our Story
-          </h2>
-          <div className="relative h-96 rounded-2xl overflow-hidden bg-linear-to-r from-radiance-goldColor to-radiance-creamBackgroundColor flex items-center justify-center">
-            {/* Placeholder for presentation slides */}
-            <div className="text-center p-8">
-              <h3 className="text-2xl font-bold text-radiance-charcoalTextColor mb-4">
-                Discover JRADIANCE
-              </h3>
-              <p className="text-gray-700 max-w-lg mx-auto">
-                Learn about our journey, mission, and commitment to natural
-                beauty.
-              </p>
-            </div>
-            {/* Navigation dots would go here */}
-          </div>
-        </section>
-
-        {/* Trending Now section */}
-        <section className={`${sectionClass}`}>
-          <div className="flex justify-between items-end mb-10">
-            <div className="space-y-1">
-              <h2 className="text-3xl font-black tracking-tight">
-                Trending Now
+      {/* Best Sellers */}
+      <section className="py-20 px-4">
+        <div className="max-w-7xl mx-auto">
+          <div className="flex items-center justify-between mb-12">
+            <div>
+              <h2 className="text-4xl md:text-5xl font-black text-gray-900 mb-2">
+                Best Sellers ⭐
               </h2>
-              <p className="text-gray-500 text-sm">
-                Most searched and ordered products this week
-              </p>
+              <p className="text-xl text-gray-600">Our most loved products</p>
             </div>
             <Link
-              href="/shop?filter=trending"
-              className="text-radiance-goldColor font-bold text-sm underline underline-offset-4"
+              href="/shop"
+              className="hidden md:flex items-center gap-2 text-radiance-goldColor font-bold hover:underline underline-offset-4"
             >
-              View all trending
-            </Link>
-          </div>
-          {/* ProductFeeds component for trending products */}
-          <ProductFeeds
-            initialProducts={trendingProducts}
-            initialFilters={{ limit: 4 }}
-            feedType="trending"
-            showSearch={false}
-            showFilters={false}
-            title=""
-            subtitle=""
-          />
-        </section>
-
-        {/* Best Seller section */}
-        <section className={sectionClass}>
-          <div className="flex justify-between items-end mb-10">
-            <div className="space-y-1">
-              <h2 className="text-3xl font-black tracking-tight">
-                Best Sellers
-              </h2>
-              <p className="text-gray-500 text-sm">
-                Our most loved and frequently purchased items
-              </p>
-            </div>
-            <Link
-              href="/shop?filter=best_sellers"
-              className="text-radiance-goldColor font-bold text-sm underline underline-offset-4"
-            >
-              View all best sellers
-            </Link>
-          </div>
-          {/* ProductFeeds component for best seller products */}
-          <ProductFeeds
-            initialProducts={bestSellerProducts}
-            initialFilters={{ limit: 4 }}
-            feedType="best-sellers"
-            showSearch={false}
-            showFilters={false}
-            title=""
-            subtitle=""
-          />
-        </section>
-
-        {/* Product Demonstration Videos Slides */}
-        <section className={sectionClass}>
-          <h2 className="text-3xl font-black tracking-tight mb-8 text-center">
-            How It Works
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            {/* Example video slide - replace it later with video components */}
-            {[1, 2].map((video) => (
-              <div
-                key={video}
-                className="relative aspect-video bg-gray-100 rounded-xl overflow-hidden group"
-              >
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <Play className="h-16 w-16 text-white opacity-80 group-hover:opacity-100 transition-opacity" />
-                </div>
-                <div className="bg-gray-200 w-full h-full" />{" "}
-                {/* Placeholder for video thumbnail */}
-                <p className="mt-2 text-center font-medium">
-                  Demo Video {video}
-                </p>
-              </div>
-            ))}
-          </div>
-        </section>
-
-        {/* Shop Product Feeds section - Updated to include search functionality*/}
-        <section className={`product-list-section justify-between ${sectionClass}`}>
-          <div className="flex justify-between items-end mb-10">
-            <div className="space-y-1">
-              <h2 className="text-3xl font-black tracking-tight">
-                JRadiance Cosmetics & Beauty Shop
-              </h2>
-              <p className="text-gray-500 text-sm">
-                Hand-picked organic solutions for your skin.
-              </p>
-            </div>
-            <Link
-              href="/shop?search=beauty"
-              className="text-radiance-goldColor font-bold text-sm underline underline-offset-4"
-            >
-              Visit Shop
+              View All
+              <ArrowRight size={20} />
             </Link>
           </div>
 
-          {/* ProductFeeds component for Shop Search */}
-          <ProductFeeds
-            initialProducts={initialMainProducts}
-            initialFilters={{ limit: 8 }}
-            feedType="all"
-            showSearch={true}
-            showFilters={true}
-            title=""
-            subtitle=""
-          />
-        </section>
-
-        {/* Partner Brands section */}
-        <section className={sectionClass}>
-          <h2 className="text-3xl font-black tracking-tight mb-8 text-center">
-            Our Partners
-          </h2>
-          <div className="flex flex-wrap justify-center gap-8 items-center">
-            {/* Placeholder partner logos - replace with actual logo images later */}
-            {["Partner A", "Partner B", "Partner C", "Partner D"].map(
-              (partner, index) => (
-                <div key={index} className="flex flex-col items-center">
-                  <div className="w-24 h-24 bg-gray-200 rounded-xl flex items-center justify-center">
-                    <span className="text-xs font-bold text-gray-600">
-                      {partner}
-                    </span>
-                  </div>
-                </div>
-              ),
-            )}
-          </div>
-        </section>
-
-        {/* Recent Activities/News section */}
-        <section className={sectionClass}>
-          <h2 className="text-3xl font-black tracking-tight mb-8 text-center">
-            Latest News & Updates
-          </h2>
-          <div className="space-y-6">
-            {/* Example news item - repeat for each article */}
-            {[1, 2, 3].map((news) => (
-              <div
-                key={news}
-                className="bg-white p-6 rounded-xl shadow-sm hover:shadow-md transition-shadow"
-              >
-                <h3 className="font-bold text-lg mb-2">News Title {news}</h3>
-                <p className="text-gray-600 mb-4">
-                  A brief summary of the latest update or blog post content...
-                </p>
-                <div className="text-sm text-gray-500">
-                  Published on Feb 5, 2026
-                </div>
+          {loading ? (
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+              {[...Array(8)].map((_, i) => (
+                <div key={i} className="bg-gray-100 rounded-2xl aspect-[3/4] animate-pulse" />
+              ))}
+            </div>
+          ) : (
+            <>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+                {bestSellers.map((product) => (
+                  <ProductCard
+                    key={product.id}
+                    product={product}
+                    showQuickAdd={true}
+                  />
+                ))}
               </div>
-            ))}
-          </div>
-        </section>
+            </>
+          )}
+        </div>
+      </section>
 
-        {/* Footer section */}
-        <footer className="py-12 border-t border-gray-200">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-            <div>
-              <h3 className="font-bold text-lg mb-4">JRADIANCE</h3>
-              <p className="text-gray-600 text-sm">
-                Experience the glow of nature with our premium organic cosmetics
-                and beauty essentials.
+      {/* Brand Values */}
+      <section className="py-20 px-4 bg-gradient-to-br from-radiance-charcoalTextColor to-gray-900 text-white">
+        <div className="max-w-7xl mx-auto">
+          <div className="text-center mb-16">
+            <h2 className="text-4xl md:text-5xl font-black mb-4">
+              Why Choose JRADIANCE?
+            </h2>
+            <p className="text-xl text-gray-300">We're committed to excellence</p>
+          </div>
+
+          <div className="grid md:grid-cols-3 gap-8">
+            <div className="bg-white/5 backdrop-blur-sm p-8 rounded-3xl border border-white/10">
+              <CheckCircle size={48} className="text-radiance-goldColor mb-6" />
+              <h3 className="text-2xl font-bold mb-4">100% Authentic</h3>
+              <p className="text-gray-300 leading-relaxed">
+                We source directly from manufacturers and authorized distributors. 
+                Every product is verified for authenticity and quality.
               </p>
             </div>
-            <div>
-              <h4 className="font-semibold mb-4">Quick Links</h4>
-              <ul className="space-y-2 text-sm text-gray-600">
-                <li>
-                  <Link href="/shop" className="hover:text-radiance-goldColor">
-                    Shop All
-                  </Link>
-                </li>
-                <li>
-                  <Link href="/about" className="hover:text-radiance-goldColor">
-                    About Us
-                  </Link>
-                </li>
-                <li>
-                  <Link
-                    href="/contact"
-                    className="hover:text-radiance-goldColor"
-                  >
-                    Contact
-                  </Link>
-                </li>
-                <li>
-                  <Link href="/faq" className="hover:text-radiance-goldColor">
-                    FAQ
-                  </Link>
-                </li>
-              </ul>
+
+            <div className="bg-white/5 backdrop-blur-sm p-8 rounded-3xl border border-white/10">
+              <Users size={48} className="text-radiance-goldColor mb-6" />
+              <h3 className="text-2xl font-bold mb-4">Customer First</h3>
+              <p className="text-gray-300 leading-relaxed">
+                Your satisfaction is our priority. We offer personalized support, 
+                easy returns, and a loyalty program that rewards you.
+              </p>
             </div>
-            <div>
-              <h4 className="font-semibold mb-4">Customer Care</h4>
-              <ul className="space-y-2 text-sm text-gray-600">
-                <li>
-                  <Link
-                    href="/shipping"
-                    className="hover:text-radiance-goldColor"
-                  >
-                    Shipping Info
-                  </Link>
-                </li>
-                <li>
-                  <Link
-                    href="/returns"
-                    className="hover:text-radiance-goldColor"
-                  >
-                    Returns & Exchanges
-                  </Link>
-                </li>
-                <li>
-                  <Link
-                    href="/support"
-                    className="hover:text-radiance-goldColor"
-                  >
-                    Support Center
-                  </Link>
-                </li>
-              </ul>
-            </div>
-            <div>
-              <h4 className="font-semibold mb-4">Connect With Us</h4>
-              <div className="flex space-x-4">
-                {/* Placeholder for social icons */}
-                <Link
-                  href="#"
-                  className="text-gray-600 hover:text-radiance-goldColor"
-                >
-                  <Facebook size={14} className="text-radiance-goldColor" />
-                </Link>
-                <Link
-                  href="#"
-                  className="text-gray-600 hover:text-radiance-goldColor"
-                >
-                  <Instagram size={14} className="text-radiance-goldColor" />
-                </Link>
-                <Link
-                  href="#"
-                  className="text-gray-600 hover:text-radiance-goldColor"
-                >
-                  <X size={14} className="text-radiance-goldColor" />
-                </Link>
-                <Link
-                  href="#"
-                  className="text-gray-600 hover:text-radiance-goldColor"
-                >
-                  <Youtube size={14} className="text-radiance-goldColor" />
-                </Link>
-              </div>
-              <p className="mt-4 text-sm text-gray-600">info@jradianceco.com</p>
+
+            <div className="bg-white/5 backdrop-blur-sm p-8 rounded-3xl border border-white/10">
+              <Star size={48} className="text-radiance-goldColor mb-6" />
+              <h3 className="text-2xl font-bold mb-4">Premium Quality</h3>
+              <p className="text-gray-300 leading-relaxed">
+                We curate only the finest products that meet our strict standards. 
+                Quality is not just a promise, it's our guarantee.
+              </p>
             </div>
           </div>
-          <div className="border-t border-gray-200 mt-8 pt-8 text-center text-sm text-gray-500">
-            <p>
-              &copy; {new Date().getFullYear()} JRADIANCE. All rights reserved.
-            </p>
-          </div>
-        </footer>
-      </main>
+        </div>
+      </section>
+
+      {/* Newsletter */}
+      <section className="py-20 px-4 bg-gradient-to-r from-radiance-goldColor to-yellow-400">
+        <div className="max-w-4xl mx-auto text-center">
+          <h2 className="text-4xl md:text-5xl font-black text-white mb-4">
+            Get 10% Off Your First Order
+          </h2>
+          <p className="text-xl text-white/90 mb-8">
+            Subscribe to our newsletter and receive exclusive offers, beauty tips, and early access to new arrivals.
+          </p>
+          <form className="flex flex-col sm:flex-row gap-4 max-w-xl mx-auto">
+            <input
+              type="email"
+              placeholder="Enter your email"
+              className="flex-1 px-6 py-4 rounded-full text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-4 focus:ring-white/30"
+            />
+            <button
+              type="submit"
+              className="bg-radiance-charcoalTextColor text-white px-8 py-4 rounded-full font-bold hover:bg-white hover:text-radiance-charcoalTextColor transition-all shadow-lg"
+            >
+              Subscribe
+            </button>
+          </form>
+          <p className="text-sm text-white/70 mt-4">
+            By subscribing, you agree to our Terms & Privacy Policy
+          </p>
+        </div>
+      </section>
+
+      {/* Footer CTA */}
+      <section className="py-20 px-4 bg-white">
+        <div className="max-w-4xl mx-auto text-center">
+          <h2 className="text-4xl md:text-5xl font-black text-gray-900 mb-6">
+            Ready to Glow?
+          </h2>
+          <p className="text-xl text-gray-600 mb-8">
+            Join thousands of happy customers who trust JRADIANCE for their beauty needs.
+          </p>
+          <Link
+            href="/shop"
+            className="inline-flex items-center gap-3 bg-radiance-charcoalTextColor text-white px-12 py-5 rounded-full font-bold text-lg hover:bg-radiance-goldColor transition-all shadow-xl hover:shadow-2xl"
+          >
+            <ShoppingBag size={24} />
+            Start Shopping
+          </Link>
+        </div>
+      </section>
     </div>
   );
 }

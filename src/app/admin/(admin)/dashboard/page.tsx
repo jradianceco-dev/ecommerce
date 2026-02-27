@@ -221,19 +221,19 @@ export default function DashboardPage() {
   ];
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       {/* Page Header */}
-      <div>
-        <h1 className="text-3xl font-bold text-radiance-charcoalTextColor">
+      <div className="mb-6">
+        <h1 className="text-2xl md:text-3xl font-bold text-radiance-charcoalTextColor">
           Dashboard
         </h1>
-        <p className="text-gray-600 mt-1">
+        <p className="text-gray-600 mt-1 text-sm md:text-base">
           Overview of your store&apos;s performance
         </p>
       </div>
 
       {/* Main Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
         {statCards.map((stat) => (
           <div
             key={stat.title}
@@ -266,25 +266,25 @@ export default function DashboardPage() {
       </div>
 
       {/* Alerts Section */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
         {alertCards.map((alert) => (
           <Link
             key={alert.title}
             href={alert.link}
-            className="bg-white rounded-xl p-6 shadow-sm border border-gray-200 hover:shadow-md transition-shadow block"
+            className="bg-white rounded-xl p-5 md:p-6 shadow-sm border border-gray-200 hover:shadow-md transition-shadow block"
           >
             <div className="flex items-center gap-4">
-              <div className={`p-4 rounded-xl ${alert.bgColor} ${alert.color}`}>
-                <alert.icon size={28} />
+              <div className={`p-3 md:p-4 rounded-xl ${alert.bgColor} ${alert.color}`}>
+                <alert.icon size={26} />
               </div>
-              <div className="flex-1">
-                <p className="text-3xl font-bold text-gray-900">
+              <div className="flex-1 min-w-0">
+                <p className="text-2xl md:text-3xl font-bold text-gray-900">
                   {alert.value}
                 </p>
-                <p className="text-sm font-bold text-gray-700 mt-1">
+                <p className="text-sm font-bold text-gray-700 mt-0.5 truncate">
                   {alert.title}
                 </p>
-                <p className="text-xs text-gray-500 mt-1">
+                <p className="text-xs text-gray-500 mt-0.5">
                   {alert.description}
                 </p>
               </div>
@@ -294,15 +294,15 @@ export default function DashboardPage() {
       </div>
 
       {/* Quick Actions */}
-      <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
-        <h2 className="text-xl font-bold text-gray-900 mb-4">Quick Actions</h2>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="bg-white rounded-xl p-5 md:p-6 shadow-sm border border-gray-200">
+        <h2 className="text-lg md:text-xl font-bold text-gray-900 mb-4">Quick Actions</h2>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
           <Link
             href="/admin/catalog"
-            className="flex flex-col items-center gap-2 p-4 rounded-xl bg-gray-50 hover:bg-radiance-goldColor/10 transition-colors"
+            className="flex flex-col items-center gap-2 p-3 md:p-4 rounded-xl bg-gray-50 hover:bg-radiance-goldColor/10 transition-colors"
           >
             <Package size={24} className="text-radiance-goldColor" />
-            <span className="text-xs font-bold text-gray-700">Add Product</span>
+            <span className="text-xs font-bold text-gray-700 text-center">Add Product</span>
           </Link>
           <Link
             href="/admin/orders"

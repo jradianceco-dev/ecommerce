@@ -13,6 +13,7 @@
 
 import AdminSidePanel from "@/components/AdminSidePanel";
 import AdminErrorBoundary from "@/components/admin/AdminErrorBoundary";
+import AdminLayoutContent from "./AdminLayoutContent";
 import { createClient } from "@/utils/supabase/server";
 import { redirect } from "next/navigation";
 
@@ -37,18 +38,6 @@ export default async function AdminLayout({ children }: AdminLayoutProps) {
   }
 
   return (
-    <div className="flex min-h-screen bg-radiance-creamBackgroundColor">
-      {/* Admin Sidebar Navigation */}
-      <AdminSidePanel />
-
-      {/* Main Content Area with Error Boundary */}
-      <main className="flex-1 ml-64">
-        <AdminErrorBoundary>
-          <div className="container mx-auto px-8 py-12">
-            {children}
-          </div>
-        </AdminErrorBoundary>
-      </main>
-    </div>
+    <AdminLayoutContent>{children}</AdminLayoutContent>
   );
 }

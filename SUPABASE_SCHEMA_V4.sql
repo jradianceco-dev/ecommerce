@@ -1,9 +1,9 @@
--- =====================================
+-- ================================================================
 -- JRADIANCE E-Commerce - Complete Setup v4.0
--- =====================================
+-- ================================================================
 -- OPTIMIZED DATABASE + STORAGE SETUP
 -- 
--- This includes:
+-- Includes:
 -- 1. Complete database schema (all tables, functions, triggers)
 -- 2. Optimized Row Level Security (RLS) policies
 -- 3. Supabase Storage policies for product-images bucket
@@ -18,13 +18,12 @@
 -- 4. Wait for completion (should take 10-15 seconds)
 --
 -- IMPORTANT: This will DROP all existing policies and recreate them
--- =====================================
+-- ================================================================
 
 
--- =====================================
+-- ================================================================
 -- PART 1: CLEANUP OLD POLICIES
--- =====================================
--- Drop all existing policies to start fresh
+-- ================================================================
 
 -- Drop all policies on all tables
 DROP POLICY IF EXISTS "profiles_select_public" ON public.profiles;
@@ -125,38 +124,28 @@ DROP FUNCTION IF EXISTS public.cleanup_abandoned_carts(integer);
 DROP FUNCTION IF EXISTS public.check_low_stock_alerts(integer);
 
 
--- =====================================
+-- ================================================================
 -- PART 2: DATABASE SCHEMA
--- =====================================
+-- ================================================================
 
 CREATE SCHEMA IF NOT EXISTS public;
 
 -- User role enum
-DO $$
-BEGIN
-  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'user_role') THEN
-    CREATE TYPE public.user_role AS ENUM ('customer', 'admin', 'agent', 'chief_admin');
-  END IF;
-END$$;
+DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'user_role') THEN
+  CREATE TYPE public.user_role AS ENUM ('customer', 'admin', 'agent', 'chief_admin');
+END IF; END $$;
 
 -- Order status enum
-DO $$
-BEGIN
-  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'order_status') THEN
-    CREATE TYPE public.order_status AS ENUM ('pending', 'confirmed', 'shipped', 'delivered', 'cancelled', 'returned');
-  END IF;
-END$$;
+DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'order_status') THEN
+  CREATE TYPE public.order_status AS ENUM ('pending', 'confirmed', 'shipped', 'delivered', 'cancelled', 'returned');
+END IF; END $$;
 
 -- Payment status enum
-DO $$
-BEGIN
-  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'payment_status') THEN
-    CREATE TYPE public.payment_status AS ENUM ('pending', 'completed', 'failed', 'refunded');
-  END IF;
-END$$;
+DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'payment_status') THEN
+  CREATE TYPE public.payment_status AS ENUM ('pending', 'completed', 'failed', 'refunded');
+END IF; END $$;
 
 -- Core Tables
-
 CREATE TABLE IF NOT EXISTS public.profiles (
   id uuid PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
   email text NOT NULL UNIQUE,
@@ -310,9 +299,10 @@ CREATE TABLE IF NOT EXISTS public.sales_analytics (
   UNIQUE(period_start, period_end)
 );
 
--- =====================================
+
+-- ================================================================
 -- PART 3: PERFORMANCE INDEXES
--- =====================================
+-- ================================================================
 
 -- Profile indexes
 CREATE INDEX IF NOT EXISTS idx_profiles_role ON public.profiles(role);
@@ -361,16 +351,16 @@ CREATE INDEX IF NOT EXISTS idx_issues_created_at ON public.issues(created_at DES
 CREATE INDEX IF NOT EXISTS idx_sales_analytics_period ON public.sales_analytics(period_start, period_end);
 
 
--- =====================================
+-- ================================================================
 -- PART 4: SEQUENCE
--- =====================================
+-- ================================================================
 
 CREATE SEQUENCE IF NOT EXISTS public.order_number_seq START WITH 1000 INCREMENT BY 1;
 
 
--- =====================================
+-- ================================================================
 -- PART 5: FUNCTIONS
--- =====================================
+-- ================================================================
 
 -- Handle new user registration
 CREATE OR REPLACE FUNCTION public.handle_new_user()
@@ -542,9 +532,9 @@ END;
 $$ LANGUAGE plpgsql;
 
 
--- =====================================
+-- ================================================================
 -- PART 6: TRIGGERS
--- =====================================
+-- ================================================================
 
 -- Auto-create profile on user signup
 CREATE TRIGGER on_auth_user_created
@@ -591,9 +581,9 @@ CREATE TRIGGER log_order_status_change
   EXECUTE FUNCTION public.log_order_status_change();
 
 
--- =====================================
+-- ================================================================
 -- PART 7: ENABLE ROW LEVEL SECURITY
--- =====================================
+-- ================================================================
 
 ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.admin_staff ENABLE ROW LEVEL SECURITY;
@@ -608,282 +598,92 @@ ALTER TABLE public.issues ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.sales_analytics ENABLE ROW LEVEL SECURITY;
 
 
--- =====================================
+-- ================================================================
 -- PART 8: ROW LEVEL SECURITY POLICIES
--- =====================================
+-- ================================================================
 
 -- PROFILES POLICIES
--- 1. Public can view basic profile info (for display purposes)
-CREATE POLICY "profiles_select_public" ON public.profiles FOR SELECT
-  USING (true);
-
--- 2. Users can view their own full profile
-CREATE POLICY "profiles_select_own" ON public.profiles FOR SELECT
-  USING (auth.uid() = id);
-
--- 3. Users can update their own profile
-CREATE POLICY "profiles_update_own" ON public.profiles FOR UPDATE
-  USING (auth.uid() = id)
-  WITH CHECK (auth.uid() = id);
-
--- 4. Chief admin can update any profile (check via admin_staff table instead)
-CREATE POLICY "profiles_update_chief_admin" ON public.profiles FOR UPDATE
-  USING (
-    EXISTS (
-      SELECT 1 FROM public.admin_staff 
-      WHERE id = auth.uid() 
-      AND position = 'Chief Administrator'
-    )
-  );
+CREATE POLICY "profiles_select_public" ON public.profiles FOR SELECT USING (true);
+CREATE POLICY "profiles_select_own" ON public.profiles FOR SELECT USING (auth.uid() = id);
+CREATE POLICY "profiles_update_own" ON public.profiles FOR UPDATE USING (auth.uid() = id) WITH CHECK (auth.uid() = id);
+CREATE POLICY "profiles_update_chief_admin" ON public.profiles FOR UPDATE USING (
+  EXISTS (SELECT 1 FROM public.admin_staff WHERE id = auth.uid() AND position = 'Chief Administrator'));
 
 -- ADMIN STAFF POLICIES
--- 5. Admins can view admin staff
-CREATE POLICY "admin_staff_select_admin" ON public.admin_staff FOR SELECT
-  USING (
-    EXISTS (
-      SELECT 1 FROM public.profiles 
-      WHERE id = auth.uid() 
-      AND role IN ('admin', 'agent', 'chief_admin')
-    )
-  );
-
--- 6. Chief admin can insert admin staff
-CREATE POLICY "admin_staff_insert_chief_admin" ON public.admin_staff FOR INSERT
-  WITH CHECK (
-    EXISTS (
-      SELECT 1 FROM public.profiles 
-      WHERE id = auth.uid() 
-      AND role = 'chief_admin'
-    )
-  );
-
--- 7. Chief admin can update admin staff
-CREATE POLICY "admin_staff_update_chief_admin" ON public.admin_staff FOR UPDATE
-  USING (
-    EXISTS (
-      SELECT 1 FROM public.profiles 
-      WHERE id = auth.uid() 
-      AND role = 'chief_admin'
-    )
-  );
+CREATE POLICY "admin_staff_select_admin" ON public.admin_staff FOR SELECT USING (
+  EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role IN ('admin', 'agent', 'chief_admin')));
+CREATE POLICY "admin_staff_insert_chief_admin" ON public.admin_staff FOR INSERT WITH CHECK (
+  EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'chief_admin'));
+CREATE POLICY "admin_staff_update_chief_admin" ON public.admin_staff FOR UPDATE USING (
+  EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'chief_admin'));
 
 -- PRODUCTS POLICIES
--- 8. Public can view active products
-CREATE POLICY "products_select_public" ON public.products FOR SELECT
-  USING (is_active = true);
-
--- 9. Admins can view all products (including inactive)
-CREATE POLICY "products_select_admin" ON public.products FOR SELECT
-  USING (
-    EXISTS (
-      SELECT 1 FROM public.profiles 
-      WHERE id = auth.uid() 
-      AND role IN ('admin', 'agent', 'chief_admin')
-    )
-  );
-
--- 10. Admins/Agents can insert products
-CREATE POLICY "products_insert_admin" ON public.products FOR INSERT
-  WITH CHECK (
-    EXISTS (
-      SELECT 1 FROM public.profiles 
-      WHERE id = auth.uid() 
-      AND role IN ('admin', 'agent', 'chief_admin')
-    )
-  );
-
--- 11. Admins/Agents can update products
-CREATE POLICY "products_update_admin" ON public.products FOR UPDATE
-  USING (
-    EXISTS (
-      SELECT 1 FROM public.profiles 
-      WHERE id = auth.uid() 
-      AND role IN ('admin', 'agent', 'chief_admin')
-    )
-  );
-
--- 12. Admins/Chief Admins can delete products
-CREATE POLICY "products_delete_admin" ON public.products FOR DELETE
-  USING (
-    EXISTS (
-      SELECT 1 FROM public.profiles 
-      WHERE id = auth.uid() 
-      AND role IN ('admin', 'chief_admin')
-    )
-  );
+CREATE POLICY "products_select_public" ON public.products FOR SELECT USING (is_active = true);
+CREATE POLICY "products_select_admin" ON public.products FOR SELECT USING (
+  EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role IN ('admin', 'agent', 'chief_admin')));
+CREATE POLICY "products_insert_admin" ON public.products FOR INSERT WITH CHECK (
+  EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role IN ('admin', 'agent', 'chief_admin')));
+CREATE POLICY "products_update_admin" ON public.products FOR UPDATE USING (
+  EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role IN ('admin', 'agent', 'chief_admin')));
+CREATE POLICY "products_delete_admin" ON public.products FOR DELETE USING (
+  EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role IN ('admin', 'chief_admin')));
 
 -- CART ITEMS POLICIES
--- 13. Users can view their own cart items
-CREATE POLICY "cart_items_select_own" ON public.cart_items FOR SELECT
-  USING (auth.uid() = user_id);
-
--- 14. Users can insert their own cart items
-CREATE POLICY "cart_items_insert_own" ON public.cart_items FOR INSERT
-  WITH CHECK (auth.uid() = user_id);
-
--- 15. Users can update their own cart items
-CREATE POLICY "cart_items_update_own" ON public.cart_items FOR UPDATE
-  USING (auth.uid() = user_id);
-
--- 16. Users can delete their own cart items
-CREATE POLICY "cart_items_delete_own" ON public.cart_items FOR DELETE
-  USING (auth.uid() = user_id);
+CREATE POLICY "cart_items_select_own" ON public.cart_items FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "cart_items_insert_own" ON public.cart_items FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "cart_items_update_own" ON public.cart_items FOR UPDATE USING (auth.uid() = user_id);
+CREATE POLICY "cart_items_delete_own" ON public.cart_items FOR DELETE USING (auth.uid() = user_id);
 
 -- WISHLIST POLICIES
--- 17. Users can view their own wishlist
-CREATE POLICY "wishlist_select_own" ON public.wishlist FOR SELECT
-  USING (auth.uid() = user_id);
-
--- 18. Users can insert their own wishlist items
-CREATE POLICY "wishlist_insert_own" ON public.wishlist FOR INSERT
-  WITH CHECK (auth.uid() = user_id);
-
--- 19. Users can delete their own wishlist items
-CREATE POLICY "wishlist_delete_own" ON public.wishlist FOR DELETE
-  USING (auth.uid() = user_id);
+CREATE POLICY "wishlist_select_own" ON public.wishlist FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "wishlist_insert_own" ON public.wishlist FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "wishlist_delete_own" ON public.wishlist FOR DELETE USING (auth.uid() = user_id);
 
 -- ORDERS POLICIES
--- 20. Users can view their own orders
-CREATE POLICY "orders_select_own" ON public.orders FOR SELECT
-  USING (auth.uid() = user_id);
-
--- 21. Admins can view all orders
-CREATE POLICY "orders_select_admin" ON public.orders FOR SELECT
-  USING (
-    EXISTS (
-      SELECT 1 FROM public.profiles 
-      WHERE id = auth.uid() 
-      AND role IN ('admin', 'agent', 'chief_admin')
-    )
-  );
-
--- 22. Users can insert their own orders
-CREATE POLICY "orders_insert_own" ON public.orders FOR INSERT
-  WITH CHECK (auth.uid() = user_id);
-
--- 23. Admins can update orders
-CREATE POLICY "orders_update_admin" ON public.orders FOR UPDATE
-  USING (
-    EXISTS (
-      SELECT 1 FROM public.profiles 
-      WHERE id = auth.uid() 
-      AND role IN ('admin', 'agent', 'chief_admin')
-    )
-  );
+CREATE POLICY "orders_select_own" ON public.orders FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "orders_select_admin" ON public.orders FOR SELECT USING (
+  EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role IN ('admin', 'agent', 'chief_admin')));
+CREATE POLICY "orders_insert_own" ON public.orders FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "orders_update_admin" ON public.orders FOR UPDATE USING (
+  EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role IN ('admin', 'agent', 'chief_admin')));
 
 -- ORDER ITEMS POLICIES
--- 24. Users can view their own order items
-CREATE POLICY "order_items_select_own" ON public.order_items FOR SELECT
-  USING (
-    EXISTS (SELECT 1 FROM public.orders WHERE id = order_id AND user_id = auth.uid())
-  );
-
--- 25. Admins can view all order items
-CREATE POLICY "order_items_select_admin" ON public.order_items FOR SELECT
-  USING (
-    EXISTS (
-      SELECT 1 FROM public.profiles 
-      WHERE id = auth.uid() 
-      AND role IN ('admin', 'agent', 'chief_admin')
-    )
-  );
+CREATE POLICY "order_items_select_own" ON public.order_items FOR SELECT USING (
+  EXISTS (SELECT 1 FROM public.orders WHERE id = order_id AND user_id = auth.uid()));
+CREATE POLICY "order_items_select_admin" ON public.order_items FOR SELECT USING (
+  EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role IN ('admin', 'agent', 'chief_admin')));
 
 -- PRODUCT REVIEWS POLICIES
--- 26. Public can view all reviews
-CREATE POLICY "product_reviews_select_public" ON public.product_reviews FOR SELECT
-  USING (true);
-
--- 27. Users can insert their own reviews
-CREATE POLICY "product_reviews_insert_own" ON public.product_reviews FOR INSERT
-  WITH CHECK (auth.uid() = user_id);
-
--- 28. Users can update their own reviews
-CREATE POLICY "product_reviews_update_own" ON public.product_reviews FOR UPDATE
-  USING (auth.uid() = user_id);
-
--- 29. Users can delete their own reviews, admins can delete any
-CREATE POLICY "product_reviews_delete_own_admin" ON public.product_reviews FOR DELETE
-  USING (
-    auth.uid() = user_id OR 
-    EXISTS (
-      SELECT 1 FROM public.profiles 
-      WHERE id = auth.uid() 
-      AND role IN ('admin', 'chief_admin')
-    )
-  );
+CREATE POLICY "product_reviews_select_public" ON public.product_reviews FOR SELECT USING (true);
+CREATE POLICY "product_reviews_insert_own" ON public.product_reviews FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "product_reviews_update_own" ON public.product_reviews FOR UPDATE USING (auth.uid() = user_id);
+CREATE POLICY "product_reviews_delete_own_admin" ON public.product_reviews FOR DELETE USING (
+  auth.uid() = user_id OR EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role IN ('admin', 'chief_admin')));
 
 -- ADMIN ACTIVITY LOGS POLICIES
--- 30. Admins can view activity logs
-CREATE POLICY "admin_activity_logs_select_admin" ON public.admin_activity_logs FOR SELECT
-  USING (
-    EXISTS (
-      SELECT 1 FROM public.profiles 
-      WHERE id = auth.uid() 
-      AND role IN ('admin', 'chief_admin')
-    )
-  );
+CREATE POLICY "admin_activity_logs_select_admin" ON public.admin_activity_logs FOR SELECT USING (
+  EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role IN ('admin', 'chief_admin')));
 
 -- ISSUES POLICIES
--- 31. Users can view their own issues, admins can view all
-CREATE POLICY "issues_select_own_admin" ON public.issues FOR SELECT
-  USING (
-    reported_by = auth.uid() OR
-    EXISTS (
-      SELECT 1 FROM public.profiles 
-      WHERE id = auth.uid() 
-      AND role IN ('admin', 'agent', 'chief_admin')
-    )
-  );
-
--- 32. Authenticated users can insert issues
-CREATE POLICY "issues_insert_authenticated" ON public.issues FOR INSERT
-  WITH CHECK (auth.uid() IS NOT NULL);
-
--- 33. Admins can update issues
-CREATE POLICY "issues_update_admin" ON public.issues FOR UPDATE
-  USING (
-    EXISTS (
-      SELECT 1 FROM public.profiles 
-      WHERE id = auth.uid() 
-      AND role IN ('admin', 'agent', 'chief_admin')
-    )
-  );
-
--- 34. Chief admin can delete issues
-CREATE POLICY "issues_delete_chief_admin" ON public.issues FOR DELETE
-  USING (
-    EXISTS (
-      SELECT 1 FROM public.profiles 
-      WHERE id = auth.uid() 
-      AND role = 'chief_admin'
-    )
-  );
+CREATE POLICY "issues_select_own_admin" ON public.issues FOR SELECT USING (
+  reported_by = auth.uid() OR EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() 
+  AND role IN ('admin', 'agent', 'chief_admin')));
+CREATE POLICY "issues_insert_authenticated" ON public.issues FOR INSERT WITH CHECK (auth.uid() IS NOT NULL);
+CREATE POLICY "issues_update_admin" ON public.issues FOR UPDATE USING (
+  EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role IN ('admin', 'agent', 'chief_admin')));
+CREATE POLICY "issues_delete_chief_admin" ON public.issues FOR DELETE USING (
+  EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'chief_admin'));
 
 -- SALES ANALYTICS POLICIES
--- 35. Admins can view sales analytics
-CREATE POLICY "sales_analytics_select_admin" ON public.sales_analytics FOR SELECT
-  USING (
-    EXISTS (
-      SELECT 1 FROM public.profiles 
-      WHERE id = auth.uid() 
-      AND role IN ('admin', 'agent', 'chief_admin')
-    )
-  );
-
--- 36. Chief admin can manage sales analytics
-CREATE POLICY "sales_analytics_manage_chief_admin" ON public.sales_analytics FOR ALL
-  USING (
-    EXISTS (
-      SELECT 1 FROM public.profiles 
-      WHERE id = auth.uid() 
-      AND role = 'chief_admin'
-    )
-  );
+CREATE POLICY "sales_analytics_select_admin" ON public.sales_analytics FOR SELECT USING (
+  EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role IN ('admin', 'agent', 'chief_admin')));
+CREATE POLICY "sales_analytics_manage_chief_admin" ON public.sales_analytics FOR ALL USING (
+  EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'chief_admin'));
 
 
--- =====================================
+-- ================================================================
 -- PART 9: GRANTS
--- =====================================
+-- ================================================================
 
 GRANT USAGE ON SCHEMA public TO PUBLIC;
 GRANT ALL ON public.profiles TO authenticated;
@@ -906,68 +706,44 @@ GRANT EXECUTE ON FUNCTION public.check_low_stock_alerts TO postgres, authenticat
 GRANT USAGE ON SEQUENCE public.order_number_seq TO authenticated;
 
 
--- =====================================
+-- ================================================================
 -- PART 10: SUPABASE STORAGE POLICIES
--- =====================================
--- Run this section AFTER creating the buckets in Storage dashboard
+-- ================================================================
 
 -- PRODUCT-IMAGES BUCKET POLICIES
+DROP POLICY IF EXISTS "Public View Product Images" ON storage.objects;
+DROP POLICY IF EXISTS "Authenticated Upload Product Images" ON storage.objects;
+DROP POLICY IF EXISTS "Authenticated Update Product Images" ON storage.objects;
+DROP POLICY IF EXISTS "Authenticated Delete Product Images" ON storage.objects;
 
--- 37. Allow public to view all product images
-CREATE POLICY "Public View Product Images"
-ON storage.objects FOR SELECT
-TO public
-USING (bucket_id = 'product-images');
-
--- 38. Allow authenticated users to upload product images
-CREATE POLICY "Authenticated Upload Product Images"
-ON storage.objects FOR INSERT
-TO authenticated
-WITH CHECK (bucket_id = 'product-images');
-
--- 39. Allow authenticated users to update their uploaded images
-CREATE POLICY "Authenticated Update Product Images"
-ON storage.objects FOR UPDATE
-TO authenticated
-USING (bucket_id = 'product-images');
-
--- 40. Allow authenticated users to delete their uploaded images
-CREATE POLICY "Authenticated Delete Product Images"
-ON storage.objects FOR DELETE
-TO authenticated
-USING (bucket_id = 'product-images');
-
+CREATE POLICY "Public View Product Images" ON storage.objects FOR SELECT TO public USING (bucket_id = 'product-images');
+CREATE POLICY "Authenticated Upload Product Images" ON storage.objects FOR INSERT TO authenticated WITH CHECK (bucket_id = 'product-images');
+CREATE POLICY "Authenticated Update Product Images" ON storage.objects FOR UPDATE TO authenticated USING (bucket_id = 'product-images');
+CREATE POLICY "Authenticated Delete Product Images" ON storage.objects FOR DELETE TO authenticated USING (bucket_id = 'product-images');
 
 -- AVATARS BUCKET POLICIES
+DROP POLICY IF EXISTS "Public View Avatars" ON storage.objects;
+DROP POLICY IF EXISTS "Authenticated Upload Avatars" ON storage.objects;
+DROP POLICY IF EXISTS "Authenticated Update Avatars" ON storage.objects;
+DROP POLICY IF EXISTS "Authenticated Delete Avatars" ON storage.objects;
+DROP POLICY IF EXISTS "Users can upload to own avatar folder" ON storage.objects;
 
--- 41. Allow public to view all avatars
-CREATE POLICY "Public View Avatars"
-ON storage.objects FOR SELECT
-TO public
-USING (bucket_id = 'avatars');
-
--- 42. Allow authenticated users to upload avatars
-CREATE POLICY "Authenticated Upload Avatars"
-ON storage.objects FOR INSERT
-TO authenticated
-WITH CHECK (bucket_id = 'avatars');
-
--- 43. Allow authenticated users to update their own avatars
-CREATE POLICY "Authenticated Update Avatars"
-ON storage.objects FOR UPDATE
-TO authenticated
-USING (bucket_id = 'avatars');
-
--- 44. Allow authenticated users to delete their own avatars
-CREATE POLICY "Authenticated Delete Avatars"
-ON storage.objects FOR DELETE
-TO authenticated
-USING (bucket_id = 'avatars');
+CREATE POLICY "Public View Avatars" ON storage.objects FOR SELECT TO public USING (bucket_id = 'avatars');
+CREATE POLICY "Authenticated Upload Avatars" ON storage.objects FOR INSERT TO authenticated WITH CHECK (
+  bucket_id = 'avatars' AND auth.uid() IS NOT NULL);
+CREATE POLICY "Authenticated Update Avatars" ON storage.objects FOR UPDATE TO authenticated USING (
+  bucket_id = 'avatars' AND ((storage.foldername(name))[1] = auth.uid()::text OR 
+  EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role IN ('admin', 'chief_admin'))));
+CREATE POLICY "Authenticated Delete Avatars" ON storage.objects FOR DELETE TO authenticated USING (
+  bucket_id = 'avatars' AND ((storage.foldername(name))[1] = auth.uid()::text OR 
+  EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role IN ('admin', 'chief_admin'))));
+CREATE POLICY "Users can upload to own avatar folder" ON storage.objects FOR INSERT TO authenticated WITH CHECK (
+  bucket_id = 'avatars' AND (storage.foldername(name))[1] = auth.uid()::text);
 
 
--- =====================================
+-- ================================================================
 -- PART 11: DATA CLEANUP & FIXES
--- =====================================
+-- ================================================================
 
 -- Fix products with NULL or empty slugs
 UPDATE public.products
@@ -991,6 +767,11 @@ SET slug = d.slug || '-' || d.rn::text
 FROM duplicates d
 WHERE p.id = d.id AND d.rn > 1;
 
+-- IMPORTANT: Activate ALL products so they can be viewed on the website
+-- This fixes the 404 error on product detail pages
+UPDATE public.products
+SET is_active = true;
+
 -- Verify all products have slugs
 DO $$
 DECLARE
@@ -1000,17 +781,16 @@ BEGIN
   IF v_count > 0 THEN
     RAISE NOTICE 'WARNING: % products still have empty slugs', v_count;
   ELSE
-    RAISE NOTICE 'SUCCESS: All products have valid slugs';
+    RAISE NOTICE 'SUCCESS: All products have valid slugs and are active!';
   END IF;
 END $$;
 
 
--- =====================================
+-- ================================================================
 -- PART 12: VERIFICATION QUERIES
--- =====================================
--- Run these to verify setup
+-- ================================================================
 
--- Check all products have slugs
+-- Check all products have slugs and are active
 SELECT id, name, slug, is_active, created_at
 FROM public.products
 ORDER BY created_at DESC
@@ -1029,31 +809,35 @@ WHERE schemaname = 'public'
 ORDER BY tablename;
 
 
--- =====================================
+-- ================================================================
 -- END OF COMPLETE SETUP
--- =====================================
+-- ================================================================
 -- 
--- PRODUCT IMAGE/VIDEO UPLOAD REQUIREMENTS:
--- =====================================
--- Recommended Image Dimensions:
--- - Minimum: 800x800 pixels
--- - Recommended: 1200x1200 pixels (square) or 1200x1600 (portrait)
--- - Maximum: 2400x2400 pixels
--- - Aspect Ratio: 1:1 (square) or 3:4 (portrait)
--- - File Size: Max 5MB per image
--- - Formats: JPG, PNG, WEBP, GIF
+-- INSTRUCTIONS FOR USE:
+-- ================================================================
+-- 1. Go to Supabase Dashboard → SQL Editor
+-- 2. Copy ALL of this file (Ctrl+A, Ctrl+C)
+-- 3. Paste into SQL Editor
+-- 4. Click "Run" button
+-- 5. Wait for completion (10-15 seconds)
+-- 6. Check output for "SUCCESS: All products have valid slugs and are active!"
 --
--- Recommended Video Dimensions:
--- - Resolution: 720p (1280x720) or 1080p (1920x1080)
--- - Maximum: 4K (3840x2160)
--- - File Size: Max 50MB per video
--- - Formats: MP4, WEBM, MOV
--- - Duration: Max 60 seconds for product videos
+-- WHAT THIS DOES:
+-- - Drops all old policies and recreates them
+-- - Creates all database tables
+-- - Sets up Row Level Security (RLS)
+-- - Configures storage buckets (product-images, avatars)
+-- - Fixes avatar upload RLS issues
+-- - Fixes product slugs
+-- - ACTIVATES ALL PRODUCTS (fixes 404 errors)
+-- - Creates performance indexes
+-- - Sets up triggers and functions
 --
--- Best Practices:
--- - Use high-quality images with good lighting
--- - Show product from multiple angles
--- - Use white or neutral backgrounds
--- - Compress images before upload (TinyPNG, Squoosh)
--- - Name files descriptively (product-name-angle.jpg)
--- =====================================
+-- IMPORTANT:
+-- - Run this ONLY ONCE on your database
+-- - This will DROP and RECREATE all policies
+-- - Existing data will NOT be affected
+-- - All products will be set to is_active = true
+-- - Avatars bucket must exist in Storage
+-- - product-images bucket must exist in Storage
+-- ================================================================

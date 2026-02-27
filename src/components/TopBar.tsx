@@ -48,24 +48,6 @@ export default function TopBar() {
             </Link>
           )}
 
-          {/* Navigation links for authenticated users */}
-          {user && !isAdminRoute && (
-            <>
-              <Link
-                href="/shop/history"
-                className=" text-xs font-semibold text-gray-600 hover:text-radiance-goldColor transition-colors hidden lg:inline"
-              >
-                Orders
-              </Link>
-              <Link
-                href="/shop/wishlist"
-                className="text-xs font-semibold text-gray-600 hover:text-radiance-goldColor transition-colors hidden lg:inline"
-              >
-                Wishlist
-              </Link>
-            </>
-          )}
-
           {/* Admin info on admin routes */}
           {user && isAdmin && isAdminRoute && (
             <div className="flex items-center gap-3">

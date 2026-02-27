@@ -19,6 +19,18 @@ import { Package, Plus, Edit, Trash2, ToggleLeft, Image as ImageIcon, X, Upload,
 import type { Product } from "@/types";
 import { useToast } from "@/context/ToastContext";
 
+// Category options with icons and colors
+const CATEGORY_OPTIONS = [
+  { name: "Skincare", icon: "✨", color: "bg-pink-100 border-pink-300 text-pink-700 hover:bg-pink-200" },
+  { name: "Makeup", icon: "💄", color: "bg-purple-100 border-purple-300 text-purple-700 hover:bg-purple-200" },
+  { name: "Hair Care", icon: "💇", color: "bg-blue-100 border-blue-300 text-blue-700 hover:bg-blue-200" },
+  { name: "Fragrance", icon: "🌸", color: "bg-amber-100 border-amber-300 text-amber-700 hover:bg-amber-200" },
+  { name: "Body Care", icon: "🧴", color: "bg-green-100 border-green-300 text-green-700 hover:bg-green-200" },
+  { name: "Tools & Accessories", icon: "💅", color: "bg-rose-100 border-rose-300 text-rose-700 hover:bg-rose-200" },
+  { name: "Men's Care", icon: "👨", color: "bg-slate-100 border-slate-300 text-slate-700 hover:bg-slate-200" },
+  { name: "General", icon: "📦", color: "bg-gray-100 border-gray-300 text-gray-700 hover:bg-gray-200" },
+];
+
 export default function ProductsCatalogPage() {
   const { success, error: showError } = useToast();
   const [hasAccess, setHasAccess] = useState(false);
@@ -421,18 +433,30 @@ export default function ProductsCatalogPage() {
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Category <span className="text-red-500">*</span></label>
-                  <input
-                    type="text"
-                    value={formData.category}
-                    onChange={(e) => handleCategoryChange(e.target.value)}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-radiance-goldColor focus:border-transparent"
-                    required
-                    disabled={uploading || actionLoading === "submit"}
-                  />
+              {/* Category Selection */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-3">Category <span className="text-red-500">*</span></label>
+                <div className="grid grid-cols-4 gap-3">
+                  {CATEGORY_OPTIONS.map((category) => (
+                    <button
+                      key={category.name}
+                      type="button"
+                      onClick={() => handleCategoryChange(category.name)}
+                      className={`flex flex-col items-center gap-2 p-3 rounded-xl border-2 transition-all ${
+                        formData.category === category.name
+                          ? `${category.color} border-current shadow-md scale-105`
+                          : "bg-white border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50"
+                      }`}
+                      disabled={uploading || actionLoading === "submit"}
+                    >
+                      <span className="text-2xl">{category.icon}</span>
+                      <span className="text-xs font-semibold text-center leading-tight">{category.name}</span>
+                    </button>
+                  ))}
                 </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">SKU <span className="text-xs text-gray-500">(auto-generated)</span></label>
                   <input

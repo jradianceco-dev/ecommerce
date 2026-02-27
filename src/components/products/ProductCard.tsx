@@ -28,7 +28,6 @@ import {
 } from "lucide-react";
 import { Product } from "@/types";
 import {
-  addToCart,
   addToWishlist,
   removeFromWishlist,
   isInWishlist,
@@ -36,6 +35,7 @@ import {
 } from "@/utils/supabase/services";
 import { useUser } from "@/context/UserContext";
 import { useToast } from "@/context/ToastContext";
+import { useCart } from "@/context/CartContext";
 
 interface ProductCardProps {
   product: Product;
@@ -52,7 +52,8 @@ function ProductCard({
 }: ProductCardProps) {
   const user = useUser();
   const { success, error: showError } = useToast();
-  
+  const { refreshCart } = useCart();
+
   const [quantity, setQuantity] = useState(1);
   const [isWishlisted, setIsWishlisted] = useState(false);
   const [wishlistLoading, setWishlistLoading] = useState(false);
@@ -102,15 +103,15 @@ function ProductCard({
     : 0;
 
   // Check if product has video
-  const hasVideo = product.attributes?.videos && 
-    Array.isArray(product.attributes.videos) && 
+  const hasVideo = product.attributes?.videos &&
+    Array.isArray(product.attributes.videos) &&
     product.attributes.videos.length > 0;
 
   // Handle add to cart
   const handleAddToCart = useCallback(async (e: React.MouseEvent) => {
     e.stopPropagation();
     e.preventDefault();
-    
+
     if (!user) {
       showError("Please log in to add items to cart");
       return;
@@ -118,19 +119,60 @@ function ProductCard({
 
     setCartLoading(true);
     try {
-      const successResult = await addToCart(user.id, product.id, quantity);
-      if (successResult) {
+      const { createClient } = await import("@/utils/supabase/client");
+      const supabase = createClient();
+
+      // Check if item already in cart
+      const { data: existingItem } = await supabase
+        .from("cart_items")
+        .select("id, quantity")
+        .eq("user_id", user.id)
+        .eq("product_id", product.id)
+        .single();
+
+      let result;
+      if (existingItem) {
+        // Update quantity
+        const { data, error } = await supabase
+          .from("cart_items")
+          .update({ quantity: existingItem.quantity + quantity, updated_at: new Date().toISOString() })
+          .eq("id", existingItem.id)
+          .select()
+          .single();
+
+        if (error) throw error;
+        result = data;
+      } else {
+        // Insert new item
+        const { data, error } = await supabase
+          .from("cart_items")
+          .insert({
+            user_id: user.id,
+            product_id: product.id,
+            quantity,
+          })
+          .select()
+          .single();
+
+        if (error) throw error;
+        result = data;
+      }
+
+      if (result) {
         success(`Added ${quantity} x ${product.name} to cart!`);
         setQuantity(1);
+        // Refresh cart to update UI
+        await refreshCart();
       } else {
         showError("Failed to add to cart");
       }
     } catch (error) {
+      console.error("Error adding to cart:", error);
       showError("Failed to add to cart");
     } finally {
       setCartLoading(false);
     }
-  }, [user, product.id, product.name, quantity, success, showError]);
+  }, [user, product.id, product.name, quantity, success, showError, refreshCart]);
 
   // Handle wishlist toggle - FIXED
   const handleWishlistToggle = useCallback(async (e: React.MouseEvent) => {

@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -11,7 +11,7 @@ import {
   GalleryVerticalEnd,
 } from "lucide-react";
 import CartOverlay from "./CartOverlay";
-import type { CartItem } from "@/types";
+import { useCart } from "@/context/CartContext";
 
 // Navigation component for all pages except pages with "/admin/*"
 export default function BottomNavBar() {
@@ -21,41 +21,17 @@ export default function BottomNavBar() {
   // State to manage the cart overlay visibility
   const [isCartOpen, setIsCartOpen] = useState(false);
 
-  // State for cart items
-  const [cart, setCart] = useState<CartItem[]>([]);
-
-  // Effect to load cart data from localStorage
-  useEffect(() => {
-    const savedCart = localStorage.getItem("cart");
-    if (savedCart) {
-      try {
-        setCart(JSON.parse(savedCart));
-      } catch (e) {
-        console.error("Error loading cart:", e);
-      }
-    }
-  }, []);
+  // Use cart context
+  const { cart, updateQuantity, removeItem, totalItems } = useCart();
 
   // Handler to update product quantities
-  const handleUpdateQuantity = (id: string, delta: number) => {
-    const updatedCart = cart
-      .map((item) => {
-        if (item.id === id) {
-          return { ...item, quantity: Math.max(0, item.quantity + delta) };
-        }
-        return item;
-      })
-      .filter((item) => item.quantity > 0);
-
-    setCart(updatedCart);
-    localStorage.setItem("cart", JSON.stringify(updatedCart));
+  const handleUpdateQuantity = async (id: string, delta: number) => {
+    await updateQuantity(id, delta);
   };
 
   // Handler to remove items from cart
-  const handleRemoveItem = (id: string) => {
-    const updatedCart = cart.filter((item) => item.id !== id);
-    setCart(updatedCart);
-    localStorage.setItem("cart", JSON.stringify(updatedCart));
+  const handleRemoveItem = async (id: string) => {
+    await removeItem(id);
   };
 
   // Logic to hide Home and AboutUs on /shop or /admin routes
@@ -116,9 +92,9 @@ export default function BottomNavBar() {
               strokeWidth={isCartOpen ? 2.5 : 2}
               className="shrink-0"
             />
-            {cart.length > 0 && (
+            {totalItems > 0 && (
               <span className="absolute -top-1.5 -right-1.5 bg-radiance-goldColor text-white text-[9px] font-black rounded-full w-4 h-4 flex items-center justify-center border border-white">
-                {cart.length}
+                {totalItems}
               </span>
             )}
           </div>

@@ -5,6 +5,7 @@ import BottomNavBar from "@/components/BottomNavBar";
 import TopBar from "@/components/TopBar";
 import { UserProvider } from "@/context/UserContext";
 import { ToastProvider } from "@/context/ToastContext";
+import { CartProvider } from "@/context/CartContext";
 import { createBaseMetadata } from "@/utils/seo/metadata-factory";
 
 const bodyClasses = `
@@ -76,16 +77,18 @@ export default function RootLayout({
 
         <ToastProvider>
           <UserProvider>
-            {/* Top Bar */}
-            <TopBar />
+            <CartProvider>
+              {/* Top Bar */}
+              <TopBar />
 
-            {/* Main content */}
-            <main className="pb-20 md:pb-0">
-              <div className="mx-auto max-w-6xl px-6 py-12">{children}</div>
-            </main>
+              {/* Main content */}
+              <main className="pb-20 md:pb-0">
+                <div className="mx-auto max-w-6xl px-6 py-12">{children}</div>
+              </main>
 
-            {/* Nav bar */}
-            <BottomNavBar />
+              {/* Nav bar */}
+              <BottomNavBar />
+            </CartProvider>
           </UserProvider>
         </ToastProvider>
       </body>

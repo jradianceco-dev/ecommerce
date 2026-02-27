@@ -1,15 +1,14 @@
 /**
  * Wishlist Page
- * 
+ *
  * Shows user's saved products
  */
 
 "use client";
 
-import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useUser } from "@/context/UserContext";
-import { getWishlist, removeFromWishlist } from "@/utils/supabase/services";
+import { useWishlist } from "@/context/WishlistContext";
 import { Heart, ShoppingCart, Trash2, Loader2 } from "lucide-react";
 import ProductCard from "@/components/products/ProductCard";
 import { useToast } from "@/context/ToastContext";
@@ -18,43 +17,20 @@ export default function WishlistPage() {
   const router = useRouter();
   const user = useUser();
   const { success, error: showError } = useToast();
-  const [loading, setLoading] = useState(true);
-  const [wishlist, setWishlist] = useState<any[]>([]);
+  const { wishlist, isLoading, removeFromWishlist } = useWishlist();
 
-  useEffect(() => {
-    if (user) {
-      loadWishlist();
-    } else if (user !== null) {
-      // Still loading, wait
-    }
-    // If user is null (not authenticated), middleware will redirect
-  }, [user]);
-
-  async function loadWishlist() {
-    if (!user) return;
-    
-    setLoading(true);
-    try {
-      const items = await getWishlist(user.id);
-      // Extract products from wishlist items
-      const products = items.map((item) => item.product).filter(Boolean);
-      setWishlist(products);
-    } catch (error) {
-      console.error("Error loading wishlist:", error);
-      showError("Failed to load wishlist");
-    } finally {
-      setLoading(false);
-    }
-  }
+  // Extract products from wishlist items
+  const products = wishlist.map((item) => item.product).filter((p): p is NonNullable<typeof p> => Boolean(p));
 
   async function handleRemove(productId: string) {
     if (!user) return;
 
     try {
-      const successResult = await removeFromWishlist(user.id, productId);
+      const successResult = await removeFromWishlist(productId);
       if (successResult) {
         success("Removed from wishlist");
-        setWishlist((prev) => prev.filter((p) => p.id !== productId));
+      } else {
+        showError("Failed to remove from wishlist");
       }
     } catch (error) {
       showError("Failed to remove from wishlist");
@@ -62,7 +38,7 @@ export default function WishlistPage() {
   }
 
   // Show loading while auth is being checked
-  if (loading || user === undefined) {
+  if (isLoading || user === undefined) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
@@ -80,12 +56,12 @@ export default function WishlistPage() {
         <div className="flex items-center justify-between mb-8">
           <div>
             <h1 className="text-3xl font-bold text-radiance-charcoalTextColor">My Wishlist</h1>
-            <p className="text-gray-600 mt-1">Your saved products ({wishlist.length})</p>
+            <p className="text-gray-600 mt-1">Your saved products ({products.length})</p>
           </div>
           <Heart size={32} className="text-radiance-goldColor" />
         </div>
 
-        {wishlist.length === 0 ? (
+        {products.length === 0 ? (
           <div className="text-center py-16 bg-white rounded-2xl shadow-sm">
             <Heart size={64} className="mx-auto text-gray-300 mb-4" />
             <h2 className="text-xl font-bold text-gray-900 mb-2">Your wishlist is empty</h2>
@@ -101,7 +77,7 @@ export default function WishlistPage() {
           <>
             {/* Products Grid */}
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-              {wishlist.map((product) => (
+              {products.map((product) => (
                 <div key={product.id} className="relative group">
                   <ProductCard product={product} showQuickAdd={true} />
                   {/* Remove Button */}

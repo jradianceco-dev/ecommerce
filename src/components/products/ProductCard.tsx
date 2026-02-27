@@ -28,14 +28,12 @@ import {
 } from "lucide-react";
 import { Product } from "@/types";
 import {
-  addToWishlist,
-  removeFromWishlist,
-  isInWishlist,
   getProductAverageRating,
 } from "@/utils/supabase/services";
 import { useUser } from "@/context/UserContext";
 import { useToast } from "@/context/ToastContext";
 import { useCart } from "@/context/CartContext";
+import { useWishlist } from "@/context/WishlistContext";
 
 interface ProductCardProps {
   product: Product;
@@ -53,6 +51,7 @@ function ProductCard({
   const user = useUser();
   const { success, error: showError } = useToast();
   const { refreshCart } = useCart();
+  const { addToWishlist, removeFromWishlist, isInWishlist: checkIsInWishlist } = useWishlist();
 
   const [quantity, setQuantity] = useState(1);
   const [isWishlisted, setIsWishlisted] = useState(false);
@@ -63,12 +62,12 @@ function ProductCard({
     count: 0,
   });
 
-  // Check if product is in wishlist on mount
+  // Check if product is in wishlist on mount and when wishlist changes
   useEffect(() => {
     if (user) {
-      isInWishlist(user.id, product.id).then(setIsWishlisted);
+      setIsWishlisted(checkIsInWishlist(product.id));
     }
-  }, [user, product.id]);
+  }, [user, product.id, checkIsInWishlist]);
 
   // Fetch product rating on mount
   useEffect(() => {
@@ -174,11 +173,11 @@ function ProductCard({
     }
   }, [user, product.id, product.name, quantity, success, showError, refreshCart]);
 
-  // Handle wishlist toggle - FIXED
+  // Handle wishlist toggle
   const handleWishlistToggle = useCallback(async (e: React.MouseEvent) => {
     e.stopPropagation();
     e.preventDefault();
-    
+
     if (!user) {
       showError("Please log in to manage wishlist");
       return;
@@ -187,16 +186,18 @@ function ProductCard({
     setWishlistLoading(true);
     try {
       if (isWishlisted) {
-        const successResult = await removeFromWishlist(user.id, product.id);
+        const successResult = await removeFromWishlist(product.id);
         if (successResult) {
-          setIsWishlisted(false);
           success("Removed from wishlist");
+        } else {
+          showError("Failed to remove from wishlist");
         }
       } else {
-        const successResult = await addToWishlist(user.id, product.id);
+        const successResult = await addToWishlist(product.id);
         if (successResult) {
-          setIsWishlisted(true);
           success("Added to wishlist");
+        } else {
+          showError("Failed to add to wishlist");
         }
       }
     } catch (error) {
@@ -204,7 +205,7 @@ function ProductCard({
     } finally {
       setWishlistLoading(false);
     }
-  }, [user, product.id, isWishlisted, success, showError]);
+  }, [user, product.id, isWishlisted, addToWishlist, removeFromWishlist, success, showError]);
 
   // Handle quantity change
   const handleQuantityChange = useCallback((delta: number) => {

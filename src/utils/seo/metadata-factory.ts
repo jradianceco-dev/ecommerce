@@ -24,8 +24,8 @@ export interface SEOConfig {
 export const defaultSEOConfig: SEOConfig = {
   baseUrl: process.env.NEXT_PUBLIC_BASE_URL || "https://jradianceco.com",
   siteName: "JRADIANCE",
-  defaultTitle: "JRADIANCE | Premium Cosmetics & Skincare",
-  defaultDescription: "Authentic skincare and cosmetics for the radiant Nigerian soul.",
+  defaultTitle: "JRADIANCE | Premium Organic Skincare & Body Care Products Nigeria",
+  defaultDescription: "Shop authentic organic skincare products, body care products, makeup & cosmetics at JRADIANCE. Premium beauty products for radiant Nigerian skin. Free delivery on orders over ₦50,000.",
   locale: "en_NG",
 };
 
@@ -43,16 +43,61 @@ export function createBaseMetadata(config: SEOConfig = defaultSEOConfig): Metada
     },
     description: defaultDescription,
     keywords: [
-      "skincare",
-      "cosmetics",
-      "Nigeria",
-      "beauty products",
+      // Brand keywords
+      "JRADIANCE",
       "Jradiance",
-      "organic",
+      "jradianceco",
       "Jradianceco",
-      "Africa",
-      "premium cosmetics",
-      "authentic skincare",
+      "JRADIANCE cosmetics",
+      "JRADIANCE skincare",
+      
+      // Primary product keywords
+      "organic skincare products",
+      "organic body care products",
+      "skincare products",
+      "body care products",
+      "organic cosmetics",
+      "natural skincare",
+      "natural body care",
+      
+      // Category-specific keywords
+      "face cream",
+      "body lotion",
+      "body butter",
+      "facial cleanser",
+      "moisturizer",
+      "serum",
+      "sunscreen",
+      "makeup",
+      "cosmetics",
+      "fragrance",
+      "perfume",
+      "lipstick",
+      "foundation",
+      
+      // Location-based keywords
+      "skincare Nigeria",
+      "cosmetics Nigeria",
+      "beauty products Nigeria",
+      "Lagos skincare",
+      "organic products Nigeria",
+      
+      // Intent-based keywords
+      "buy skincare online",
+      "buy cosmetics online",
+      "authentic skincare products",
+      "premium beauty products",
+      "affordable skincare",
+      "best skincare products",
+      
+      // Additional relevant keywords
+      "beauty products",
+      "African skincare",
+      "black skincare",
+      "melanin skincare",
+      "radiant skin",
+      "healthy skin",
+      "glowing skin",
     ],
     authors: [{ name: "Philip Depaytez" }],
     creator: "Philip Depaytez",

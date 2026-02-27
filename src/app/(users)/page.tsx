@@ -10,6 +10,12 @@
  * - Best sellers
  * - Brand values with visual emphasis
  * - Newsletter signup
+ * 
+ * SEO Optimized for:
+ * - organic skincare products
+ * - organic body care products
+ * - JRADIANCE / jradianceco
+ * - skincare Nigeria
  */
 
 "use client";
@@ -32,6 +38,7 @@ import {
 import { getProducts, getTrendingProducts, getBestSellerProducts } from "@/utils/supabase/services-server";
 import ProductCard from "@/components/products/ProductCard";
 import type { Product } from "@/types";
+import HomepageSEO from "@/components/seo/HomepageSEO";
 
 export default function LandingPage() {
   const [trendingProducts, setTrendingProducts] = useState<Product[]>([]);
@@ -102,43 +109,47 @@ export default function LandingPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-radiance-creamBackgroundColor">
-      {/* Hero Section - Clean, Image Focused */}
-      <section className="relative min-h-[85vh] flex items-center overflow-hidden">
-        {/* Background Image */}
-        <div className="absolute inset-0">
-          <Image
-            src="/Untitled design_20260119_105156_0000.png"
-            alt="Hero background"
-            fill
-            className="object-cover"
-            priority
-          />
-          {/* Soft overlay gradient */}
-          <div className="absolute inset-0 bg-gradient-to-r from-white via-white/70 to-transparent" />
-        </div>
+    <>
+      {/* SEO Structured Data for better Google ranking */}
+      <HomepageSEO />
+      
+      <div className="min-h-screen bg-radiance-creamBackgroundColor">
+        {/* Hero Section - Clean, Image Focused */}
+        <section className="relative min-h-[85vh] flex items-center overflow-hidden" aria-label="Hero section">
+          {/* Background Image */}
+          <div className="absolute inset-0">
+            <Image
+              src="/Untitled design_20260119_105156_0000.png"
+              alt="JRADIANCE premium organic skincare and beauty products"
+              fill
+              className="object-cover"
+              priority
+            />
+            {/* Soft overlay gradient */}
+            <div className="absolute inset-0 bg-gradient-to-r from-white via-white/70 to-transparent" />
+          </div>
 
-        <div className="relative z-10 max-w-7xl mx-auto px-4 md:px-6 py-20 w-full">
-          <div className="max-w-2xl">
-            {/* Badge */}
-            <div className="inline-flex items-center gap-2 bg-white/80 backdrop-blur-sm px-5 py-2.5 rounded-full text-radiance-goldColor text-sm font-semibold mb-6 shadow-sm">
-              <Award size={16} />
-              <span>Premium Beauty & Skincare</span>
-            </div>
+          <div className="relative z-10 max-w-7xl mx-auto px-4 md:px-6 py-20 w-full">
+            <div className="max-w-2xl">
+              {/* Badge */}
+              <div className="inline-flex items-center gap-2 bg-white/80 backdrop-blur-sm px-5 py-2.5 rounded-full text-radiance-goldColor text-sm font-semibold mb-6 shadow-sm">
+                <Award size={16} />
+                <span>Premium Organic Beauty & Skincare</span>
+              </div>
 
-            {/* Main Heading */}
-            <h1 className="text-5xl md:text-6xl lg:text-7xl font-black text-radiance-charcoalTextColor mb-6 leading-tight">
-              Discover Your
-              <span className="block text-radiance-goldColor">
-                Natural Radiance
-              </span>
-            </h1>
+              {/* Main Heading - H1 for SEO */}
+              <h1 className="text-5xl md:text-6xl lg:text-7xl font-black text-radiance-charcoalTextColor mb-6 leading-tight">
+                Discover Your
+                <span className="block text-radiance-goldColor">
+                  Natural Radiance
+                </span>
+              </h1>
 
-            {/* Subtitle */}
-            <p className="text-lg md:text-xl text-gray-600 mb-8 max-w-xl">
-              Premium cosmetics and skincare products for the modern you.
-              Authentic, affordable, and absolutely beautiful.
-            </p>
+              {/* Subtitle with keywords */}
+              <p className="text-lg md:text-xl text-gray-600 mb-8 max-w-xl">
+                Shop premium organic skincare products, body care products, and cosmetics at JRADIANCE.
+                Authentic beauty products for radiant Nigerian skin.
+              </p>
 
             {/* CTA Buttons */}
             <div className="flex flex-col sm:flex-row gap-3">
@@ -178,8 +189,12 @@ export default function LandingPage() {
       </section>
 
       {/* Features Section */}
-      <section className="py-16 px-4 bg-white border-y border-gray-100">
+      <section className="py-16 px-4 bg-white border-y border-gray-100" aria-label="Shopping features">
         <div className="max-w-7xl mx-auto">
+          <div className="sr-only">
+            <h2>Why Shop at JRADIANCE - Premium Organic Skincare & Body Care Products</h2>
+            <p>Free delivery, secure payment, authentic cosmetics and skincare products in Nigeria</p>
+          </div>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
             {features.map((feature, index) => (
               <div
@@ -281,6 +296,29 @@ export default function LandingPage() {
               </div>
             </>
           )}
+        </div>
+      </section>
+
+      {/* SEO Content Section - Organic Skincare & Body Care */}
+      <section className="py-16 px-4 bg-white" aria-label="About our organic skincare products">
+        <div className="max-w-4xl mx-auto text-center">
+          <h2 className="text-3xl md:text-4xl font-black text-radiance-charcoalTextColor mb-6">
+            Premium Organic Skincare & Body Care Products in Nigeria
+          </h2>
+          <div className="text-lg text-gray-600 space-y-4">
+            <p>
+              Welcome to <strong>JRADIANCE</strong>, your trusted source for authentic <strong>organic skincare products</strong> and <strong>body care products</strong> in Nigeria. 
+              We offer a wide range of premium cosmetics, including natural skincare, makeup, fragrances, and beauty products designed for radiant African skin.
+            </p>
+            <p>
+              Our collection features the best <strong>organic body care products</strong>, from luxurious body butters and lotions to gentle facial cleansers and moisturizers. 
+              Whether you're looking for affordable skincare or premium cosmetics, JRADIANCE delivers quality beauty products nationwide.
+            </p>
+            <p>
+              Shop with confidence at <strong>jradianceco.com</strong> - Nigeria's premier online store for authentic skincare and cosmetics. 
+              Free delivery on orders over ₦50,000.
+            </p>
+          </div>
         </div>
       </section>
 
@@ -431,5 +469,6 @@ export default function LandingPage() {
         </div>
       </section>
     </div>
+    </>
   );
 }

@@ -20,6 +20,7 @@ interface CartContextType {
   totalPrice: number;
   isLoading: boolean;
   refreshCart: () => Promise<void>;
+  addItem: (productId: string, quantity: number) => Promise<boolean>;
   updateQuantity: (cartItemId: string, delta: number) => Promise<void>;
   removeItem: (cartItemId: string) => Promise<void>;
   clearCart: () => Promise<void>;
@@ -89,6 +90,97 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     refreshCart();
   }, [user, refreshCart]);
+
+  // Add item to cart - Single Responsibility: handles both insert and update
+  const addItem = useCallback(async (productId: string, quantity: number): Promise<boolean> => {
+    if (!user) return false;
+
+    try {
+      const supabase = createClient();
+
+      // Check if item already in cart
+      const { data: existingItem } = await supabase
+        .from("cart_items")
+        .select("id, quantity")
+        .eq("user_id", user.id)
+        .eq("product_id", productId)
+        .single();
+
+      let result;
+      if (existingItem) {
+        // Update quantity
+        const { data, error } = await supabase
+          .from("cart_items")
+          .update({ 
+            quantity: existingItem.quantity + quantity,
+            updated_at: new Date().toISOString()
+          })
+          .eq("id", existingItem.id)
+          .select()
+          .single();
+
+        if (error) throw error;
+        result = data;
+        
+        // Update local state immediately for real-time UI
+        setCart((prev) =>
+          prev.map((c) =>
+            c.id === existingItem.id 
+              ? { ...c, quantity: c.quantity + quantity }
+              : c
+          )
+        );
+      } else {
+        // Insert new item
+        const { data, error } = await supabase
+          .from("cart_items")
+          .insert({
+            user_id: user.id,
+            product_id: productId,
+            quantity,
+          })
+          .select(`
+            id,
+            quantity,
+            product_id,
+            product:products (
+              id,
+              name,
+              slug,
+              category,
+              price,
+              discount_price,
+              stock_quantity,
+              images,
+              is_active
+            )
+          `)
+          .single();
+
+        if (error) throw error;
+        result = data;
+        
+        // Update local state immediately for real-time UI
+        if (result) {
+          const newItem: CartItem = {
+            id: result.id,
+            user_id: user.id,
+            product_id: result.product_id,
+            quantity: result.quantity,
+            added_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+            product: result.product as unknown as Product,
+          };
+          setCart((prev) => [...prev, newItem]);
+        }
+      }
+
+      return !!result;
+    } catch (error) {
+      console.error("Error adding to cart:", error);
+      return false;
+    }
+  }, [user]);
 
   // Update quantity
   const updateQuantity = useCallback(async (cartItemId: string, delta: number) => {
@@ -179,10 +271,11 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     totalPrice,
     isLoading,
     refreshCart,
+    addItem,
     updateQuantity,
     removeItem,
     clearCart,
-  }), [cart, totalItems, totalPrice, isLoading, refreshCart, updateQuantity, removeItem, clearCart]);
+  }), [cart, totalItems, totalPrice, isLoading, refreshCart, addItem, updateQuantity, removeItem, clearCart]);
 
   return (
     <CartContext.Provider value={value}>

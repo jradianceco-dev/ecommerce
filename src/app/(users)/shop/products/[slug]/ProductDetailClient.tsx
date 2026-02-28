@@ -27,14 +27,10 @@ import {
   ChevronRight,
 } from "lucide-react";
 import { Product } from "@/types";
-import {
-  addToCart,
-  addToWishlist,
-  removeFromWishlist,
-  isInWishlist,
-} from "@/utils/supabase/services";
 import { useUser } from "@/context/UserContext";
 import { useToast } from "@/context/ToastContext";
+import { useCart } from "@/context/CartContext";
+import { useWishlist } from "@/context/WishlistContext";
 import RichViewer from "@/components/products/RichViewer";
 
 interface ProductDetailClientProps {
@@ -56,7 +52,9 @@ function ProductDetailContent({
 }: ProductDetailClientProps) {
   const user = useUser();
   const { success, error: showError } = useToast();
-  
+  const { addItem } = useCart();
+  const { addToWishlist, removeFromWishlist, isInWishlist: checkIsInWishlist } = useWishlist();
+
   const [quantity, setQuantity] = useState(1);
   const [isWishlisted, setIsWishlisted] = useState(false);
   const [wishlistLoading, setWishlistLoading] = useState(false);
@@ -76,14 +74,14 @@ function ProductDetailContent({
     return media?.match(/\.(mp4|webm|mov)$/i);
   };
 
-  // Check if product is in wishlist on mount
+  // Check if product is in wishlist on mount and when wishlist changes
   useEffect(() => {
     if (user) {
-      isInWishlist(user.id, product.id).then(setIsWishlisted);
+      setIsWishlisted(checkIsInWishlist(product.id));
     }
-  }, [user, product.id]);
+  }, [user, product.id, checkIsInWishlist]);
 
-  // Handle add to cart
+  // Handle add to cart - Uses CartContext.addItem for real-time updates
   const handleAddToCart = useCallback(async () => {
     if (!user) {
       showError("Please log in to add items to cart");
@@ -92,21 +90,23 @@ function ProductDetailContent({
 
     setCartLoading(true);
     try {
-      const successResult = await addToCart(user.id, product.id, quantity);
+      const successResult = await addItem(product.id, quantity);
       if (successResult) {
         success(`Added ${quantity} x ${product.name} to cart!`);
         setQuantity(1);
+        // Cart updates automatically via context
       } else {
         showError("Failed to add to cart");
       }
     } catch (error) {
+      console.error("Error adding to cart:", error);
       showError("Failed to add to cart");
     } finally {
       setCartLoading(false);
     }
-  }, [user, product.id, product.name, quantity, success, showError]);
+  }, [user, product.id, product.name, quantity, addItem, success, showError]);
 
-  // Handle wishlist toggle
+  // Handle wishlist toggle - Uses WishlistContext for real-time updates
   const handleWishlistToggle = useCallback(async () => {
     if (!user) {
       showError("Please log in to manage wishlist");
@@ -116,24 +116,29 @@ function ProductDetailContent({
     setWishlistLoading(true);
     try {
       if (isWishlisted) {
-        const successResult = await removeFromWishlist(user.id, product.id);
+        const successResult = await removeFromWishlist(product.id);
         if (successResult) {
           setIsWishlisted(false);
           success("Removed from wishlist");
+        } else {
+          showError("Failed to remove from wishlist");
         }
       } else {
-        const successResult = await addToWishlist(user.id, product.id);
+        const successResult = await addToWishlist(product.id);
         if (successResult) {
           setIsWishlisted(true);
           success("Added to wishlist");
+        } else {
+          showError("Failed to add to wishlist");
         }
       }
     } catch (error) {
+      console.error("Error toggling wishlist:", error);
       showError("Failed to update wishlist");
     } finally {
       setWishlistLoading(false);
     }
-  }, [user, product.id, isWishlisted, success, showError]);
+  }, [user, product.id, isWishlisted, addToWishlist, removeFromWishlist, success, showError]);
 
   // Handle share
   const handleShare = useCallback(async () => {

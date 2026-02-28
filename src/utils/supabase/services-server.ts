@@ -18,7 +18,7 @@ import type { UserProfile, Product, ProductFilters } from "@/types";
  */
 function isAbortError(error: unknown): boolean {
   if (error instanceof Error) {
-    return error.name === 'AbortError' || error.message.includes('abort');
+    return error.name === "AbortError" || error.message.includes("abort");
   }
   return false;
 }
@@ -31,18 +31,19 @@ function logError(message: string, error: unknown): void {
   if (isAbortError(error)) {
     return; // Don't log abort errors
   }
-  
+
   let errorMessage: string;
   if (error instanceof Error) {
     errorMessage = error.message;
-  } else if (typeof error === 'object' && error !== null) {
+  } else if (typeof error === "object" && error !== null) {
     // Handle Supabase error objects
     const err = error as Record<string, unknown>;
-    errorMessage = (err.message as string) || (err.error as string) || JSON.stringify(error);
+    errorMessage =
+      (err.message as string) || (err.error as string) || JSON.stringify(error);
   } else {
     errorMessage = String(error);
   }
-  
+
   if (errorMessage) {
     console.error(message, errorMessage);
   }
@@ -60,7 +61,7 @@ export async function getUserProfile(
 ): Promise<UserProfile | null> {
   try {
     // Validate input
-    if (!userId || typeof userId !== 'string') {
+    if (!userId || typeof userId !== "string") {
       return null;
     }
 
@@ -94,7 +95,7 @@ export async function updateUserProfile(
 ): Promise<UserProfile | null> {
   try {
     // Validate input
-    if (!userId || typeof userId !== 'string') {
+    if (!userId || typeof userId !== "string") {
       return null;
     }
 
@@ -180,7 +181,7 @@ export async function getProductById(
 ): Promise<Product | null> {
   try {
     // Validate input
-    if (!productId || typeof productId !== 'string') {
+    if (!productId || typeof productId !== "string") {
       return null;
     }
 
@@ -347,9 +348,14 @@ export async function addProductReview(
 ): Promise<boolean> {
   try {
     // Validate inputs
-    if (!productId || typeof productId !== 'string' ||
-        !userId || typeof userId !== 'string' ||
-        rating < 1 || rating > 5) {
+    if (
+      !productId ||
+      typeof productId !== "string" ||
+      !userId ||
+      typeof userId !== "string" ||
+      rating < 1 ||
+      rating > 5
+    ) {
       return false;
     }
 
@@ -382,23 +388,95 @@ export async function addProductReview(
  */
 export async function getProductBySlug(slug: string): Promise<Product | null> {
   try {
-    // Validate input
-    if (!slug || typeof slug !== 'string') {
+    // Validate and normalize input
+    if (!slug || typeof slug !== "string") {
+      console.error("[getProductBySlug] Invalid slug:", slug);
       return null;
     }
 
+    const normalizedSlug = slug.trim().toLowerCase();
+    console.log(
+      "[getProductBySlug] Looking for slug:",
+      normalizedSlug,
+      "| Original:",
+      slug,
+    );
+
     const supabase = createStaticClient();
+
+    // CRITICAL FIX: Try the standard query first
     const { data, error } = await supabase
       .from("products")
       .select("*")
-      .eq("slug", slug)
+      .eq("slug", normalizedSlug)
       .eq("is_active", true)
       .single();
 
     if (error) {
-      logError("Error fetching product by slug:", error);
+      console.warn(
+        "[getProductBySlug] Query failed - Code:",
+        error.code,
+        "| Message:",
+        error.message,
+      );
+
+      // PGRST116 = No rows found, try to diagnose
+      if (error.code === "PGRST116") {
+        // Diagnose: Check if product exists but is inactive
+        const { data: inactiveData, error: inactiveError } = await supabase
+          .from("products")
+          .select("id, name, slug, is_active")
+          .eq("slug", normalizedSlug)
+          .maybeSingle();
+
+        if (inactiveData) {
+          console.error(
+            "❌ PRODUCT INACTIVE - exists but is_active=false:",
+            JSON.stringify({
+              slug: inactiveData.slug,
+              name: inactiveData.name,
+              is_active: inactiveData.is_active,
+            }),
+          );
+        } else if (!inactiveError) {
+          console.error(
+            "❌ PRODUCT NOT FOUND - No product with slug:",
+            normalizedSlug,
+          );
+        }
+
+        // Try case-insensitive search as fallback
+        console.log(
+          "[getProductBySlug] Trying case-insensitive ilike search...",
+        );
+        const { data: caseInsensitiveData } = await supabase
+          .from("products")
+          .select("*")
+          .ilike("slug", normalizedSlug)
+          .eq("is_active", true)
+          .single();
+
+        if (caseInsensitiveData) {
+          console.log(
+            "✅ PRODUCT FOUND (case-insensitive):",
+            caseInsensitiveData.name,
+          );
+          return caseInsensitiveData;
+        }
+      } else {
+        logError("Error fetching product by slug:", error);
+      }
       return null;
     }
+
+    console.log(
+      "✅ PRODUCT FOUND:",
+      data.name,
+      "| Slug:",
+      data.slug,
+      "| Active:",
+      data.is_active,
+    );
     return data;
   } catch (error) {
     logError("Error fetching product by slug:", error);
@@ -416,7 +494,7 @@ export async function getProductAverageRating(
 ): Promise<{ averageRating: number; totalReviews: number }> {
   try {
     // Validate input
-    if (!productId || typeof productId !== 'string') {
+    if (!productId || typeof productId !== "string") {
       return { averageRating: 0, totalReviews: 0 };
     }
 
@@ -436,7 +514,10 @@ export async function getProductAverageRating(
     }
 
     const totalReviews = data.length;
-    const sumRatings = data.reduce((sum, review) => sum + (review.rating || 0), 0);
+    const sumRatings = data.reduce(
+      (sum, review) => sum + (review.rating || 0),
+      0,
+    );
     const averageRating = sumRatings / totalReviews;
 
     return {
@@ -454,7 +535,9 @@ export async function getProductAverageRating(
  * Only returns active products
  * @returns Array of { slug, updated_at }
  */
-export async function getAllProductSlugs(): Promise<Array<{ slug: string; updated_at: string }>> {
+export async function getAllProductSlugs(): Promise<
+  Array<{ slug: string; updated_at: string }>
+> {
   try {
     const supabase = createStaticClient();
     const { data, error } = await supabase
@@ -480,11 +563,13 @@ export async function getAllProductSlugs(): Promise<Array<{ slug: string; update
  * @returns Total count of products
  */
 export async function getProductCount(
-  filters?: Omit<ProductFilters, 'limit' | 'offset'>
+  filters?: Omit<ProductFilters, "limit" | "offset">,
 ): Promise<number> {
   try {
     const supabase = createStaticClient();
-    let query = supabase.from("products").select("*", { count: 'exact', head: true });
+    let query = supabase
+      .from("products")
+      .select("*", { count: "exact", head: true });
 
     if (filters?.is_active !== undefined) {
       query = query.eq("is_active", filters.is_active);

@@ -2,13 +2,13 @@
  * =============================================================================
  * Product Detail Page - REBUILT v2
  * =============================================================================
- * 
+ *
  * FIXED:
  * - Proper error handling
  * - Works with Supabase schema
  * - SEO optimized
  * - No more 404 errors for valid products
- * 
+ *
  * Features:
  * - Image gallery
  * - Add to cart
@@ -18,12 +18,15 @@
  * - Related products
  */
 
+// DEBUG: This should appear in console if file is loaded
+console.log('🚀 PRODUCT PAGE MODULE LOADED - File path: /shop/products/[slug]/page.tsx');
+
 import { notFound } from "next/navigation";
 import { Product } from "@/types";
-import { 
-  getProductBySlug, 
+import {
+  getProductBySlug,
   getProductAverageRating,
-  getProducts 
+  getProducts
 } from "@/utils/supabase/services-server";
 import { createProductMetadata } from "@/utils/seo/metadata-factory";
 import ProductJsonLd from "@/components/seo/ProductJsonLd";
@@ -99,13 +102,27 @@ export default async function ProductPage({ params }: ProductPageProps) {
   try {
     const { slug } = await params;
     
+    console.log('🔍 [ProductPage] Fetching product with slug:', slug);
+    console.log('🔍 [ProductPage] Slug type:', typeof slug);
+    console.log('🔍 [ProductPage] Slug length:', slug?.length);
+
     // Fetch product - this will return null if not found OR not active
     const product = await getProductBySlug(slug);
+    
+    console.log('🔍 [ProductPage] Product result:', product ? {
+      id: product.id,
+      name: product.name,
+      slug: product.slug,
+      is_active: product.is_active
+    } : null);
 
     if (!product) {
+      console.error('❌ [ProductPage] Product not found, calling notFound()');
       // Product doesn't exist or isn't active
       notFound();
     }
+
+    console.log('✅ [ProductPage] Rendering product:', product.name);
 
     // Get rating data
     const ratingData = await getProductAverageRating(product.id);

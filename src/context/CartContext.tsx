@@ -158,7 +158,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
             user_id: user.id,
             product_id: result.product_id,
             quantity: result.quantity,
-            added_at: result.added_at || new Date().toISOString(),
+            added_at: result.added_at,
             updated_at: result.updated_at,
             product: result.product as unknown as Product,
           };

@@ -44,40 +44,43 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         return;
       }
 
-      // Fetch profile for role - with timeout
-      const { data: profile, error: profileError } = await supabase
-        .from("profiles")
-        .select("role")
-        .eq("id", supabaseUser.id)
-        .single();
+      // Fetch profile for role - with timeout and retry
+      let profile = null;
+      let profileError = null;
+      
+      // Retry up to 3 times with exponential backoff
+      for (let i = 0; i < 3; i++) {
+        const result = await supabase
+          .from("profiles")
+          .select("role, is_active")
+          .eq("id", supabaseUser.id)
+          .single();
+        
+        profile = result.data;
+        profileError = result.error;
+        
+        if (profile) break;
+        
+        // Wait before retry (100ms, 200ms, 400ms)
+        if (i < 2) {
+          await new Promise(resolve => setTimeout(resolve, 100 * Math.pow(2, i)));
+        }
+      }
 
       if (profileError || !profile) {
-        // Profile doesn't exist yet - create it
-        console.warn("Profile not found, creating...", supabaseUser.email);
-        const { data: newProfile } = await supabase
-          .from("profiles")
-          .insert({
-            id: supabaseUser.id,
-            email: supabaseUser.email || "",
-            role: 'customer',
-            is_active: true,
-          })
-          .select("role")
-          .single();
-
-        setUser({
-          id: supabaseUser.id,
-          email: supabaseUser.email || "",
-          role: (newProfile?.role as UserRole) || "customer",
-        });
-      } else {
-        setUser({
-          id: supabaseUser.id,
-          email: supabaseUser.email || "",
-          role: (profile.role as UserRole) || "customer",
-        });
+        // Profile doesn't exist - wait for trigger or user needs to re-login
+        console.warn("Profile not found - user needs to re-login", supabaseUser.email);
+        setUser(null);
+        setIsLoading(false);
+        return;
       }
-      
+
+      setUser({
+        id: supabaseUser.id,
+        email: supabaseUser.email || "",
+        role: (profile.role as UserRole) || "customer",
+      });
+
       setIsLoading(false);
     } catch (error) {
       console.error("Error fetching user:", error);

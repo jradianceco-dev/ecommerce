@@ -27,6 +27,31 @@ export const metadata: Metadata = createBaseMetadata({
   locale: "en_NG",
 });
 
+// Error boundary component for global errors
+function GlobalErrorBoundary({ children }: { children: React.ReactNode }) {
+  return (
+    <>
+      {children}
+      <script
+        dangerouslySetInnerHTML={{
+          __html: `
+            window.onerror = function(message, source, lineno, colno, error) {
+              console.error('Global error caught:', { message, source, lineno, colno, error });
+              // Log to your error tracking service here
+              return false;
+            };
+            
+            window.onunhandledrejection = function(event) {
+              console.error('Unhandled promise rejection:', event.reason);
+              // Log to your error tracking service here
+            };
+          `,
+        }}
+      />
+    </>
+  );
+}
+
 export default function RootLayout({
   children,
 }: Readonly<{

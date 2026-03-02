@@ -55,14 +55,27 @@ export async function middleware(req: NextRequest) {
         return NextResponse.redirect(new URL("/admin/login", req.url));
       }
 
-      // Get user profile
-      const { data: profile, error: profileError } = await supabase
-        .from("profiles")
-        .select("role, is_active")
-        .eq("id", user.id)
-        .single();
+      // Get user profile with retry mechanism
+      let profile = null;
+      for (let i = 0; i < 3; i++) {
+        const { data, error } = await supabase
+          .from("profiles")
+          .select("role, is_active")
+          .eq("id", user.id)
+          .single();
+        
+        if (data) {
+          profile = data;
+          break;
+        }
+        
+        // Wait before retry (exponential backoff)
+        if (i < 2) {
+          await new Promise(resolve => setTimeout(resolve, 100 * Math.pow(2, i)));
+        }
+      }
 
-      if (profileError || !profile) {
+      if (!profile) {
         return NextResponse.redirect(new URL("/admin/login", req.url));
       }
 

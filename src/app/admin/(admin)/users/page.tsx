@@ -22,6 +22,7 @@ import {
   checkPermission,
 } from "../admin-actions";
 import { User, Shield, Trash2, ToggleLeft, ArrowUpCircle, ArrowDownCircle } from "lucide-react";
+import Link from "next/link";
 
 type UserRole = "customer" | "admin" | "agent" | "chief_admin";
 
@@ -127,7 +128,8 @@ export default function UsersManagerPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-radiance-charcoalTextColor">Users Manager</h1>
-          <p className="text-gray-600 mt-1">Manage all users, roles, and permissions</p>
+          <p className="text-gray-600 mt-1">Manage all users (Customer, Agent, Admin, Chief Admin), roles, and permissions</p>
+          <p className="text-gray-600 mt-1">Visit <Link href="/admin/roles" className="text-red-600 mt-1">Permission Roles Page</Link> to see the roles and permission of each user</p>
         </div>
         <div className="flex items-center gap-2">
           <Shield className="text-radiance-goldColor" size={24} />

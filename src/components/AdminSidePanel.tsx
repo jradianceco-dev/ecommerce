@@ -23,6 +23,7 @@ import {
   Menu,
 } from "lucide-react";
 import { adminLogout, getAdminUserInfo } from "@/app/admin/(admin-auth)/login/actions";
+import NotificationBadge from "./admin/NotificationBadge";
 
 // Navigation Structure
 const adminNavItems = [
@@ -46,7 +47,12 @@ const adminNavItems = [
       { label: "Issues Log", href: "/admin/issues", icon: AlertTriangle },
     ],
   },
-  { title: "Orders Manager", href: "/admin/orders", icon: ShoppingBag },
+  { 
+    title: "Orders Manager", 
+    href: "/admin/orders", 
+    icon: ShoppingBag,
+    showBadge: true  // Show notification badge
+  },
 ];
 
 interface AdminSidePanelProps {
@@ -192,11 +198,13 @@ export default function AdminSidePanel({ isCollapsed, onToggle }: AdminSidePanel
                   } ${isCollapsed ? "justify-center" : ""}`}
                 >
                   <item.icon size={18} className="flex-shrink-0" />
-                  <span className={`text-sm font-semibold whitespace-nowrap transition-all duration-300 ${
+                  <span className={`text-sm font-semibold whitespace-nowrap transition-all duration-300 flex-1 ${
                     isCollapsed ? "w-0 opacity-0 hidden" : "w-auto opacity-100"
                   }`}>
                     {item.title}
                   </span>
+                  {/* Notification Badge for Orders */}
+                  {!isCollapsed && (item as any).showBadge && <NotificationBadge />}
                 </Link>
               )}
 

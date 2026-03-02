@@ -98,81 +98,56 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     try {
       const supabase = createClient();
 
-      // Check if item already in cart
-      const { data: existingItem } = await supabase
+      // Use UPSERT to prevent race conditions
+      const { data: result, error } = await supabase
         .from("cart_items")
-        .select("id, quantity")
-        .eq("user_id", user.id)
-        .eq("product_id", productId)
+        .upsert({
+          user_id: user.id,
+          product_id: productId,
+          quantity: quantity,
+          updated_at: new Date().toISOString()
+        }, {
+          onConflict: 'user_id,product_id',
+          ignoreDuplicates: false
+        })
+        .select(`
+          id,
+          quantity,
+          product_id,
+          product:products (
+            id,
+            name,
+            slug,
+            category,
+            price,
+            discount_price,
+            stock_quantity,
+            images,
+            is_active
+          )
+        `)
         .single();
 
-      let result;
-      if (existingItem) {
-        // Update quantity
-        const { data, error } = await supabase
-          .from("cart_items")
-          .update({ 
-            quantity: existingItem.quantity + quantity,
-            updated_at: new Date().toISOString()
-          })
-          .eq("id", existingItem.id)
-          .select()
-          .single();
+      if (error) throw error;
 
-        if (error) throw error;
-        result = data;
-        
-        // Update local state immediately for real-time UI
-        setCart((prev) =>
-          prev.map((c) =>
-            c.id === existingItem.id 
-              ? { ...c, quantity: c.quantity + quantity }
-              : c
-          )
-        );
-      } else {
-        // Insert new item
-        const { data, error } = await supabase
-          .from("cart_items")
-          .insert({
-            user_id: user.id,
-            product_id: productId,
-            quantity,
-          })
-          .select(`
-            id,
-            quantity,
-            product_id,
-            product:products (
-              id,
-              name,
-              slug,
-              category,
-              price,
-              discount_price,
-              stock_quantity,
-              images,
-              is_active
-            )
-          `)
-          .single();
-
-        if (error) throw error;
-        result = data;
-        
-        // Update local state immediately for real-time UI
-        if (result) {
+      // Update local state immediately for real-time UI
+      if (result) {
+        setCart((prev) => {
+          const existing = prev.find(c => c.id === result.id);
+          if (existing) {
+            return prev.map(c => c.id === result.id ? { ...c, quantity: result.quantity } : c);
+          }
           const newItem: CartItem = {
             id: result.id,
             user_id: user.id,
             product_id: result.product_id,
             quantity: result.quantity,
-            added_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
+            added_at: result.added_at || new Date().toISOString(),
+            updated_at: result.updated_at,
             product: result.product as unknown as Product,
           };
-          setCart((prev) => [...prev, newItem]);
-        }
+          return [...prev, newItem];
+        });
       }
 
       return !!result;
@@ -182,12 +157,20 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     }
   }, [user]);
 
-  // Update quantity
+  // Update quantity with optimistic updates
   const updateQuantity = useCallback(async (cartItemId: string, delta: number) => {
     const item = cart.find((c) => c.id === cartItemId);
     if (!item) return;
 
     const newQuantity = Math.max(0, item.quantity + delta);
+    
+    // Optimistic update FIRST (for instant UI response)
+    const previousCart = [...cart];
+    setCart((prev) =>
+      prev.map((c) =>
+        c.id === cartItemId ? { ...c, quantity: newQuantity } : c
+      )
+    );
 
     if (newQuantity === 0) {
       await removeItem(cartItemId);
@@ -202,15 +185,10 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         .eq("id", cartItemId);
 
       if (error) throw error;
-
-      // Update local state
-      setCart((prev) =>
-        prev.map((c) =>
-          c.id === cartItemId ? { ...c, quantity: newQuantity } : c
-        )
-      );
     } catch (error) {
       console.error("Error updating quantity:", error);
+      // Rollback on error
+      setCart(previousCart);
     }
   }, [cart]);
 

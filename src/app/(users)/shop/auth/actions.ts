@@ -13,15 +13,27 @@ import { createClient } from "@/utils/supabase/server";
 import { CustomerAuthService } from "@/auth/services/customer-auth.service";
 import type { AuthState, LoginInput, SignupInput, EmailInput, PasswordResetInput } from "@/types";
 import { AuthErrorCode } from "@/types";
+import { rateLimitAction, RATE_LIMITS } from "@/utils/rateLimit";
+import { headers } from "next/headers";
 
 /**
- * Customer login server action
+ * Customer login server action with rate limiting
  */
 export async function customerLogin(
   prevState: AuthState | null,
   formData: FormData
 ): Promise<AuthState | null> {
   try {
+    // Get IP for rate limiting
+    const headersList = await headers();
+    const ip = headersList.get("x-forwarded-for") || "unknown";
+    
+    // Check rate limit
+    const rateLimitError = rateLimitAction(`login:${ip}`, RATE_LIMITS.LOGIN);
+    if (rateLimitError) {
+      return { error: rateLimitError, code: AuthErrorCode.LOGIN_FAILED };
+    }
+
     const supabase = await createClient();
     const customerAuthService = new CustomerAuthService(supabase);
 
@@ -137,13 +149,23 @@ export async function customerLogout(): Promise<{ success: boolean; error?: stri
 }
 
 /**
- * Send password reset email
+ * Send password reset email with rate limiting
  */
 export async function sendPasswordResetEmail(
   prevState: AuthState | null,
   formData: FormData
 ): Promise<AuthState | null> {
   try {
+    // Get IP for rate limiting
+    const headersList = await headers();
+    const ip = headersList.get("x-forwarded-for") || "unknown";
+    
+    // Check rate limit
+    const rateLimitError = rateLimitAction(`password-reset:${ip}`, RATE_LIMITS.PASSWORD_RESET);
+    if (rateLimitError) {
+      return { error: rateLimitError, code: AuthErrorCode.PASSWORD_RESET_FAILED };
+    }
+
     const supabase = await createClient();
     const customerAuthService = new CustomerAuthService(supabase);
 
@@ -162,9 +184,10 @@ export async function sendPasswordResetEmail(
       };
     }
 
+    // Always return success (don't reveal if email exists)
     return {
       error: null,
-      message: "Password reset email sent successfully",
+      message: "If that email exists, you'll receive a reset link shortly.",
       email: email,
     };
   } catch (error) {

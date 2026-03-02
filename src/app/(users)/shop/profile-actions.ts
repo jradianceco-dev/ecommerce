@@ -9,10 +9,11 @@
 
 import { createClient } from "@/utils/supabase/server";
 import { uploadAvatar, AVATAR_TYPES, validateFileType, validateFileSize, MAX_FILE_SIZES } from "@/utils/supabase/storage";
+import { sanitizeInput, sanitizeEmail } from "@/utils/sanitization";
 import type { AuthState } from "@/types";
 
 /**
- * Update user profile information
+ * Update user profile information with sanitization
  */
 export async function updateProfile(
   _prevState: AuthState | null,
@@ -29,11 +30,12 @@ export async function updateProfile(
       return { error: "Not authenticated", message: null };
     }
 
-    const fullName = formData.get("full_name") as string;
-    const phone = formData.get("phone") as string;
+    // Sanitize all inputs
+    const fullName = sanitizeInput(formData.get("full_name") as string, 100);
+    const phone = sanitizeInput(formData.get("phone") as string, 20);
     const dateOfBirth = formData.get("date_of_birth") as string;
-    const gender = formData.get("gender") as string;
-    const preferredLanguage = formData.get("preferred_language") as string;
+    const gender = sanitizeInput(formData.get("gender") as string, 20);
+    const preferredLanguage = sanitizeInput(formData.get("preferred_language") as string, 10);
 
     // Validate data
     if (!fullName || fullName.trim().length === 0) {

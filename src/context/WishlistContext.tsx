@@ -87,35 +87,70 @@ export function WishlistProvider({ children }: { children: React.ReactNode }) {
     refreshWishlist();
   }, [user, refreshWishlist]);
 
-  // Add to wishlist
+  // Add to wishlist with optimistic updates
   const handleAddToWishlist = useCallback(async (productId: string): Promise<boolean> => {
     if (!user) return false;
 
+    // Optimistic update FIRST
+    const wasInWishlist = wishlist.some(item => item.product_id === productId);
+    if (!wasInWishlist) {
+      setWishlist(prev => [...prev, {
+        id: 'temp-' + Date.now(),
+        user_id: user.id,
+        product_id: productId,
+        added_at: new Date().toISOString(),
+        product: undefined // Will be populated on refresh
+      }]);
+    }
+
     try {
       const supabase = createClient();
+      
+      // Use UPSERT to handle duplicates gracefully
       const { data, error } = await supabase
         .from("wishlist")
-        .insert({
+        .upsert({
           user_id: user.id,
           product_id: productId,
+          added_at: new Date().toISOString()
+        }, {
+          onConflict: 'user_id,product_id'
         })
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        // If duplicate key error, it's already in wishlist
+        if (error.code === '23505') {
+          return true;
+        }
+        throw error;
+      }
 
-      // Refresh wishlist to update UI
+      // Refresh wishlist to update UI with full product data
       await refreshWishlist();
       return true;
     } catch (error) {
       console.error("Error adding to wishlist:", error);
+      // Rollback on error
+      if (!wasInWishlist) {
+        setWishlist(prev => prev.filter(item => item.product_id !== productId));
+      }
       return false;
     }
-  }, [user, refreshWishlist]);
+  }, [user, wishlist, refreshWishlist]);
 
-  // Remove from wishlist
+  // Remove from wishlist with optimistic updates
   const handleRemoveFromWishlist = useCallback(async (productId: string): Promise<boolean> => {
     if (!user) return false;
+
+    // Find the item to remove
+    const itemToRemove = wishlist.find(item => item.product_id === productId);
+    if (!itemToRemove) return false;
+
+    // Optimistic removal FIRST
+    const previousWishlist = [...wishlist];
+    setWishlist(prev => prev.filter(item => item.product_id !== productId));
 
     try {
       const supabase = createClient();
@@ -132,9 +167,11 @@ export function WishlistProvider({ children }: { children: React.ReactNode }) {
       return true;
     } catch (error) {
       console.error("Error removing from wishlist:", error);
+      // Rollback on error
+      setWishlist(previousWishlist);
       return false;
     }
-  }, [user, refreshWishlist]);
+  }, [user, wishlist, refreshWishlist]);
 
   // Check if product is in wishlist
   const checkIsInWishlist = useCallback((productId: string) => {

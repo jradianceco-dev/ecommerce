@@ -1,11 +1,11 @@
 /**
  * Checkout Page
- * 
+ *
  * Customer checkout flow with:
  * - Delivery information form
  * - Payment integration (Paystack)
- * - Order creation
- * 
+ * - Order creation with all cart items
+ *
  * Access: Authenticated users only
  */
 
@@ -14,16 +14,19 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useUser } from "@/context/UserContext";
-import { getCartItems, clearCart, createOrder } from "@/utils/supabase/services";
-import { CreditCard, Truck, User, MapPin, Phone, Loader2 } from "lucide-react";
+import { useCart } from "@/context/CartContext";
+import { createClient } from "@/utils/supabase/client";
+import { clearCart } from "@/utils/supabase/services";
+import { CreditCard, Truck, User, MapPin, Phone, Loader2, Package } from "lucide-react";
 import type { CartItem as CartItemType } from "@/types";
 
 export default function CheckoutPage() {
   const router = useRouter();
   const user = useUser();
+  const { cart, totalItems, totalPrice, refreshCart } = useCart();
+  
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState(false);
-  const [cartItems, setCartItems] = useState<CartItemType[]>([]);
   const [formData, setFormData] = useState({
     full_name: "",
     phone: "",
@@ -34,18 +37,12 @@ export default function CheckoutPage() {
   // Load cart when user is authenticated
   useEffect(() => {
     if (user) {
-      loadCart();
+      refreshCart().then(() => setLoading(false));
     }
   }, [user]);
 
-  async function loadCart() {
-    if (!user) return;
-    const items = await getCartItems(user.id);
-    setCartItems(items);
-    setLoading(false);
-  }
-
-  const subtotal = cartItems.reduce((acc, item) => {
+  // Calculate totals from CartContext
+  const subtotal = cart.reduce((acc, item) => {
     const price = item.product?.discount_price || item.product?.price || 0;
     return acc + price * item.quantity;
   }, 0);
@@ -61,35 +58,112 @@ export default function CheckoutPage() {
     setProcessing(true);
 
     try {
-      // Create order items
-      const orderItems = cartItems.map((item) => ({
-        product_id: item.product_id,
-        quantity: item.quantity,
-        unit_price: item.product?.discount_price || item.product?.price || 0,
-      }));
+      console.log('🛒 Starting checkout process...');
+      console.log('👤 User:', user.id, user.email);
+      console.log('🛍️ Cart items:', cart.length);
+      console.log('💰 Total:', total);
 
-      // Create order
-      const order = await createOrder(user.id, {
-        items: orderItems,
-        subtotal,
-        tax,
-        shipping_cost: shipping,
-        total_amount: total,
-        shipping_address: formData.shipping_address,
-        billing_address: formData.billing_address || formData.shipping_address,
+      const supabase = createClient();
+
+      // VALIDATE stock and prices before creating order
+      console.log('🔍 Validating stock and prices...');
+      const validationPromises = cart.map(async (item) => {
+        const { data: product, error } = await supabase
+          .from('products')
+          .select('stock_quantity, price, discount_price, is_active')
+          .eq('id', item.product_id)
+          .single();
+        
+        if (error || !product) {
+          throw new Error(`Product ${item.product?.name} is not available`);
+        }
+        
+        if (!product.is_active) {
+          throw new Error(`Product ${item.product?.name} is no longer available`);
+        }
+        
+        if (product.stock_quantity < item.quantity) {
+          throw new Error(`Only ${product.stock_quantity} ${item.product?.name} left in stock`);
+        }
+        
+        // Use current price (may have changed)
+        const currentPrice = product.discount_price || product.price;
+        return { ...item, unit_price: currentPrice };
       });
 
-      if (!order) {
-        alert("Failed to create order. Please try again.");
-        setProcessing(false);
-        return;
+      const validatedItems = await Promise.all(validationPromises);
+      console.log('✅ Validation passed');
+
+      // Generate unique order number
+      const orderNumber = `ORD-${Date.now()}-${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
+      console.log('📦 Creating order:', orderNumber);
+
+      // Create order first
+      const { data: order, error: orderError } = await supabase
+        .from("orders")
+        .insert({
+          user_id: user.id,
+          order_number: orderNumber,
+          subtotal: subtotal,
+          tax: tax,
+          shipping_cost: shipping,
+          total_amount: total,
+          status: "pending",
+          payment_status: "pending",
+          shipping_address: formData.shipping_address,
+          billing_address: formData.billing_address || formData.shipping_address,
+          notes: null,
+          estimated_delivery_date: null,
+        })
+        .select()
+        .single();
+
+      if (orderError) {
+        console.error('❌ Order creation error:', orderError);
+        throw orderError;
       }
+      if (!order) {
+        console.error('❌ No order data returned');
+        throw new Error("Failed to create order");
+      }
+
+      console.log('✅ Order created:', order.id);
+
+      // Create order items from validated cart
+      console.log('📦 Creating order items...');
+      const orderItemsData = validatedItems.map((item) => ({
+        order_id: order.id,
+        product_id: item.product_id,
+        product_name: item.product?.name || "Unknown Product",
+        quantity: item.quantity,
+        unit_price: item.unit_price,
+        total_price: item.unit_price * item.quantity,
+      }));
+
+      console.log('📦 Order items data:', orderItemsData);
+
+      const { error: itemsError } = await supabase
+        .from("order_items")
+        .insert(orderItemsData);
+
+      if (itemsError) {
+        console.error('❌ Order items error:', itemsError);
+        throw itemsError;
+      }
+
+      console.log('✅ Order items created');
+
+      // Clear cart after successful order
+      await clearCart(user.id);
+      await refreshCart();
+      console.log('✅ Cart cleared');
 
       // Initialize Paystack payment
       initializePayment(order);
     } catch (error) {
-      console.error("Checkout error:", error);
-      alert("An error occurred during checkout");
+      console.error("❌ Checkout error:", error);
+      console.error("Error details:", JSON.stringify(error, null, 2));
+      alert("An error occurred during checkout: " + (error as any)?.message || "Unknown error");
       setProcessing(false);
     }
   }
@@ -123,10 +197,41 @@ export default function CheckoutPage() {
         ],
       },
       callback: async (response: any) => {
-        // Payment successful
-        alert("Payment successful! Your order has been placed.");
-        await clearCart(user!.id);
-        router.push(`/shop/history?order=${order.id}`);
+        try {
+          // VERIFY payment with Paystack API
+          const verifyUrl = `https://api.paystack.co/transaction/verify/${response.reference}`;
+          const verifyResponse = await fetch(verifyUrl, {
+            headers: {
+              Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}`,
+            },
+          });
+          
+          const verification = await verifyResponse.json();
+          
+          if (verification.status === 'success' && verification.data.status === 'success') {
+            // Update order status to confirmed
+            const supabase = createClient();
+            await supabase
+              .from('orders')
+              .update({ 
+                payment_status: 'completed',
+                payment_reference: response.reference,
+                status: 'confirmed'
+              })
+              .eq('id', order.id);
+            
+            alert("Payment successful! Your order has been placed.");
+            await clearCart(user!.id);
+            router.push(`/shop/history?order=${order.id}`);
+          } else {
+            alert('Payment verification failed. Please contact support.');
+            setProcessing(false);
+          }
+        } catch (error) {
+          console.error('Payment verification error:', error);
+          alert('Payment completed but verification failed. Please contact support with reference: ' + response.reference);
+          setProcessing(false);
+        }
       },
       onClose: () => {
         alert("Payment cancelled. Please complete your order.");
@@ -138,7 +243,6 @@ export default function CheckoutPage() {
   }
 
   // Show loading while cart is being fetched
-  // Note: Middleware already verified auth, so we trust the user is authenticated
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -150,10 +254,11 @@ export default function CheckoutPage() {
     );
   }
 
-  if (cartItems.length === 0) {
+  if (cart.length === 0) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
+          <Package size={64} className="mx-auto text-gray-300 mb-4" />
           <h1 className="text-2xl font-bold text-gray-900 mb-4">Your cart is empty</h1>
           <p className="text-gray-600 mb-6">Add some items before checkout</p>
           <button
@@ -271,11 +376,11 @@ export default function CheckoutPage() {
             <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
               <h2 className="text-xl font-bold mb-6 flex items-center gap-2">
                 <Truck size={20} className="text-radiance-goldColor" />
-                Order Summary
+                Order Summary ({totalItems} items)
               </h2>
 
-              <div className="space-y-4">
-                {cartItems.map((item) => (
+              <div className="space-y-4 max-h-64 overflow-y-auto">
+                {cart.map((item: CartItemType) => (
                   <div key={item.id} className="flex justify-between items-start">
                     <div>
                       <p className="font-medium text-gray-900">{item.product?.name}</p>

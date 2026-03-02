@@ -120,16 +120,16 @@ export default function ProductsCatalogPage() {
   function handleEdit(product: Product) {
     setEditingProduct(product);
     setFormData({
-      name: product.name,
-      slug: product.slug,
-      description: product.description || "",
-      category: product.category,
-      price: product.price.toString(),
-      discount_price: product.discount_price?.toString() || "",
-      stock_quantity: product.stock_quantity.toString(),
-      sku: product.sku || "",
+      name: product.name ?? '',
+      slug: product.slug ?? '',
+      description: product.description ?? '',
+      category: product.category ?? '',
+      price: product.price?.toString() ?? '',
+      discount_price: product.discount_price?.toString() ?? '',
+      stock_quantity: product.stock_quantity?.toString() ?? '0',
+      sku: product.sku ?? '',
     });
-    setUploadedImages(product.images || []);
+    setUploadedImages(product.images ?? []);
     setSelectedFiles([]);
     setShowModal(true);
   }

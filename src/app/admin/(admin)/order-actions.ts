@@ -16,7 +16,7 @@
 
 "use server";
 
-import { createClient } from "@/utils/supabase/server";
+import { createClient, createServiceRoleClient } from "@/utils/supabase/server";
 import { revalidatePath } from "next/cache";
 
 /*
@@ -66,11 +66,13 @@ export async function getAllOrders(filters?: {
   offset?: number;
 }) {
   try {
-    const supabase = await createClient();
-    
+    // use service role client so admin queries bypass RLS and always return full order data
+    const supabase = createServiceRoleClient();
+
     let query = supabase
       .from("orders")
-      .select(`
+      .select(
+        `
         *,
         profiles!orders_user_id_fkey (
           email,
@@ -83,9 +85,20 @@ export async function getAllOrders(filters?: {
           product_name,
           quantity,
           unit_price,
-          total_price
+          total_price,
+          product:products (
+            id,
+            name,
+            slug,
+            images,
+            price,
+            discount_price,
+            stock_quantity,
+            category
+          )
         )
-      `)
+      `,
+      )
       .order("created_at", { ascending: false });
 
     if (filters?.status) {
@@ -127,11 +140,12 @@ export async function getAllOrders(filters?: {
  */
 export async function getOrderById(orderId: string) {
   try {
-    const supabase = await createClient();
-    
+    const supabase = createServiceRoleClient();
+
     const { data, error } = await supabase
       .from("orders")
-      .select(`
+      .select(
+        `
         *,
         profiles!orders_user_id_fkey (
           email,
@@ -148,7 +162,8 @@ export async function getOrderById(orderId: string) {
             slug
           )
         )
-      `)
+      `,
+      )
       .eq("id", orderId)
       .single();
 
@@ -174,7 +189,13 @@ export async function getOrderById(orderId: string) {
  */
 export async function updateOrderStatus(
   orderId: string,
-  newStatus: "pending" | "confirmed" | "shipped" | "delivered" | "cancelled" | "returned",
+  newStatus:
+    | "pending"
+    | "confirmed"
+    | "shipped"
+    | "delivered"
+    | "cancelled"
+    | "returned",
 ): Promise<OrderActionResult> {
   try {
     const supabase = await createClient();
@@ -205,15 +226,15 @@ export async function updateOrderStatus(
     };
 
     if (!validTransitions[currentOrder.status].includes(newStatus)) {
-      return { 
-        success: false, 
-        error: `Invalid status transition from ${currentOrder.status} to ${newStatus}` 
+      return {
+        success: false,
+        error: `Invalid status transition from ${currentOrder.status} to ${newStatus}`,
       };
     }
 
     const { error } = await supabase
       .from("orders")
-      .update({ 
+      .update({
         status: newStatus,
         updated_at: new Date().toISOString(),
       })
@@ -228,7 +249,7 @@ export async function updateOrderStatus(
         action: "order_status_updated",
         resource_type: "order",
         resource_id: orderId,
-        changes: { 
+        changes: {
           old_status: currentOrder.status,
           new_status: newStatus,
         },
@@ -270,7 +291,7 @@ export async function updatePaymentStatus(
 
     const { error } = await supabase
       .from("orders")
-      .update({ 
+      .update({
         payment_status: newStatus,
         updated_at: new Date().toISOString(),
       })
@@ -295,7 +316,10 @@ export async function updatePaymentStatus(
     console.error("Error updating payment status:", error);
     return {
       success: false,
-      error: error instanceof Error ? error.message : "Failed to update payment status",
+      error:
+        error instanceof Error
+          ? error.message
+          : "Failed to update payment status",
     };
   }
 }
@@ -335,18 +359,20 @@ export async function cancelOrder(
 
     // Can only cancel pending or confirmed orders
     if (!["pending", "confirmed"].includes(order.status)) {
-      return { 
-        success: false, 
-        error: `Cannot cancel order with status ${order.status}` 
+      return {
+        success: false,
+        error: `Cannot cancel order with status ${order.status}`,
       };
     }
 
     // Update order status
     const { error } = await supabase
       .from("orders")
-      .update({ 
+      .update({
         status: "cancelled",
-        notes: reason ? `${order.notes || ""}\nCancellation reason: ${reason}` : order.notes,
+        notes: reason
+          ? `${order.notes || ""}\nCancellation reason: ${reason}`
+          : order.notes,
         updated_at: new Date().toISOString(),
       })
       .eq("id", orderId);
@@ -414,19 +440,21 @@ export async function processRefund(
 
     // Can only refund delivered or shipped orders
     if (!["delivered", "shipped"].includes(order.status)) {
-      return { 
-        success: false, 
-        error: `Cannot refund order with status ${order.status}` 
+      return {
+        success: false,
+        error: `Cannot refund order with status ${order.status}`,
       };
     }
 
     // Update order status and payment status
     const { error } = await supabase
       .from("orders")
-      .update({ 
+      .update({
         status: "returned",
         payment_status: "refunded",
-        notes: reason ? `${order.notes || ""}\nRefund reason: ${reason}. Amount: ₦${refundAmount || order.total_amount}` : order.notes,
+        notes: reason
+          ? `${order.notes || ""}\nRefund reason: ${reason}. Amount: ₦${refundAmount || order.total_amount}`
+          : order.notes,
         updated_at: new Date().toISOString(),
       })
       .eq("id", orderId);
@@ -442,7 +470,7 @@ export async function processRefund(
         action: "order_refunded",
         resource_type: "order",
         resource_id: orderId,
-        changes: { 
+        changes: {
           reason: reason || null,
           refund_amount: refundAmount || order.total_amount,
         },
@@ -455,7 +483,8 @@ export async function processRefund(
     console.error("Error processing refund:", error);
     return {
       success: false,
-      error: error instanceof Error ? error.message : "Failed to process refund",
+      error:
+        error instanceof Error ? error.message : "Failed to process refund",
     };
   }
 }
@@ -470,7 +499,9 @@ export async function processRefund(
  *
  * @security Admin, Chief Admin only
  */
-export async function getOrderStatistics(period: "day" | "week" | "month" | "all" = "all") {
+export async function getOrderStatistics(
+  period: "day" | "week" | "month" | "all" = "all",
+) {
   try {
     const supabase = await createClient();
 
@@ -496,26 +527,35 @@ export async function getOrderStatistics(period: "day" | "week" | "month" | "all
       .select("total_amount, payment_status, status")
       .eq("payment_status", "completed");
 
-    const totalRevenue = revenueData?.reduce((sum, order) => sum + order.total_amount, 0) || 0;
-    const pendingRevenue = revenueData
-      ?.filter((o) => o.payment_status === "pending")
-      .reduce((sum, order) => sum + order.total_amount, 0) || 0;
+    const totalRevenue =
+      revenueData?.reduce((sum, order) => sum + order.total_amount, 0) || 0;
+    const pendingRevenue =
+      revenueData
+        ?.filter((o) => o.payment_status === "pending")
+        .reduce((sum, order) => sum + order.total_amount, 0) || 0;
 
     return {
       success: true,
       data: {
         totalOrders: statusCounts.reduce((sum, s: any) => sum + s.count, 0),
-        byStatus: statusCounts.reduce((acc, s: any) => {
-          acc[s.status] = s.count;
-          return acc;
-        }, {} as Record<string, number>),
+        byStatus: statusCounts.reduce(
+          (acc, s: any) => {
+            acc[s.status] = s.count;
+            return acc;
+          },
+          {} as Record<string, number>,
+        ),
         totalRevenue,
         pendingRevenue,
       },
     };
   } catch (error) {
     console.error("Error fetching order statistics:", error);
-    return { success: false, error: "Failed to fetch order statistics", data: null };
+    return {
+      success: false,
+      error: "Failed to fetch order statistics",
+      data: null,
+    };
   }
 }
 
@@ -546,19 +586,109 @@ export async function checkPermission(
 
     if (!profile) return false;
 
-    const roleHierarchy: Record<"customer" | "agent" | "admin" | "chief_admin", number> = {
+    const roleHierarchy: Record<
+      "customer" | "agent" | "admin" | "chief_admin",
+      number
+    > = {
       customer: 0,
       agent: 1,
       admin: 2,
       chief_admin: 3,
     };
 
-    const userRole = profile.role as "customer" | "agent" | "admin" | "chief_admin";
+    const userRole = profile.role as
+      | "customer"
+      | "agent"
+      | "admin"
+      | "chief_admin";
     const requiredRoleValue = roleHierarchy[requiredRole];
-    
+
     return roleHierarchy[userRole] >= requiredRoleValue;
   } catch (error) {
     console.error("Error checking permission:", error);
     return false;
+  }
+}
+
+/**
+ * Delete Order (Admin Only - Hard Delete)
+ * 
+ * Single Responsibility: Deletes an order and all its items permanently
+ * This follows SRP - only handles order deletion
+ * 
+ * @param orderId - ID of order to delete
+ * @param adminUserId - ID of admin performing the deletion
+ * @returns Success/error status
+ * 
+ * @security Chief Admin and Admin only (NOT Agent)
+ * @warning This is a HARD DELETE - data cannot be recovered
+ */
+export async function deleteOrder(orderId: string, adminUserId: string) {
+  try {
+    const supabase = await createClient();
+
+    // Verify user is admin or chief_admin (NOT agent) - OCP: Extension without modification
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("role")
+      .eq("id", adminUserId)
+      .single();
+
+    if (!profile || !['admin', 'chief_admin'].includes(profile.role)) {
+      return { 
+        success: false, 
+        error: "Only admins can delete orders" 
+      };
+    }
+
+    // Get order details for audit before deletion - DIP: Depends on abstraction (supabase client)
+    const { data: order } = await supabase
+      .from("orders")
+      .select("order_number, total_amount")
+      .eq("id", orderId)
+      .single();
+
+    // Delete order items first (foreign key constraint) - ISP: Only uses needed columns
+    const { error: itemsError } = await supabase
+      .from("order_items")
+      .delete()
+      .eq("order_id", orderId);
+
+    if (itemsError) throw itemsError;
+
+    // Delete order - CQS: This is a command (modifies state)
+    const { error: orderError } = await supabase
+      .from("orders")
+      .delete()
+      .eq("id", orderId);
+
+    if (orderError) throw orderError;
+
+    // Log the deletion for audit trail - DRY: Reuses existing logging pattern
+    await supabase.from("admin_activity_logs").insert({
+      admin_id: adminUserId,
+      action: "order_deleted",
+      resource_type: "orders",
+      resource_id: orderId,
+      changes: {
+        order_number: order?.order_number,
+        total_amount: order?.total_amount,
+        reason: "Admin hard delete",
+      },
+    });
+
+    // Revalidate to update UI - KISS: Simple and direct
+    revalidatePath("/admin/orders");
+
+    return { 
+      success: true, 
+      message: "Order permanently deleted" 
+    };
+  } catch (error) {
+    console.error("Error deleting order:", error);
+    return { 
+      success: false, 
+      error: error instanceof Error ? error.message : "Failed to delete order" 
+    };
   }
 }

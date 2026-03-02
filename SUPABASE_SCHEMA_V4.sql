@@ -1,35 +1,18 @@
 -- ================================================================
--- JRADIANCE E-Commerce - Complete Setup v4.0
+-- JRADIANCE E-Commerce - PRODUCTION SCHEMA v5.0
 -- ================================================================
--- OPTIMIZED DATABASE + STORAGE SETUP
--- 
--- Includes:
--- 1. Complete database schema (all tables, functions, triggers)
--- 2. Optimized Row Level Security (RLS) policies
--- 3. Supabase Storage policies for product-images bucket
--- 4. Supabase Storage policies for avatars bucket
--- 5. Performance indexes
--- 6. Data cleanup utilities
---
--- INSTRUCTIONS:
--- 1. Copy ALL of this code
--- 2. Go to Supabase Dashboard → SQL Editor
--- 3. Paste and run ALL at once
--- 4. Wait for completion (should take 10-15 seconds)
---
--- IMPORTANT: This will DROP all existing policies and recreate them
+-- COMPLETE FIX FOR ALL DATABASE ISSUES
+-- Safe to run multiple times - Won't delete existing data
 -- ================================================================
 
 
 -- ================================================================
--- PART 1: CLEANUP OLD POLICIES
+-- PART 1: DROP EXISTING POLICIES (Safe - Won't delete data)
 -- ================================================================
 
--- Drop all policies on all tables
+-- Drop policies only (not tables or data)
 DROP POLICY IF EXISTS "profiles_select_public" ON public.profiles;
 DROP POLICY IF EXISTS "profiles_select_own" ON public.profiles;
-DROP POLICY IF EXISTS "profiles_select_admin" ON public.profiles;
-DROP POLICY IF EXISTS "profiles_update_self" ON public.profiles;
 DROP POLICY IF EXISTS "profiles_update_own" ON public.profiles;
 DROP POLICY IF EXISTS "profiles_update_chief_admin" ON public.profiles;
 
@@ -37,7 +20,6 @@ DROP POLICY IF EXISTS "admin_staff_select_admin" ON public.admin_staff;
 DROP POLICY IF EXISTS "admin_staff_insert_chief_admin" ON public.admin_staff;
 DROP POLICY IF EXISTS "admin_staff_update_chief_admin" ON public.admin_staff;
 
-DROP POLICY IF EXISTS "products_select_active" ON public.products;
 DROP POLICY IF EXISTS "products_select_public" ON public.products;
 DROP POLICY IF EXISTS "products_select_admin" ON public.products;
 DROP POLICY IF EXISTS "products_insert_admin" ON public.products;
@@ -53,46 +35,48 @@ DROP POLICY IF EXISTS "wishlist_select_own" ON public.wishlist;
 DROP POLICY IF EXISTS "wishlist_insert_own" ON public.wishlist;
 DROP POLICY IF EXISTS "wishlist_delete_own" ON public.wishlist;
 
-DROP POLICY IF EXISTS "orders_select_own_and_admin" ON public.orders;
 DROP POLICY IF EXISTS "orders_select_own" ON public.orders;
 DROP POLICY IF EXISTS "orders_select_admin" ON public.orders;
 DROP POLICY IF EXISTS "orders_insert_own" ON public.orders;
 DROP POLICY IF EXISTS "orders_update_admin" ON public.orders;
 
-DROP POLICY IF EXISTS "order_items_select" ON public.order_items;
 DROP POLICY IF EXISTS "order_items_select_own" ON public.order_items;
 DROP POLICY IF EXISTS "order_items_select_admin" ON public.order_items;
+DROP POLICY IF EXISTS "order_items_insert_authenticated" ON public.order_items;
 
 DROP POLICY IF EXISTS "product_reviews_select_public" ON public.product_reviews;
 DROP POLICY IF EXISTS "product_reviews_insert_own" ON public.product_reviews;
 DROP POLICY IF EXISTS "product_reviews_update_own" ON public.product_reviews;
-DROP POLICY IF EXISTS "product_reviews_delete_own_and_admin" ON public.product_reviews;
 DROP POLICY IF EXISTS "product_reviews_delete_own_admin" ON public.product_reviews;
 
 DROP POLICY IF EXISTS "admin_activity_logs_select_admin" ON public.admin_activity_logs;
+DROP POLICY IF EXISTS "admin_activity_logs_insert_system" ON public.admin_activity_logs;
+DROP POLICY IF EXISTS "admin_activity_logs_manage_admin" ON public.admin_activity_logs;
 
-DROP POLICY IF EXISTS "issues_select_admin_or_owner" ON public.issues;
 DROP POLICY IF EXISTS "issues_select_own_admin" ON public.issues;
 DROP POLICY IF EXISTS "issues_insert_authenticated" ON public.issues;
 DROP POLICY IF EXISTS "issues_update_admin" ON public.issues;
 DROP POLICY IF EXISTS "issues_delete_chief_admin" ON public.issues;
 
 DROP POLICY IF EXISTS "sales_analytics_select_admin" ON public.sales_analytics;
-DROP POLICY IF EXISTS "sales_analytics_modify_chief_admin" ON public.sales_analytics;
 DROP POLICY IF EXISTS "sales_analytics_manage_chief_admin" ON public.sales_analytics;
+
+DROP POLICY IF EXISTS "admin_notifications_select_own" ON public.admin_notifications;
+DROP POLICY IF EXISTS "admin_notifications_insert_system" ON public.admin_notifications;
+DROP POLICY IF EXISTS "admin_notifications_update_own" ON public.admin_notifications;
 
 -- Drop storage policies
 DROP POLICY IF EXISTS "Public View Product Images" ON storage.objects;
 DROP POLICY IF EXISTS "Authenticated Upload Product Images" ON storage.objects;
 DROP POLICY IF EXISTS "Authenticated Update Product Images" ON storage.objects;
 DROP POLICY IF EXISTS "Authenticated Delete Product Images" ON storage.objects;
-
 DROP POLICY IF EXISTS "Public View Avatars" ON storage.objects;
 DROP POLICY IF EXISTS "Authenticated Upload Avatars" ON storage.objects;
 DROP POLICY IF EXISTS "Authenticated Update Avatars" ON storage.objects;
 DROP POLICY IF EXISTS "Authenticated Delete Avatars" ON storage.objects;
+DROP POLICY IF EXISTS "Users can upload to own avatar folder" ON storage.objects;
 
--- Drop all triggers
+-- Drop triggers (recreate them fresh)
 DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
 DROP TRIGGER IF EXISTS update_profiles_updated_at ON public.profiles;
 DROP TRIGGER IF EXISTS update_products_updated_at ON public.products;
@@ -101,51 +85,42 @@ DROP TRIGGER IF EXISTS update_admin_staff_updated_at ON public.admin_staff;
 DROP TRIGGER IF EXISTS deduct_stock_on_order_item ON public.order_items;
 DROP TRIGGER IF EXISTS restore_stock_on_order_cancel ON public.orders;
 DROP TRIGGER IF EXISTS generate_product_slug ON public.products;
-DROP TRIGGER IF EXISTS validate_order_status_transition ON public.orders;
-DROP TRIGGER IF EXISTS check_product_stock_before_order ON public.order_items;
 DROP TRIGGER IF EXISTS mark_verified_purchase_review ON public.product_reviews;
 DROP TRIGGER IF EXISTS log_order_status_change ON public.orders;
+DROP TRIGGER IF EXISTS notify_on_payment ON public.orders;
 
--- Drop all functions
+-- Drop functions
 DROP FUNCTION IF EXISTS public.handle_new_user();
 DROP FUNCTION IF EXISTS public.update_updated_at_column();
 DROP FUNCTION IF EXISTS public.log_admin_action(uuid,text,text,uuid,jsonb);
 DROP FUNCTION IF EXISTS public.generate_order_number();
-DROP FUNCTION IF EXISTS public.create_order_from_cart(uuid,text,text,text,date);
 DROP FUNCTION IF EXISTS public.deduct_stock_on_order_item();
 DROP FUNCTION IF EXISTS public.restore_stock_on_order_cancel();
 DROP FUNCTION IF EXISTS public.generate_product_slug();
-DROP FUNCTION IF EXISTS public.validate_order_status_transition();
-DROP FUNCTION IF EXISTS public.check_product_stock_before_order();
 DROP FUNCTION IF EXISTS public.mark_verified_purchase_review();
 DROP FUNCTION IF EXISTS public.log_order_status_change();
-DROP FUNCTION IF EXISTS public.populate_sales_analytics(date,date);
-DROP FUNCTION IF EXISTS public.cleanup_abandoned_carts(integer);
 DROP FUNCTION IF EXISTS public.check_low_stock_alerts(integer);
+DROP FUNCTION IF EXISTS public.create_payment_notification();
 
 
 -- ================================================================
--- PART 2: DATABASE SCHEMA
+-- PART 2: ENSURE TABLES EXIST (Won't delete existing data)
 -- ================================================================
 
-CREATE SCHEMA IF NOT EXISTS public;
-
--- User role enum
+-- Create types if they don't exist
 DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'user_role') THEN
   CREATE TYPE public.user_role AS ENUM ('customer', 'admin', 'agent', 'chief_admin');
 END IF; END $$;
 
--- Order status enum
 DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'order_status') THEN
   CREATE TYPE public.order_status AS ENUM ('pending', 'confirmed', 'shipped', 'delivered', 'cancelled', 'returned');
 END IF; END $$;
 
--- Payment status enum
 DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'payment_status') THEN
   CREATE TYPE public.payment_status AS ENUM ('pending', 'completed', 'failed', 'refunded');
 END IF; END $$;
 
--- Core Tables
+-- Create tables with IF NOT EXISTS (won't delete existing data)
 CREATE TABLE IF NOT EXISTS public.profiles (
   id uuid PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
   email text NOT NULL UNIQUE,
@@ -255,9 +230,10 @@ CREATE TABLE IF NOT EXISTS public.order_items (
   created_at timestamptz DEFAULT now()
 );
 
+-- CRITICAL FIX: admin_id is NULLABLE (customers can place orders)
 CREATE TABLE IF NOT EXISTS public.admin_activity_logs (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  admin_id uuid NOT NULL REFERENCES public.admin_staff(id),
+  admin_id uuid REFERENCES public.admin_staff(id),  -- ← NULLABLE!
   action text NOT NULL,
   resource_type text,
   resource_id uuid,
@@ -299,30 +275,51 @@ CREATE TABLE IF NOT EXISTS public.sales_analytics (
   UNIQUE(period_start, period_end)
 );
 
+CREATE TABLE IF NOT EXISTS public.admin_notifications (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  admin_id uuid REFERENCES public.profiles(id) ON DELETE CASCADE,
+  type text NOT NULL CHECK (type IN ('new_order', 'payment_received', 'order_updated', 'low_stock', 'system')),
+  title text NOT NULL,
+  message text NOT NULL,
+  is_read boolean DEFAULT false,
+  related_order_id uuid REFERENCES public.orders(id) ON DELETE SET NULL,
+  created_at timestamptz DEFAULT now()
+);
+
+-- Enable RLS on all tables
+ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.admin_staff ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.products ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.cart_items ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.wishlist ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.orders ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.order_items ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.product_reviews ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.admin_activity_logs ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.issues ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.sales_analytics ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.admin_notifications ENABLE ROW LEVEL SECURITY;
+
 
 -- ================================================================
--- PART 3: PERFORMANCE INDEXES
+-- PART 3: CREATE INDEXES (Safe - Won't delete data)
 -- ================================================================
 
--- Profile indexes
 CREATE INDEX IF NOT EXISTS idx_profiles_role ON public.profiles(role);
 CREATE INDEX IF NOT EXISTS idx_profiles_email ON public.profiles(email);
 CREATE INDEX IF NOT EXISTS idx_profiles_is_active ON public.profiles(is_active);
 
--- Product indexes
 CREATE INDEX IF NOT EXISTS idx_products_slug ON public.products(slug);
 CREATE INDEX IF NOT EXISTS idx_products_category ON public.products(category);
 CREATE INDEX IF NOT EXISTS idx_products_is_active ON public.products(is_active);
 CREATE INDEX IF NOT EXISTS idx_products_price ON public.products(price);
 CREATE INDEX IF NOT EXISTS idx_products_created_at ON public.products(created_at DESC);
 
--- Cart & Wishlist indexes
 CREATE INDEX IF NOT EXISTS idx_cart_items_user_id ON public.cart_items(user_id);
 CREATE INDEX IF NOT EXISTS idx_cart_items_product_id ON public.cart_items(product_id);
 CREATE INDEX IF NOT EXISTS idx_wishlist_user_id ON public.wishlist(user_id);
 CREATE INDEX IF NOT EXISTS idx_wishlist_product_id ON public.wishlist(product_id);
 
--- Order indexes
 CREATE INDEX IF NOT EXISTS idx_orders_user_id ON public.orders(user_id);
 CREATE INDEX IF NOT EXISTS idx_orders_status ON public.orders(status);
 CREATE INDEX IF NOT EXISTS idx_orders_payment_status ON public.orders(payment_status);
@@ -331,50 +328,53 @@ CREATE INDEX IF NOT EXISTS idx_orders_created_at ON public.orders(created_at DES
 CREATE INDEX IF NOT EXISTS idx_order_items_order_id ON public.order_items(order_id);
 CREATE INDEX IF NOT EXISTS idx_order_items_product_id ON public.order_items(product_id);
 
--- Review indexes
 CREATE INDEX IF NOT EXISTS idx_product_reviews_product_id ON public.product_reviews(product_id);
 CREATE INDEX IF NOT EXISTS idx_product_reviews_user_id ON public.product_reviews(user_id);
 CREATE INDEX IF NOT EXISTS idx_product_reviews_rating ON public.product_reviews(rating);
 
--- Admin indexes
 CREATE INDEX IF NOT EXISTS idx_admin_activity_logs_admin_id ON public.admin_activity_logs(admin_id);
 CREATE INDEX IF NOT EXISTS idx_admin_activity_logs_created_at ON public.admin_activity_logs(created_at DESC);
 
--- Issues indexes
 CREATE INDEX IF NOT EXISTS idx_issues_status ON public.issues(status);
 CREATE INDEX IF NOT EXISTS idx_issues_type ON public.issues(type);
 CREATE INDEX IF NOT EXISTS idx_issues_assigned_to ON public.issues(assigned_to);
 CREATE INDEX IF NOT EXISTS idx_issues_priority ON public.issues(priority);
 CREATE INDEX IF NOT EXISTS idx_issues_created_at ON public.issues(created_at DESC);
 
--- Sales analytics index
 CREATE INDEX IF NOT EXISTS idx_sales_analytics_period ON public.sales_analytics(period_start, period_end);
+
+CREATE INDEX IF NOT EXISTS idx_admin_notifications_admin_id ON public.admin_notifications(admin_id);
+CREATE INDEX IF NOT EXISTS idx_admin_notifications_is_read ON public.admin_notifications(is_read);
+CREATE INDEX IF NOT EXISTS idx_admin_notifications_created_at ON public.admin_notifications(created_at DESC);
 
 
 -- ================================================================
--- PART 4: SEQUENCE
+-- PART 4: CREATE SEQUENCE
 -- ================================================================
 
 CREATE SEQUENCE IF NOT EXISTS public.order_number_seq START WITH 1000 INCREMENT BY 1;
 
 
 -- ================================================================
--- PART 5: FUNCTIONS
+-- PART 5: FUNCTIONS (Fixed versions)
 -- ================================================================
 
--- Handle new user registration
+-- Handle new user registration (FIXED - creates/updates profile for ALL users)
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS trigger AS $$
 BEGIN
-  INSERT INTO public.profiles (id, email, full_name, phone, role)
+  INSERT INTO public.profiles (id, email, full_name, phone, role, is_active)
   VALUES (
     NEW.id,
     NEW.email,
-    COALESCE(NEW.raw_user_meta_data->>'full_name', ''),
+    COALESCE(NEW.raw_user_meta_data->>'full_name', split_part(NEW.email, '@', 1)),
     COALESCE(NEW.raw_user_meta_data->>'phone', ''),
-    (COALESCE(NEW.raw_user_meta_data->>'role', 'customer'))::public.user_role
+    (COALESCE(NEW.raw_user_meta_data->>'role', 'customer'))::public.user_role,
+    true
   )
-  ON CONFLICT (id) DO NOTHING;
+  ON CONFLICT (id) DO UPDATE
+  SET email = EXCLUDED.email,
+      updated_at = now();
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
@@ -423,18 +423,15 @@ DECLARE
   v_counter integer := 0;
   v_unique_slug text;
 BEGIN
-  -- Convert name to slug: lowercase, replace non-alphanumeric with hyphens
   v_slug := LOWER(REGEXP_REPLACE(NEW.name, '[^a-zA-Z0-9]+', '-', 'g'));
   v_slug := REGEXP_REPLACE(v_slug, '^-+|-+$', '', 'g');
   
-  -- Handle empty slug
   IF v_slug = '' THEN
     v_slug := 'product-' || substr(NEW.id::text, 1, 8);
   END IF;
   
   v_unique_slug := v_slug;
   
-  -- Check for duplicates and add suffix if needed
   WHILE EXISTS (
     SELECT 1 FROM public.products 
     WHERE slug = v_unique_slug AND id != COALESCE(NEW.id, '00000000-0000-0000-0000-000000000000'::uuid)
@@ -456,7 +453,6 @@ BEGIN
   SET stock_quantity = stock_quantity - NEW.quantity, updated_at = now()
   WHERE id = NEW.product_id;
   
-  -- Log low stock alert
   IF (SELECT stock_quantity FROM public.products WHERE id = NEW.product_id) < 10 THEN
     INSERT INTO public.admin_activity_logs (action, resource_type, resource_id, changes)
     VALUES ('low_stock_alert', 'products', NEW.product_id, 
@@ -531,17 +527,33 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+-- Create payment notification for admins
+CREATE OR REPLACE FUNCTION public.create_payment_notification()
+RETURNS trigger AS $$
+BEGIN
+  INSERT INTO public.admin_notifications (admin_id, type, title, message, related_order_id)
+  SELECT 
+    p.id as admin_id,
+    'payment_received' as type,
+    '💰 New Paid Order!' as title,
+    'Order ' || NEW.order_number || ' worth ₦' || NEW.total_amount || ' has been paid' as message,
+    NEW.id as related_order_id
+  FROM public.profiles p
+  WHERE p.role IN ('admin', 'chief_admin') AND p.is_active = true;
+  
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
 
 -- ================================================================
 -- PART 6: TRIGGERS
 -- ================================================================
 
--- Auto-create profile on user signup
 CREATE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
   FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
 
--- Auto-update updated_at timestamps
 CREATE TRIGGER update_profiles_updated_at BEFORE UPDATE ON public.profiles
   FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
 
@@ -554,12 +566,10 @@ CREATE TRIGGER update_orders_updated_at BEFORE UPDATE ON public.orders
 CREATE TRIGGER update_admin_staff_updated_at BEFORE UPDATE ON public.admin_staff
   FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
 
--- Auto-generate product slug
 CREATE TRIGGER generate_product_slug
   BEFORE INSERT OR UPDATE OF name ON public.products
   FOR EACH ROW EXECUTE FUNCTION public.generate_product_slug();
 
--- Stock management
 CREATE TRIGGER deduct_stock_on_order_item
   AFTER INSERT ON public.order_items
   FOR EACH ROW EXECUTE FUNCTION public.deduct_stock_on_order_item();
@@ -569,40 +579,26 @@ CREATE TRIGGER restore_stock_on_order_cancel
   FOR EACH ROW WHEN (OLD.status IS DISTINCT FROM NEW.status)
   EXECUTE FUNCTION public.restore_stock_on_order_cancel();
 
--- Review verification
 CREATE TRIGGER mark_verified_purchase_review
   BEFORE INSERT OR UPDATE ON public.product_reviews
   FOR EACH ROW EXECUTE FUNCTION public.mark_verified_purchase_review();
 
--- Order status logging
 CREATE TRIGGER log_order_status_change
   AFTER UPDATE ON public.orders
   FOR EACH ROW WHEN (OLD.status IS DISTINCT FROM NEW.status)
   EXECUTE FUNCTION public.log_order_status_change();
 
-
--- ================================================================
--- PART 7: ENABLE ROW LEVEL SECURITY
--- ================================================================
-
-ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.admin_staff ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.products ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.cart_items ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.wishlist ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.orders ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.order_items ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.product_reviews ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.admin_activity_logs ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.issues ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.sales_analytics ENABLE ROW LEVEL SECURITY;
+CREATE TRIGGER notify_on_payment
+  AFTER UPDATE ON public.orders
+  FOR EACH ROW WHEN (OLD.payment_status = 'pending' AND NEW.payment_status = 'completed')
+  EXECUTE FUNCTION public.create_payment_notification();
 
 
 -- ================================================================
--- PART 8: ROW LEVEL SECURITY POLICIES
+-- PART 7: ROW LEVEL SECURITY POLICIES (Fixed)
 -- ================================================================
 
--- PROFILES POLICIES
+-- PROFILES POLICIES (Users MUST be able to read their own profile!)
 CREATE POLICY "profiles_select_public" ON public.profiles FOR SELECT USING (true);
 CREATE POLICY "profiles_select_own" ON public.profiles FOR SELECT USING (auth.uid() = id);
 CREATE POLICY "profiles_update_own" ON public.profiles FOR UPDATE USING (auth.uid() = id) WITH CHECK (auth.uid() = id);
@@ -639,19 +635,22 @@ CREATE POLICY "wishlist_select_own" ON public.wishlist FOR SELECT USING (auth.ui
 CREATE POLICY "wishlist_insert_own" ON public.wishlist FOR INSERT WITH CHECK (auth.uid() = user_id);
 CREATE POLICY "wishlist_delete_own" ON public.wishlist FOR DELETE USING (auth.uid() = user_id);
 
--- ORDERS POLICIES
+-- ORDERS POLICIES (Checkout needs INSERT!)
 CREATE POLICY "orders_select_own" ON public.orders FOR SELECT USING (auth.uid() = user_id);
 CREATE POLICY "orders_select_admin" ON public.orders FOR SELECT USING (
   EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role IN ('admin', 'agent', 'chief_admin')));
-CREATE POLICY "orders_insert_own" ON public.orders FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "orders_insert_own" ON public.orders FOR INSERT TO authenticated
+WITH CHECK (auth.uid() = user_id);
 CREATE POLICY "orders_update_admin" ON public.orders FOR UPDATE USING (
   EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role IN ('admin', 'agent', 'chief_admin')));
 
--- ORDER ITEMS POLICIES
+-- ORDER ITEMS POLICIES (Checkout needs INSERT!)
 CREATE POLICY "order_items_select_own" ON public.order_items FOR SELECT USING (
   EXISTS (SELECT 1 FROM public.orders WHERE id = order_id AND user_id = auth.uid()));
 CREATE POLICY "order_items_select_admin" ON public.order_items FOR SELECT USING (
   EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role IN ('admin', 'agent', 'chief_admin')));
+CREATE POLICY "order_items_insert_authenticated" ON public.order_items FOR INSERT TO authenticated
+WITH CHECK (true);
 
 -- PRODUCT REVIEWS POLICIES
 CREATE POLICY "product_reviews_select_public" ON public.product_reviews FOR SELECT USING (true);
@@ -660,9 +659,13 @@ CREATE POLICY "product_reviews_update_own" ON public.product_reviews FOR UPDATE 
 CREATE POLICY "product_reviews_delete_own_admin" ON public.product_reviews FOR DELETE USING (
   auth.uid() = user_id OR EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role IN ('admin', 'chief_admin')));
 
--- ADMIN ACTIVITY LOGS POLICIES
+-- ADMIN ACTIVITY LOGS POLICIES (admin_id is NULLABLE!)
 CREATE POLICY "admin_activity_logs_select_admin" ON public.admin_activity_logs FOR SELECT USING (
   EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role IN ('admin', 'chief_admin')));
+CREATE POLICY "admin_activity_logs_insert_system" ON public.admin_activity_logs FOR INSERT TO authenticated
+WITH CHECK (true);
+CREATE POLICY "admin_activity_logs_manage_admin" ON public.admin_activity_logs FOR ALL TO authenticated
+USING (EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role IN ('admin', 'chief_admin')));
 
 -- ISSUES POLICIES
 CREATE POLICY "issues_select_own_admin" ON public.issues FOR SELECT USING (
@@ -680,9 +683,19 @@ CREATE POLICY "sales_analytics_select_admin" ON public.sales_analytics FOR SELEC
 CREATE POLICY "sales_analytics_manage_chief_admin" ON public.sales_analytics FOR ALL USING (
   EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'chief_admin'));
 
+-- ADMIN NOTIFICATIONS POLICIES
+CREATE POLICY "admin_notifications_select_own" ON public.admin_notifications FOR SELECT TO authenticated
+USING (admin_id = auth.uid() OR EXISTS (
+  SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role IN ('admin', 'agent', 'chief_admin')
+));
+CREATE POLICY "admin_notifications_insert_system" ON public.admin_notifications FOR INSERT TO authenticated
+WITH CHECK (true);
+CREATE POLICY "admin_notifications_update_own" ON public.admin_notifications FOR UPDATE TO authenticated
+USING (admin_id = auth.uid());
+
 
 -- ================================================================
--- PART 9: GRANTS
+-- PART 8: GRANTS
 -- ================================================================
 
 GRANT USAGE ON SCHEMA public TO PUBLIC;
@@ -697,6 +710,7 @@ GRANT ALL ON public.admin_staff TO authenticated;
 GRANT ALL ON public.issues TO authenticated;
 GRANT ALL ON public.sales_analytics TO authenticated;
 GRANT ALL ON public.admin_activity_logs TO authenticated;
+GRANT ALL ON public.admin_notifications TO authenticated;
 
 GRANT EXECUTE ON FUNCTION public.handle_new_user TO postgres, authenticated;
 GRANT EXECUTE ON FUNCTION public.log_admin_action TO postgres, authenticated;
@@ -707,27 +721,16 @@ GRANT USAGE ON SEQUENCE public.order_number_seq TO authenticated;
 
 
 -- ================================================================
--- PART 10: SUPABASE STORAGE POLICIES
+-- PART 9: STORAGE POLICIES
 -- ================================================================
 
--- PRODUCT-IMAGES BUCKET POLICIES
-DROP POLICY IF EXISTS "Public View Product Images" ON storage.objects;
-DROP POLICY IF EXISTS "Authenticated Upload Product Images" ON storage.objects;
-DROP POLICY IF EXISTS "Authenticated Update Product Images" ON storage.objects;
-DROP POLICY IF EXISTS "Authenticated Delete Product Images" ON storage.objects;
-
+-- PRODUCT-IMAGES BUCKET
 CREATE POLICY "Public View Product Images" ON storage.objects FOR SELECT TO public USING (bucket_id = 'product-images');
 CREATE POLICY "Authenticated Upload Product Images" ON storage.objects FOR INSERT TO authenticated WITH CHECK (bucket_id = 'product-images');
 CREATE POLICY "Authenticated Update Product Images" ON storage.objects FOR UPDATE TO authenticated USING (bucket_id = 'product-images');
 CREATE POLICY "Authenticated Delete Product Images" ON storage.objects FOR DELETE TO authenticated USING (bucket_id = 'product-images');
 
--- AVATARS BUCKET POLICIES
-DROP POLICY IF EXISTS "Public View Avatars" ON storage.objects;
-DROP POLICY IF EXISTS "Authenticated Upload Avatars" ON storage.objects;
-DROP POLICY IF EXISTS "Authenticated Update Avatars" ON storage.objects;
-DROP POLICY IF EXISTS "Authenticated Delete Avatars" ON storage.objects;
-DROP POLICY IF EXISTS "Users can upload to own avatar folder" ON storage.objects;
-
+-- AVATARS BUCKET
 CREATE POLICY "Public View Avatars" ON storage.objects FOR SELECT TO public USING (bucket_id = 'avatars');
 CREATE POLICY "Authenticated Upload Avatars" ON storage.objects FOR INSERT TO authenticated WITH CHECK (
   bucket_id = 'avatars' AND auth.uid() IS NOT NULL);
@@ -742,102 +745,48 @@ CREATE POLICY "Users can upload to own avatar folder" ON storage.objects FOR INS
 
 
 -- ================================================================
--- PART 11: DATA CLEANUP & FIXES
+-- PART 10: FIX EXISTING USERS WITHOUT PROFILES
 -- ================================================================
 
--- Fix products with NULL or empty slugs
-UPDATE public.products
-SET slug = LOWER(
-  REGEXP_REPLACE(
-    REGEXP_REPLACE(name, '[^a-zA-Z0-9]+', '-', 'g'),
-    '^-+|-+$', '', 'g'
-  )
-) || '-' || SUBSTRING(id::text FROM 1 FOR 8)
-WHERE slug IS NULL OR slug = '' OR TRIM(slug) = '';
+-- Create profiles for any auth.users without profiles
+INSERT INTO public.profiles (id, email, full_name, role, is_active)
+SELECT 
+  au.id,
+  au.email,
+  COALESCE(split_part(au.email, '@', 1), 'User'),
+  'customer',
+  true
+FROM auth.users au
+LEFT JOIN public.profiles p ON p.id = au.id
+WHERE p.id IS NULL
+ON CONFLICT (id) DO UPDATE SET email = EXCLUDED.email;
 
--- Make sure all slugs are unique
-WITH duplicates AS (
-  SELECT id, slug,
-         ROW_NUMBER() OVER (PARTITION BY slug ORDER BY created_at) as rn
-  FROM public.products
-  WHERE slug IS NOT NULL AND slug != ''
-)
-UPDATE public.products p
-SET slug = d.slug || '-' || d.rn::text
-FROM duplicates d
-WHERE p.id = d.id AND d.rn > 1;
+-- Activate all products
+UPDATE public.products SET is_active = true WHERE is_active IS NOT true;
 
--- IMPORTANT: Activate ALL products so they can be viewed on the website
--- This fixes the 404 error on product detail pages
-UPDATE public.products
-SET is_active = true;
 
--- Verify all products have slugs
+-- ================================================================
+-- PART 11: VERIFICATION
+-- ================================================================
+
 DO $$
 DECLARE
-  v_count integer;
+  v_users integer;
+  v_profiles integer;
+  v_products integer;
 BEGIN
-  SELECT COUNT(*) INTO v_count FROM public.products WHERE slug IS NULL OR slug = '' OR TRIM(slug) = '';
-  IF v_count > 0 THEN
-    RAISE NOTICE 'WARNING: % products still have empty slugs', v_count;
-  ELSE
-    RAISE NOTICE 'SUCCESS: All products have valid slugs and are active!';
+  SELECT COUNT(*) INTO v_users FROM auth.users;
+  SELECT COUNT(*) INTO v_profiles FROM public.profiles;
+  SELECT COUNT(*) INTO v_products FROM public.products WHERE is_active = true;
+  
+  RAISE NOTICE '✅ SCHEMA READY!';
+  RAISE NOTICE 'Users: %, Profiles: %, Active Products: %', v_users, v_profiles, v_products;
+  
+  IF v_users > v_profiles THEN
+    RAISE WARNING '⚠️  Some users missing profiles - check Part 10 fix';
   END IF;
 END $$;
 
-
 -- ================================================================
--- PART 12: VERIFICATION QUERIES
--- ================================================================
-
--- Check all products have slugs and are active
-SELECT id, name, slug, is_active, created_at
-FROM public.products
-ORDER BY created_at DESC
-LIMIT 10;
-
--- Check policies are created
-SELECT schemaname, tablename, policyname
-FROM pg_policies
-WHERE schemaname = 'public'
-ORDER BY tablename, policyname;
-
--- Check all tables have RLS enabled
-SELECT tablename, rowsecurity
-FROM pg_tables
-WHERE schemaname = 'public'
-ORDER BY tablename;
-
-
--- ================================================================
--- END OF COMPLETE SETUP
--- ================================================================
--- 
--- INSTRUCTIONS FOR USE:
--- ================================================================
--- 1. Go to Supabase Dashboard → SQL Editor
--- 2. Copy ALL of this file (Ctrl+A, Ctrl+C)
--- 3. Paste into SQL Editor
--- 4. Click "Run" button
--- 5. Wait for completion (10-15 seconds)
--- 6. Check output for "SUCCESS: All products have valid slugs and are active!"
---
--- WHAT THIS DOES:
--- - Drops all old policies and recreates them
--- - Creates all database tables
--- - Sets up Row Level Security (RLS)
--- - Configures storage buckets (product-images, avatars)
--- - Fixes avatar upload RLS issues
--- - Fixes product slugs
--- - ACTIVATES ALL PRODUCTS (fixes 404 errors)
--- - Creates performance indexes
--- - Sets up triggers and functions
---
--- IMPORTANT:
--- - Run this ONLY ONCE on your database
--- - This will DROP and RECREATE all policies
--- - Existing data will NOT be affected
--- - All products will be set to is_active = true
--- - Avatars bucket must exist in Storage
--- - product-images bucket must exist in Storage
+-- ✅ COMPLETE! Test login and checkout now!
 -- ================================================================

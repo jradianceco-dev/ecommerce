@@ -49,16 +49,24 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
           id,
           quantity,
           product_id,
+          added_at,
+          updated_at,
           product:products (
             id,
             name,
             slug,
+            description,
             category,
             price,
             discount_price,
             stock_quantity,
+            sku,
             images,
-            is_active
+            attributes,
+            is_active,
+            created_by,
+            created_at,
+            updated_at
           )
         `)
         .eq("user_id", user.id)
@@ -67,14 +75,14 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       if (error) throw error;
 
       // Transform the data to match CartItem type
-      const transformedCart: CartItem[] = (data || []).map((item: any) => ({
+      const transformedCart: CartItem[] = (data || []).map((item) => ({
         id: item.id,
         user_id: user.id,
         product_id: item.product_id,
         quantity: item.quantity,
         added_at: item.added_at,
         updated_at: item.updated_at,
-        product: item.product as Product,
+        product: item.product as unknown as Product,
       }));
 
       setCart(transformedCart);
@@ -114,16 +122,24 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
           id,
           quantity,
           product_id,
+          added_at,
+          updated_at,
           product:products (
             id,
             name,
             slug,
+            description,
             category,
             price,
             discount_price,
             stock_quantity,
+            sku,
             images,
-            is_active
+            attributes,
+            is_active,
+            created_by,
+            created_at,
+            updated_at
           )
         `)
         .single();

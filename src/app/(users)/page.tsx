@@ -126,7 +126,7 @@ export default function LandingPage() {
               priority
             />
             {/* Soft overlay gradient */}
-            <div className="absolute inset-0 bg-gradient-to-r from-white via-white/70 to-transparent" />
+            <div className="absolute inset-0 bg-linear-to-r from-white via-white/70 to-transparent" />
           </div>
 
           <div className="relative z-10 max-w-7xl mx-auto px-4 md:px-6 py-20 w-full">
@@ -201,7 +201,7 @@ export default function LandingPage() {
                 key={index}
                 className="text-center group p-6 rounded-2xl hover:bg-radiance-creamBackgroundColor transition-all duration-300"
               >
-                <div className="inline-flex items-center justify-center w-14 h-14 bg-gradient-to-br from-radiance-goldColor to-yellow-400 rounded-2xl mb-4 group-hover:scale-110 transition-transform shadow-md">
+                <div className="inline-flex items-center justify-center w-14 h-14 bg-linear-to-br from-radiance-goldColor to-yellow-400 rounded-2xl mb-4 group-hover:scale-110 transition-transform shadow-md">
                   <feature.icon className="text-white" size={28} />
                 </div>
                 <h3 className="font-bold text-base text-gray-900 mb-1">{feature.title}</h3>
@@ -227,7 +227,7 @@ export default function LandingPage() {
               <Link
                 key={category.name}
                 href={`/shop?category=${category.name.toLowerCase().replace(' ', '-')}`}
-                className="group relative overflow-hidden rounded-3xl aspect-[3/4] md:aspect-square"
+                className="group relative overflow-hidden rounded-3xl aspect-3/4 md:aspect-square"
               >
                 <Image
                   src={category.image}
@@ -235,7 +235,7 @@ export default function LandingPage() {
                   fill
                   className="object-cover group-hover:scale-110 transition-transform duration-500"
                 />
-                <div className={`absolute inset-0 bg-gradient-to-t ${category.gradient}`} />
+                <div className={`absolute inset-0 bg-linear-to-t ${category.gradient}`} />
                 <div className="absolute inset-0 flex flex-col items-center justify-center text-white p-4">
                   <div className="text-5xl mb-3">{category.icon}</div>
                   <h3 className="text-xl md:text-2xl font-bold">{category.name}</h3>
@@ -271,7 +271,7 @@ export default function LandingPage() {
           {loading ? (
             <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
               {[...Array(8)].map((_, i) => (
-                <div key={i} className="bg-gray-100 rounded-2xl aspect-[3/4] animate-pulse" />
+                <div key={i} className="bg-gray-100 rounded-2xl aspect-3/4 animate-pulse" />
               ))}
             </div>
           ) : (
@@ -333,7 +333,7 @@ export default function LandingPage() {
               fill
               className="object-cover"
             />
-            <div className="absolute inset-0 bg-gradient-to-r from-radiance-goldColor/90 to-transparent" />
+            <div className="absolute inset-0 bg-linear-to-r from-radiance-goldColor/90 to-transparent" />
             <div className="absolute inset-0 flex items-center p-8 md:p-12">
               <div className="text-white max-w-md">
                 <h2 className="text-3xl md:text-4xl font-black mb-3">
@@ -356,7 +356,7 @@ export default function LandingPage() {
           {loading ? (
             <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
               {[...Array(8)].map((_, i) => (
-                <div key={i} className="bg-gray-100 rounded-2xl aspect-[3/4] animate-pulse" />
+                <div key={i} className="bg-gray-100 rounded-2xl aspect-3/4 animate-pulse" />
               ))}
             </div>
           ) : (
@@ -374,7 +374,7 @@ export default function LandingPage() {
       </section>
 
       {/* Brand Values - Clean Light Design */}
-      <section className="py-20 px-4 bg-gradient-to-b from-white to-radiance-creamBackgroundColor">
+      <section className="py-20 px-4 bg-linear-to-b from-white to-radiance-creamBackgroundColor">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-16">
             <h2 className="text-4xl md:text-5xl font-black text-radiance-charcoalTextColor mb-4">
@@ -421,7 +421,7 @@ export default function LandingPage() {
       </section>
 
       {/* Newsletter - Soft Gradient */}
-      <section className="py-20 px-4 bg-gradient-to-r from-radiance-goldColor/20 to-yellow-400/20">
+      <section className="py-20 px-4 bg-linear-to-r from-radiance-goldColor/20 to-yellow-400/20">
         <div className="max-w-4xl mx-auto text-center">
           <div className="bg-white rounded-3xl p-8 md:p-12 shadow-lg">
             <h2 className="text-3xl md:text-4xl font-black text-radiance-charcoalTextColor mb-4">

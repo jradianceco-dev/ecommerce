@@ -95,6 +95,10 @@ function OrderHistoryContent() {
     }
   };
 
+  const canPayForOrder = (order: Order) => {
+    return order.status === 'pending' && order.payment_status === 'pending';
+  };
+
   // Show loading while orders are being fetched
   // Note: Middleware already verified auth, so we trust the user is authenticated
   if (loading) {
@@ -261,6 +265,21 @@ function OrderHistoryContent() {
                           </p>
                         </div>
                       </div>
+
+                      {/* Payment Action Button */}
+                      {canPayForOrder(order) && (
+                        <div className="mt-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                          <p className="text-sm font-medium text-yellow-900 mb-3">
+                            ⚠️ This order requires payment completion
+                          </p>
+                          <button
+                            onClick={() => router.push(`/shop/checkout?order=${order.id}`)}
+                            className="w-full bg-radiance-goldColor text-white py-3 rounded-xl font-bold hover:bg-radiance-charcoalTextColor transition-colors"
+                          >
+                            Complete Payment - ₦{order.total_amount.toLocaleString()}
+                          </button>
+                        </div>
+                      )}
 
                       {/* Status Timeline */}
                       <div className="mt-6">

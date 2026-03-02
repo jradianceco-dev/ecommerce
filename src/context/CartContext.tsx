@@ -51,7 +51,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
           product_id,
           added_at,
           updated_at,
-          product:products (
+          product:products!inner (
             id,
             name,
             slug,
@@ -124,7 +124,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
           product_id,
           added_at,
           updated_at,
-          product:products (
+          product:products!inner (
             id,
             name,
             slug,

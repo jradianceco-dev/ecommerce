@@ -24,9 +24,11 @@ export default function CheckoutPage() {
   const router = useRouter();
   const user = useUser();
   const { cart, totalItems, totalPrice, refreshCart } = useCart();
-  
+
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState(false);
+  const [hasPendingOrder, setHasPendingOrder] = useState(false);
+  const [pendingOrder, setPendingOrder] = useState<any>(null);
   const [formData, setFormData] = useState({
     full_name: "",
     phone: "",
@@ -34,11 +36,37 @@ export default function CheckoutPage() {
     billing_address: "",
   });
 
-  // Load cart when user is authenticated
+  // Check for pending orders and load cart when user is authenticated
   useEffect(() => {
-    if (user) {
-      refreshCart().then(() => setLoading(false));
+    if (!user) {
+      setLoading(false);
+      return;
     }
+
+    const checkPendingOrder = async () => {
+      try {
+        const supabase = createClient();
+        const { data: orders } = await supabase
+          .from('orders')
+          .select('id, order_number, status, payment_status, total_amount, created_at')
+          .eq('user_id', user.id)
+          .in('status', ['pending'])
+          .in('payment_status', ['pending'])
+          .order('created_at', { ascending: false })
+          .limit(1);
+
+        if (orders && orders.length > 0) {
+          setHasPendingOrder(true);
+          setPendingOrder(orders[0]);
+          console.log('⚠️ User has pending order:', orders[0]);
+        }
+      } catch (error) {
+        console.error('Error checking pending orders:', error);
+      }
+    };
+
+    checkPendingOrder();
+    refreshCart().then(() => setLoading(false));
   }, [user]);
 
   // Calculate totals from CartContext
@@ -153,12 +181,8 @@ export default function CheckoutPage() {
 
       console.log('✅ Order items created');
 
-      // Clear cart after successful order
-      await clearCart(user.id);
-      await refreshCart();
-      console.log('✅ Cart cleared');
-
-      // Initialize Paystack payment
+      // Initialize Paystack payment BEFORE clearing cart
+      // Cart will be cleared only after successful payment verification
       initializePayment(order);
     } catch (error) {
       console.error("❌ Checkout error:", error);
@@ -172,17 +196,24 @@ export default function CheckoutPage() {
     // Check if Paystack is available
     if (typeof window === "undefined" || !(window as any).PaystackPop) {
       alert("Payment gateway not available. Please try again.");
+      setProcessing(false);
       return;
     }
+
+    // Use Math.round to avoid floating point precision issues
+    // Amount must be an integer (in kobo)
+    const amountInKobo = Math.round(total * 100);
+    console.log('💰 Payment amount:', amountInKobo, 'kobo (₦' + total + ')');
 
     const handler = (window as any).PaystackPop.setup({
       key: process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY,
       email: user?.email || "",
-      amount: total * 100, // Paystack expects amount in kobo
+      amount: amountInKobo, // Must be integer - Paystack expects amount in kobo
       currency: "NGN",
-      ref: `ORD-${Date.now()}`,
+      ref: order.order_number,
       metadata: {
         order_id: order.id,
+        order_number: order.order_number,
         custom_fields: [
           {
             display_name: "Customer Name",
@@ -198,6 +229,8 @@ export default function CheckoutPage() {
       },
       callback: async (response: any) => {
         try {
+          console.log('🔄 Verifying payment...', response.reference);
+          
           // VERIFY payment with Paystack API
           const verifyUrl = `https://api.paystack.co/transaction/verify/${response.reference}`;
           const verifyResponse = await fetch(verifyUrl, {
@@ -205,26 +238,36 @@ export default function CheckoutPage() {
               Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}`,
             },
           });
-          
+
           const verification = await verifyResponse.json();
-          
+          console.log('📋 Verification result:', verification);
+
           if (verification.status === 'success' && verification.data.status === 'success') {
             // Update order status to confirmed
             const supabase = createClient();
-            await supabase
+            const { error: updateError } = await supabase
               .from('orders')
-              .update({ 
+              .update({
                 payment_status: 'completed',
                 payment_reference: response.reference,
                 status: 'confirmed'
               })
               .eq('id', order.id);
+
+            if (updateError) {
+              console.error('Failed to update order:', updateError);
+              throw updateError;
+            }
+
+            // NOW clear cart after successful payment
+            await clearCart(user!.id);
+            await refreshCart();
             
             alert("Payment successful! Your order has been placed.");
-            await clearCart(user!.id);
             router.push(`/shop/history?order=${order.id}`);
           } else {
-            alert('Payment verification failed. Please contact support.');
+            console.error('Payment verification failed:', verification);
+            alert('Payment verification failed. Please contact support with reference: ' + response.reference);
             setProcessing(false);
           }
         } catch (error) {
@@ -234,8 +277,10 @@ export default function CheckoutPage() {
         }
       },
       onClose: () => {
-        alert("Payment cancelled. Please complete your order.");
+        console.log('⚠️ Payment popup closed by user');
+        alert("Payment cancelled. Your order is pending. Please complete payment to confirm your order.");
         setProcessing(false);
+        // DO NOT clear cart - user may try again
       },
     });
 
@@ -249,6 +294,56 @@ export default function CheckoutPage() {
         <div className="text-center">
           <Loader2 size={48} className="animate-spin mx-auto text-radiance-goldColor" />
           <p className="mt-4 text-gray-600">Loading cart...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Block checkout if there's a pending order
+  if (hasPendingOrder && pendingOrder) {
+    return (
+      <div className="min-h-screen flex items-center justify-center px-6">
+        <div className="max-w-md w-full bg-white rounded-2xl shadow-xl border-2 border-orange-200 p-8 text-center">
+          <div className="mx-auto h-16 w-16 bg-orange-100 rounded-full flex items-center justify-center mb-4">
+            <Loader2 size={32} className="animate-spin text-orange-600" />
+          </div>
+          <h1 className="text-2xl font-bold text-gray-900 mb-3">
+            Pending Payment
+          </h1>
+          <p className="text-gray-600 mb-6">
+            You have an unpaid order that needs to be completed first.
+          </p>
+          
+          <div className="bg-orange-50 border border-orange-200 rounded-xl p-4 mb-6">
+            <p className="text-sm font-medium text-orange-900 mb-2">
+              Order: {pendingOrder.order_number}
+            </p>
+            <p className="text-sm text-orange-700">
+              Amount: ₦{Number(pendingOrder.total_amount).toLocaleString()}
+            </p>
+            <p className="text-xs text-orange-600 mt-2">
+              Created: {new Date(pendingOrder.created_at).toLocaleString()}
+            </p>
+          </div>
+
+          <div className="space-y-3">
+            <button
+              onClick={() => router.push(`/shop/history?order=${pendingOrder.id}`)}
+              className="w-full bg-radiance-goldColor text-white py-3 rounded-xl font-bold hover:bg-radiance-charcoalTextColor transition-colors"
+            >
+              Complete Payment
+            </button>
+            <button
+              onClick={() => router.push("/shop/history")}
+              className="w-full bg-gray-100 text-gray-700 py-3 rounded-xl font-bold hover:bg-gray-200 transition-colors"
+            >
+              View Order History
+            </button>
+          </div>
+
+          <p className="text-xs text-gray-500 mt-6">
+            If your pending order has been cancelled by admin, please contact support or try again in a few minutes.
+          </p>
         </div>
       </div>
     );

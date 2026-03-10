@@ -496,7 +496,7 @@ function ProductDetailContent({
                       <Shield size={24} className="text-radiance-goldColor" />
                       <div>
                         <p className="text-xs font-bold text-gray-700">Secure Payment</p>
-                        <p className="text-xs text-gray-500">Paystack</p>
+                        <p className="text-xs text-gray-500">Flutterwave</p>
                       </div>
                     </div>
                     <div className="flex flex-col items-center gap-2">

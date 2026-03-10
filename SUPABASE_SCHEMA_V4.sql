@@ -216,7 +216,8 @@ CREATE TABLE IF NOT EXISTS public.orders (
   billing_address text,
   estimated_delivery_date date,
   created_at timestamptz DEFAULT now(),
-  updated_at timestamptz DEFAULT now()
+  updated_at timestamptz DEFAULT now(),
+  deleted_at timestamptz NULL
 );
 
 CREATE TABLE IF NOT EXISTS public.order_items (
@@ -764,6 +765,45 @@ ON CONFLICT (id) DO UPDATE SET email = EXCLUDED.email;
 -- Activate all products
 UPDATE public.products SET is_active = true WHERE is_active IS NOT true;
 
+-- Add soft delete column for orders (if not exists)
+ALTER TABLE public.orders ADD COLUMN IF NOT EXISTS deleted_at timestamptz NULL;
+
+-- Add currency support for international payments
+ALTER TABLE public.orders ADD COLUMN IF NOT EXISTS currency text DEFAULT 'NGN';
+ALTER TABLE public.orders ADD COLUMN IF NOT EXISTS original_amount decimal(10, 2) NULL;
+ALTER TABLE public.orders ADD COLUMN IF NOT EXISTS exchange_rate decimal(10, 4) DEFAULT 1.0;
+ALTER TABLE public.orders ADD COLUMN IF NOT EXISTS flutterwave_tx_ref text UNIQUE;
+ALTER TABLE public.orders ADD COLUMN IF NOT EXISTS flutterwave_status text;
+
+-- Add user currency preference
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS preferred_currency text DEFAULT 'NGN';
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS country_code text DEFAULT 'NG';
+
+-- Create exchange rates table
+CREATE TABLE IF NOT EXISTS public.exchange_rates (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  base_currency text DEFAULT 'NGN',
+  target_currency text NOT NULL,
+  rate decimal(10, 4) NOT NULL,
+  updated_at timestamptz DEFAULT now(),
+  UNIQUE(base_currency, target_currency)
+);
+
+-- Insert default exchange rates (NGN base)
+INSERT INTO exchange_rates (base_currency, target_currency, rate) VALUES
+  ('NGN', 'USD', 0.00065),
+  ('NGN', 'EUR', 0.00060),
+  ('NGN', 'GBP', 0.00051)
+ON CONFLICT (base_currency, target_currency) DO NOTHING;
+
+-- Add missing indexes
+CREATE INDEX IF NOT EXISTS idx_orders_flutterwave_tx_ref ON public.orders(flutterwave_tx_ref);
+CREATE INDEX IF NOT EXISTS idx_orders_payment_status ON public.orders(payment_status);
+CREATE INDEX IF NOT EXISTS idx_orders_currency ON public.orders(currency);
+CREATE INDEX IF NOT EXISTS idx_profiles_preferred_currency ON public.profiles(preferred_currency);
+
+-- Add missing column
+ALTER TABLE public.orders ADD COLUMN IF NOT EXISTS payment_verified_at timestamptz NULL;
 
 -- ================================================================
 -- PART 11: VERIFICATION

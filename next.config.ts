@@ -44,12 +44,12 @@ const nextConfig: NextConfig = {
             key: "Content-Security-Policy",
             value:
               "default-src 'self'; " +
-              "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.paystack.co https://fp.paystack.co https://*.supabase.co https://*.fingerprintjs.com https://*.fpcdn.io https://*.datadoghq.com; " +
-              "style-src 'self' 'unsafe-inline' https://paystack.com https://*.paystack.com; " +
-              "style-src-elem 'self' 'unsafe-inline' https://paystack.com https://*.paystack.com https://fonts.googleapis.com; " +
+              "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://checkout.flutterwave.com https://*.supabase.co https://*.fingerprintjs.com https://*.fpcdn.io https://*.datadoghq.com; " +
+              "style-src 'self' 'unsafe-inline' https://checkout.flutterwave.com https://fonts.googleapis.com; " +
+              "style-src-elem 'self' 'unsafe-inline' https://checkout.flutterwave.com https://fonts.googleapis.com; " +
               "img-src 'self' data: blob: https://jradianceco.com https://www.jradianceco.com https://*.supabase.co; " +
-              "connect-src 'self' https://*.supabase.co https://*.datadoghq.com https://fp.paystack.co https://api.paystack.co; " +
-              "frame-src 'self' https://js.paystack.co https://checkout.paystack.com;",
+              "connect-src 'self' https://*.supabase.co https://*.datadoghq.com https://api.flutterwave.com https://*.flutterwave.com; " +
+              "frame-src 'self' https://checkout.flutterwave.com;",
           },
           // Additional security headers for SEO
           {

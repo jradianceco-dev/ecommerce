@@ -3,7 +3,7 @@
  *
  * Customer checkout flow with:
  * - Delivery information form
- * - Payment integration (Paystack)
+ * - Payment integration (Flutterwave)
  * - Order creation with all cart items
  *
  * Access: Authenticated users only
@@ -181,110 +181,111 @@ export default function CheckoutPage() {
 
       console.log('✅ Order items created');
 
-      // Initialize Paystack payment BEFORE clearing cart
-      // Cart will be cleared only after successful payment verification
-      initializePayment(order);
+      // Initialize Flutterwave payment
+      initializeFlutterwavePayment(order);
     } catch (error) {
       console.error("❌ Checkout error:", error);
-      console.error("Error details:", JSON.stringify(error, null, 2));
-      alert("An error occurred during checkout: " + (error as any)?.message || "Unknown error");
+      alert("An error occurred: " + (error as any)?.message || "Unknown error");
       setProcessing(false);
     }
   }
 
-  function initializePayment(order: any) {
-    // Check if Paystack is available
-    if (typeof window === "undefined" || !(window as any).PaystackPop) {
-      alert("Payment gateway not available. Please try again.");
-      setProcessing(false);
-      return;
-    }
+  function initializeFlutterwavePayment(order: any) {
+    const amount = Math.round(total * 100); // Convert to kobo/cents
+    console.log('💳 Initializing Flutterwave payment...');
+    console.log('Amount:', amount, 'kobo (₦' + total + ')');
+    console.log('Order:', order.id, order.order_number);
 
-    // Use Math.round to avoid floating point precision issues
-    // Amount must be an integer (in kobo)
-    const amountInKobo = Math.round(total * 100);
-    console.log('💰 Payment amount:', amountInKobo, 'kobo (₦' + total + ')');
+    // Dynamically load Flutterwave script
+    const script = document.createElement('script');
+    script.src = 'https://checkout.flutterwave.com/v3.js';
+    script.async = true;
+    
+    script.onload = () => {
+      console.log('✅ Flutterwave script loaded');
+      
+      if (!(window as any).FlutterwaveCheckout) {
+        console.error('❌ Flutterwave not available');
+        alert('Payment system not ready. Please refresh.');
+        setProcessing(false);
+        return;
+      }
 
-    const handler = (window as any).PaystackPop.setup({
-      key: process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY,
-      email: user?.email || "",
-      amount: amountInKobo, // Must be integer - Paystack expects amount in kobo
-      currency: "NGN",
-      ref: order.order_number,
-      metadata: {
-        order_id: order.id,
-        order_number: order.order_number,
-        custom_fields: [
-          {
-            display_name: "Customer Name",
-            variable_name: "customer_name",
-            value: formData.full_name,
-          },
-          {
-            display_name: "Phone Number",
-            variable_name: "phone_number",
-            value: formData.phone,
-          },
-        ],
-      },
-      callback: async (response: any) => {
-        try {
-          console.log('🔄 Verifying payment...', response.reference);
+      // Open Flutterwave payment modal
+      (window as any).FlutterwaveCheckout({
+        public_key: process.env.NEXT_PUBLIC_FLUTTERWAVE_PUBLIC_KEY,
+        tx_ref: order.order_number,
+        amount: amount,
+        currency: 'NGN',
+        payment_options: 'card, mobilemoneyghana, ussd',
+        customer: {
+          email: user?.email || '',
+          name: formData.full_name,
+          phone_number: formData.phone,
+        },
+        customizations: {
+          title: 'JRADIANCE Payment',
+          description: `Payment for order ${order.order_number}`,
+          logo: 'https://jradianceco.com/logo-removebg.png',
+        },
+        meta: {
+          order_id: order.id,
+          order_number: order.order_number,
+          customer_name: formData.full_name,
+          phone_number: formData.phone,
+        },
+        callback: async (response: any) => {
+          console.log('🔄 Payment callback:', response);
           
-          // VERIFY payment with Paystack API
-          const verifyUrl = `https://api.paystack.co/transaction/verify/${response.reference}`;
-          const verifyResponse = await fetch(verifyUrl, {
-            headers: {
-              Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}`,
-            },
-          });
+          if (response.status === 'successful') {
+            try {
+              // Verify payment via our API
+              const verifyResponse = await fetch('/api/flutterwave/verify', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  tx_ref: response.tx_ref,
+                  order_id: order.id,
+                }),
+              });
 
-          const verification = await verifyResponse.json();
-          console.log('📋 Verification result:', verification);
+              const result = await verifyResponse.json();
+              console.log('📋 Verification result:', result);
 
-          if (verification.status === 'success' && verification.data.status === 'success') {
-            // Update order status to confirmed
-            const supabase = createClient();
-            const { error: updateError } = await supabase
-              .from('orders')
-              .update({
-                payment_status: 'completed',
-                payment_reference: response.reference,
-                status: 'confirmed'
-              })
-              .eq('id', order.id);
-
-            if (updateError) {
-              console.error('Failed to update order:', updateError);
-              throw updateError;
+              if (result.success && result.orderUpdated) {
+                await clearCart(user!.id);
+                await refreshCart();
+                alert('✅ Payment successful! Order confirmed.');
+                router.push(`/shop/history?order=${order.id}`);
+              } else {
+                alert('Payment verification failed: ' + result.message);
+                setProcessing(false);
+              }
+            } catch (error) {
+              console.error('❌ Verification error:', error);
+              alert('Payment made but verification failed. Contact support with ref: ' + response.tx_ref);
+              setProcessing(false);
             }
-
-            // NOW clear cart after successful payment
-            await clearCart(user!.id);
-            await refreshCart();
-            
-            alert("Payment successful! Your order has been placed.");
-            router.push(`/shop/history?order=${order.id}`);
           } else {
-            console.error('Payment verification failed:', verification);
-            alert('Payment verification failed. Please contact support with reference: ' + response.reference);
+            alert('Payment failed: ' + response.message);
             setProcessing(false);
           }
-        } catch (error) {
-          console.error('Payment verification error:', error);
-          alert('Payment completed but verification failed. Please contact support with reference: ' + response.reference);
+        },
+        onclose: () => {
+          console.log('⚠️ Payment modal closed');
+          alert('Payment cancelled. Your order is pending. Click "Pay" again when ready.');
           setProcessing(false);
-        }
-      },
-      onClose: () => {
-        console.log('⚠️ Payment popup closed by user');
-        alert("Payment cancelled. Your order is pending. Please complete payment to confirm your order.");
-        setProcessing(false);
-        // DO NOT clear cart - user may try again
-      },
-    });
+        },
+      });
+    };
 
-    handler.openIframe();
+    script.onerror = () => {
+      console.error('❌ Failed to load Flutterwave script');
+      alert('Payment system not available. Please refresh.');
+      setProcessing(false);
+    };
+
+    document.body.appendChild(script);
   }
 
   // Show loading while cart is being fetched
@@ -515,7 +516,7 @@ export default function CheckoutPage() {
                 <div>
                   <p className="font-bold text-green-900 text-sm">Secure Payment</p>
                   <p className="text-xs text-green-700 mt-1">
-                    Your payment is secured with Paystack. We never store your card details.
+                    Your payment is secured with Flutterwave. We never store your card details.
                   </p>
                 </div>
               </div>

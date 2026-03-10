@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import "./globals.css";
-import Script from "next/script";
 import BottomNavBar from "@/components/BottomNavBar";
 import TopBar from "@/components/TopBar";
 import { UserProvider } from "@/context/UserContext";
@@ -94,12 +93,7 @@ export default function RootLayout({
         />
       </head>
       <body className={`${bodyClasses}`}>
-        {/* Load Paystack inline script globally */}
-        <Script
-          src="https://js.paystack.co/v1/inline.js"
-          strategy="beforeInteractive"
-          async
-        />
+        {/* No global payment script needed - Flutterwave loads on demand in checkout */}
 
         <ToastProvider>
           <UserProvider>

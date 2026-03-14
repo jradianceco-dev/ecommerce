@@ -17,8 +17,9 @@ import { useUser } from "@/context/UserContext";
 import { useCart } from "@/context/CartContext";
 import { createClient } from "@/utils/supabase/client";
 import { clearCart } from "@/utils/supabase/services";
-import { CreditCard, Truck, User, MapPin, Phone, Loader2, Package } from "lucide-react";
+import { CreditCard, Truck, User, MapPin, Phone, Loader2, Package, Building } from "lucide-react";
 import type { CartItem as CartItemType } from "@/types";
+import OrderSummaryModal from "@/components/checkout/OrderSummaryModal";
 
 export default function CheckoutPage() {
   const router = useRouter();
@@ -29,6 +30,9 @@ export default function CheckoutPage() {
   const [processing, setProcessing] = useState(false);
   const [hasPendingOrder, setHasPendingOrder] = useState(false);
   const [pendingOrder, setPendingOrder] = useState<any>(null);
+  const [paymentMethod, setPaymentMethod] = useState<'card' | 'ussd' | 'transfer'>('card');
+  const [showOrderSummary, setShowOrderSummary] = useState(false);
+  const [currentOrder, setCurrentOrder] = useState<any>(null);
   const [formData, setFormData] = useState({
     full_name: "",
     phone: "",
@@ -236,7 +240,7 @@ export default function CheckoutPage() {
         },
         callback: async (response: any) => {
           console.log('🔄 Payment callback:', response);
-          
+
           if (response.status === 'successful') {
             try {
               // Verify payment via our API
@@ -253,10 +257,25 @@ export default function CheckoutPage() {
               console.log('📋 Verification result:', result);
 
               if (result.success && result.orderUpdated) {
+                // Store order info for summary
+                setCurrentOrder({
+                  orderNumber: order.order_number,
+                  items: cart.map((item) => ({
+                    product_name: item.product?.name || 'Product',
+                    quantity: item.quantity,
+                    total_price: (item.product?.discount_price || item.product?.price || 0) * item.quantity,
+                  })),
+                  subtotal,
+                  tax,
+                  shipping,
+                  total,
+                });
+                
                 await clearCart(user!.id);
                 await refreshCart();
-                alert('✅ Payment successful! Order confirmed.');
-                router.push(`/shop/history?order=${order.id}`);
+                
+                // Show success message and redirect
+                router.push(`/shop/checkout/success?order=${order.id}&order_number=${order.order_number}`);
               } else {
                 alert('Payment verification failed: ' + result.message);
                 setProcessing(false);
@@ -447,6 +466,62 @@ export default function CheckoutPage() {
                 </div>
               </div>
 
+              {/* Payment Method Selection */}
+              <div className="mb-6">
+                <label className="block text-sm font-medium text-gray-700 mb-3">
+                  Payment Method
+                </label>
+                <div className="grid grid-cols-3 gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setPaymentMethod('card')}
+                    className={`p-4 rounded-xl border-2 transition-all ${
+                      paymentMethod === 'card'
+                        ? 'border-radiance-goldColor bg-yellow-50'
+                        : 'border-gray-200 hover:border-gray-300'
+                    }`}
+                  >
+                    <CreditCard size={24} className={`mx-auto mb-2 ${
+                      paymentMethod === 'card' ? 'text-radiance-goldColor' : 'text-gray-400'
+                    }`} />
+                    <p className="text-xs font-medium">Card</p>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPaymentMethod('ussd')}
+                    className={`p-4 rounded-xl border-2 transition-all ${
+                      paymentMethod === 'ussd'
+                        ? 'border-radiance-goldColor bg-yellow-50'
+                        : 'border-gray-200 hover:border-gray-300'
+                    }`}
+                  >
+                    <Phone size={24} className={`mx-auto mb-2 ${
+                      paymentMethod === 'ussd' ? 'text-radiance-goldColor' : 'text-gray-400'
+                    }`} />
+                    <p className="text-xs font-medium">USSD</p>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPaymentMethod('transfer')}
+                    className={`p-4 rounded-xl border-2 transition-all ${
+                      paymentMethod === 'transfer'
+                        ? 'border-radiance-goldColor bg-yellow-50'
+                        : 'border-gray-200 hover:border-gray-300'
+                    }`}
+                  >
+                    <Building size={24} className={`mx-auto mb-2 ${
+                      paymentMethod === 'transfer' ? 'text-radiance-goldColor' : 'text-gray-400'
+                    }`} />
+                    <p className="text-xs font-medium">Transfer</p>
+                  </button>
+                </div>
+                <p className="text-xs text-gray-500 mt-2">
+                  {paymentMethod === 'card' && 'Pay securely with your debit/credit card'}
+                  {paymentMethod === 'ussd' && 'Pay using your bank USSD code'}
+                  {paymentMethod === 'transfer' && 'Pay via bank transfer'}
+                </p>
+              </div>
+
               <button
                 type="submit"
                 disabled={processing}
@@ -524,6 +599,15 @@ export default function CheckoutPage() {
           </div>
         </div>
       </div>
+
+      {/* Order Summary Modal */}
+      {currentOrder && (
+        <OrderSummaryModal
+          isOpen={showOrderSummary}
+          onClose={() => setShowOrderSummary(false)}
+          order={currentOrder}
+        />
+      )}
     </div>
   );
 }

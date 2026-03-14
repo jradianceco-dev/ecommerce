@@ -77,9 +77,14 @@ export default function AuditLogPage() {
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-2">
                         <FileText size={16} className="text-gray-400" />
-                        <span className="text-sm text-gray-900">
-                          {log.profiles?.email || `Admin ${log.admin_id.slice(0, 8)}`}
-                        </span>
+                        <div>
+                          <span className="text-sm font-medium text-gray-900">
+                            {log.admin_email || 'Unknown Admin'}
+                          </span>
+                          {log.admin_position && (
+                            <p className="text-xs text-gray-500">{log.admin_position}</p>
+                          )}
+                        </div>
                       </div>
                     </td>
                     <td className="px-6 py-4">

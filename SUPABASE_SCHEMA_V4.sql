@@ -165,7 +165,13 @@ CREATE TABLE IF NOT EXISTS public.products (
   is_active boolean DEFAULT true,
   created_by uuid REFERENCES public.admin_staff(id),
   created_at timestamptz DEFAULT now(),
-  updated_at timestamptz DEFAULT now()
+  updated_at timestamptz DEFAULT now(),
+  deleted_at timestamptz NULL,
+  -- Multi-currency support
+  currency text DEFAULT 'NGN',
+  usd_price decimal(10, 2),
+  usd_discount_price decimal(10, 2),
+  exchange_rate decimal(10, 4) DEFAULT 1.0
 );
 
 CREATE TABLE IF NOT EXISTS public.product_reviews (
@@ -804,6 +810,17 @@ CREATE INDEX IF NOT EXISTS idx_profiles_preferred_currency ON public.profiles(pr
 
 -- Add missing column
 ALTER TABLE public.orders ADD COLUMN IF NOT EXISTS payment_verified_at timestamptz NULL;
+
+-- Add currency support to products (for existing databases)
+ALTER TABLE public.products ADD COLUMN IF NOT EXISTS currency text DEFAULT 'NGN';
+ALTER TABLE public.products ADD COLUMN IF NOT EXISTS usd_price decimal(10, 2);
+ALTER TABLE public.products ADD COLUMN IF NOT EXISTS usd_discount_price decimal(10, 2);
+ALTER TABLE public.products ADD COLUMN IF NOT EXISTS exchange_rate decimal(10, 4) DEFAULT 1.0;
+ALTER TABLE public.products ADD COLUMN IF NOT EXISTS deleted_at timestamptz NULL;
+
+-- Create index for product currency
+CREATE INDEX IF NOT EXISTS idx_products_currency ON public.products(currency);
+CREATE INDEX IF NOT EXISTS idx_products_deleted_at ON public.products(deleted_at);
 
 -- ================================================================
 -- PART 11: VERIFICATION

@@ -44,11 +44,11 @@ const nextConfig: NextConfig = {
             key: "Content-Security-Policy",
             value:
               "default-src 'self'; " +
-              "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://checkout.flutterwave.com https://*.supabase.co https://*.fingerprintjs.com https://*.fpcdn.io https://*.datadoghq.com; " +
+              "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://checkout.flutterwave.com https://*.supabase.co https://*.fingerprintjs.com https://*.fpcdn.io https://*.datadoghq.com https://va.vercel-scripts.com; " +
               "style-src 'self' 'unsafe-inline' https://checkout.flutterwave.com https://fonts.googleapis.com; " +
               "style-src-elem 'self' 'unsafe-inline' https://checkout.flutterwave.com https://fonts.googleapis.com; " +
-              "img-src 'self' data: blob: https://jradianceco.com https://www.jradianceco.com https://*.supabase.co; " +
-              "connect-src 'self' https://*.supabase.co https://*.datadoghq.com https://api.flutterwave.com https://*.flutterwave.com; " +
+              "img-src 'self' data: blob: https://jradianceco.com https://www.jradianceco.com https://*.supabase.co https://*.vercel.com; " +
+              "connect-src 'self' https://*.supabase.co https://*.datadoghq.com https://api.flutterwave.com https://*.flutterwave.com https://*.vercel-analytics.com; " +
               "frame-src 'self' https://checkout.flutterwave.com;",
           },
           // Additional security headers for SEO

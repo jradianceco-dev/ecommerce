@@ -15,7 +15,7 @@
 
 import { useState, useEffect } from "react";
 import { createProduct, updateProduct, deleteProduct, toggleProductStatus, checkPermission, uploadProductMedia } from "../admin-actions";
-import { Package, Plus, Edit, Trash2, ToggleLeft, Image as ImageIcon, X, Upload, FileVideo, Loader2 } from "lucide-react";
+import { Package, Plus, Edit, Trash2, ToggleLeft, Image as ImageIcon, X, Upload, FileVideo, Loader2, DollarSign } from "lucide-react";
 import type { Product } from "@/types";
 import { useToast } from "@/context/ToastContext";
 
@@ -40,7 +40,7 @@ export default function ProductsCatalogPage() {
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
 
-  // Form state
+  // Form state with multi-currency support
   const [formData, setFormData] = useState({
     name: "",
     slug: "",
@@ -50,6 +50,11 @@ export default function ProductsCatalogPage() {
     discount_price: "",
     stock_quantity: "",
     sku: "",
+    // Multi-currency fields
+    currency: "NGN",
+    usd_price: "",
+    usd_discount_price: "",
+    exchange_rate: "1.0",
   });
 
   // File upload state
@@ -128,6 +133,11 @@ export default function ProductsCatalogPage() {
       discount_price: product.discount_price?.toString() ?? '',
       stock_quantity: product.stock_quantity?.toString() ?? '0',
       sku: product.sku ?? '',
+      // Multi-currency fields
+      currency: (product as any).currency ?? 'NGN',
+      usd_price: (product as any).usd_price?.toString() ?? '',
+      usd_discount_price: (product as any).usd_discount_price?.toString() ?? '',
+      exchange_rate: (product as any).exchange_rate?.toString() ?? '1.0',
     });
     setUploadedImages(product.images ?? []);
     setSelectedFiles([]);
@@ -146,6 +156,11 @@ export default function ProductsCatalogPage() {
       discount_price: "",
       stock_quantity: "",
       sku: generateSKUFromCategory(tempCategory),
+      // Multi-currency fields
+      currency: "NGN",
+      usd_price: "",
+      usd_discount_price: "",
+      exchange_rate: "1.0",
     });
     setUploadedImages([]);
     setSelectedFiles([]);
@@ -211,6 +226,11 @@ export default function ProductsCatalogPage() {
         sku: formData.sku.trim() || generateSKUFromCategory(formData.category),
         images: finalImages,
         attributes: {},
+        // Multi-currency fields
+        currency: formData.currency,
+        usd_price: formData.usd_price ? parseFloat(formData.usd_price) : null,
+        usd_discount_price: formData.usd_discount_price ? parseFloat(formData.usd_discount_price) : null,
+        exchange_rate: formData.exchange_rate ? parseFloat(formData.exchange_rate) : 1.0,
       };
 
       let result;
@@ -507,6 +527,45 @@ export default function ProductsCatalogPage() {
                     disabled={uploading || actionLoading === "submit"}
                   />
                 </div>
+              </div>
+
+              {/* Multi-Currency Pricing Section */}
+              <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                <h3 className="text-sm font-bold text-blue-900 mb-3 flex items-center gap-2">
+                  <DollarSign size={16} />
+                  International Pricing (USD)
+                </h3>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Price ($)</label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      value={formData.usd_price}
+                      onChange={(e) => setFormData({ ...formData, usd_price: e.target.value })}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-radiance-goldColor focus:border-transparent"
+                      placeholder="Enter USD price"
+                      disabled={uploading || actionLoading === "submit"}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Discount Price ($)</label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      value={formData.usd_discount_price}
+                      onChange={(e) => setFormData({ ...formData, usd_discount_price: e.target.value })}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-radiance-goldColor focus:border-transparent"
+                      placeholder="Enter USD discount"
+                      disabled={uploading || actionLoading === "submit"}
+                    />
+                  </div>
+                </div>
+                <p className="text-xs text-blue-700 mt-2">
+                  💡 Set USD prices manually for full control, or use the exchange rate for auto-conversion
+                </p>
               </div>
 
               {/* Media Upload Section */}

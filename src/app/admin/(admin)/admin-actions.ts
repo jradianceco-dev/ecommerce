@@ -49,6 +49,28 @@ export interface AdminActionResult {
   message?: string;
 }
 
+/**
+ * Product Input with Multi-Currency Support
+ */
+export interface ProductInput {
+  name: string;
+  slug?: string;
+  description?: string | null;
+  category: string;
+  price: number;
+  discount_price?: number | null;
+  stock_quantity: number;
+  sku?: string | null;
+  images?: string[];
+  attributes?: Record<string, any>;
+  is_active?: boolean;
+  // Multi-currency fields
+  currency?: string;
+  usd_price?: number | null;
+  usd_discount_price?: number | null;
+  exchange_rate?: number;
+}
+
 /*
   Helper Functions for Product Management
 */
@@ -126,6 +148,7 @@ function generateProductSKU(category: string): string {
  * Validate product data before creation/update
  *
  * @param productData - Product data to validate
+ * @param isUpdate - If true, only validate fields that are provided (for updates)
  * @returns Validation result
  */
 function validateProductData(
@@ -140,10 +163,17 @@ function validateProductData(
     sku: string | null;
     images: string[];
     attributes: Record<string, string | number | boolean | null>;
-  }>
+  }>,
+  isUpdate: boolean = false
 ): { valid: boolean; error?: string } {
-  if (!productData.name || productData.name.trim().length === 0) {
+  // Only require name for CREATE, not for UPDATE (unless name is being updated)
+  if (!isUpdate && (!productData.name || productData.name.trim().length === 0)) {
     return { valid: false, error: "Product name is required" };
+  }
+  
+  // If name IS being updated, validate it
+  if (isUpdate && productData.name !== undefined && productData.name.trim().length === 0) {
+    return { valid: false, error: "Product name cannot be empty" };
   }
 
   if (!productData.category || productData.category.trim().length === 0) {
@@ -674,15 +704,20 @@ export async function getAllAgents() {
  */
 export async function createProduct(productData: {
   name: string;
-  slug?: string; // Optional - auto-generated if not provided
+  slug?: string;
   description: string | null;
   category: string;
   price: number;
   discount_price: number | null;
   stock_quantity: number;
-  sku?: string; // Optional - auto-generated if not provided
+  sku?: string;
   images: string[];
   attributes: Record<string, string | number | boolean | null>;
+  // Multi-currency fields
+  currency?: string;
+  usd_price?: number | null;
+  usd_discount_price?: number | null;
+  exchange_rate?: number;
 }): Promise<AdminActionResult & { productId?: string }> {
   try {
     const supabase = await createClient();
@@ -739,6 +774,8 @@ export async function createProduct(productData: {
         slug: finalSlug,
         sku: finalSku,
         created_by: adminStaff?.id || null,
+        currency: productData.currency || 'NGN',
+        exchange_rate: productData.exchange_rate || 1.0,
       })
       .select("id")
       .single();
@@ -801,6 +838,11 @@ export async function updateProduct(
     sku?: string;
     images: string[];
     attributes: Record<string, string | number | boolean | null>;
+    // Multi-currency fields
+    currency?: string;
+    usd_price?: number | null;
+    usd_discount_price?: number | null;
+    exchange_rate?: number;
   }>,
 ): Promise<AdminActionResult> {
   try {
@@ -824,7 +866,8 @@ export async function updateProduct(
         stock_quantity: updates.stock_quantity,
         category: updates.category,
         discount_price: updates.discount_price,
-      });
+        name: updates.name, // Only validate name if it's being updated
+      }, true); // Pass true for UPDATE validation
       if (!validation.valid) {
         return { success: false, error: validation.error };
       }
@@ -896,9 +939,21 @@ export async function deleteProduct(
       return { success: false, error: "Not authenticated" };
     }
 
+    // Check if product has orders (can't delete products with orders)
+    const { count: orderCount } = await supabase
+      .from('order_items')
+      .select('*', { count: 'exact', head: true })
+      .eq('product_id', productId);
+
+    // SOFT DELETE: Set deleted_at and is_active instead of deleting row
+    // This preserves order history while hiding product from catalog
     const { error } = await supabase
       .from("products")
-      .delete()
+      .update({
+        deleted_at: new Date().toISOString(),
+        is_active: false,
+        updated_at: new Date().toISOString()
+      })
       .eq("id", productId);
 
     if (error) throw error;
@@ -909,12 +964,24 @@ export async function deleteProduct(
       action: "product_deleted",
       resource_type: "product",
       resource_id: productId,
+      changes: {
+        deleted_at: new Date().toISOString(),
+        has_orders: orderCount && orderCount > 0,
+        note: orderCount && orderCount > 0 
+          ? 'Product has orders - soft deleted to preserve history' 
+          : 'Product soft deleted'
+      }
     });
 
     revalidatePath("/admin/catalog");
     revalidatePath("/shop");
     revalidatePath("/sitemap.xml");
-    return { success: true, message: "Product deleted successfully" };
+    return { 
+      success: true, 
+      message: orderCount && orderCount > 0 
+        ? "Product hidden (has order history)" 
+        : "Product deleted successfully" 
+    };
   } catch (error) {
     console.error("Error deleting product:", error);
     return {
@@ -1265,27 +1332,52 @@ export async function updateOrderStatus(
  */
 export async function getActivityLogs(limit: number = 100) {
   try {
-    const supabase = createStaticClient();
-    const { data, error } = await supabase
+    const supabase = createServiceRoleClient();
+    
+    // First, get all logs
+    const { data: logs, error } = await supabase
       .from("admin_activity_logs")
-      .select(
-        `
-        *,
-        admin_staff (
-          profile_id,
-          position
-        ),
-        profiles (
-          email,
-          full_name
-        )
-      `,
-      )
+      .select("*")
       .order("created_at", { ascending: false })
       .limit(limit);
 
     if (error) throw error;
-    return { success: true, data };
+    if (!logs || logs.length === 0) {
+      return { success: true, data: [] };
+    }
+
+    // Then, fetch admin profiles separately (more reliable than joins)
+    const adminIds = [...new Set(logs.map(log => log.admin_id).filter(Boolean))];
+    
+    let adminProfiles: any[] = [];
+    if (adminIds.length > 0) {
+      const { data: profiles } = await supabase
+        .from("admin_staff")
+        .select(`
+          id,
+          position,
+          profiles (
+            email,
+            full_name
+          )
+        `)
+        .in("id", adminIds);
+      
+      adminProfiles = profiles || [];
+    }
+
+    // Merge logs with admin profiles
+    const transformedLogs = logs.map(log => {
+      const adminProfile = adminProfiles.find(p => p.id === log.admin_id);
+      return {
+        ...log,
+        admin_email: adminProfile?.profiles?.email || 'Unknown',
+        admin_name: adminProfile?.profiles?.full_name || 'Unknown',
+        admin_position: adminProfile?.position || 'Unknown',
+      };
+    });
+    
+    return { success: true, data: transformedLogs };
   } catch (error) {
     console.error("Error fetching activity logs:", error);
     return {

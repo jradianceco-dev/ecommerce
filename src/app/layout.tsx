@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Script from "next/script";
 import "./globals.css";
 import BottomNavBar from "@/components/BottomNavBar";
 import TopBar from "@/components/TopBar";
@@ -7,63 +8,33 @@ import { ToastProvider } from "@/context/ToastContext";
 import { CartProvider } from "@/context/CartContext";
 import { WishlistProvider } from "@/context/WishlistContext";
 import { createBaseMetadata } from "@/utils/seo/metadata-factory";
+import { Analytics } from "@vercel/analytics/react";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 
-const bodyClasses = `
-  min-h-screen
-  bg-radiance-creamBackgroundColor
-  text-radiance-charcoalTextColor
-  font-sans
-  antialiased
-  pt-20
-`;
+const bodyClasses = "min-h-screen bg-radiance-creamBackgroundColor text-radiance-charcoalTextColor font-sans antialiased pt-20";
 
-// Use the metadata factory for consistent SEO configuration
 export const metadata: Metadata = createBaseMetadata({
   baseUrl: process.env.NEXT_PUBLIC_BASE_URL || "https://jradianceco.com",
   siteName: "JRADIANCE",
   defaultTitle: "JRADIANCE | Premium Cosmetics & Skincare",
-  defaultDescription: "Authentic skincare and cosmetics for the radiant Nigerian soul.",
+  defaultDescription:
+    "Authentic skincare and cosmetics for the radiant Nigerian soul.",
   locale: "en_NG",
 });
-
-// Error boundary component for global errors
-function GlobalErrorBoundary({ children }: { children: React.ReactNode }) {
-  return (
-    <>
-      {children}
-      <script
-        dangerouslySetInnerHTML={{
-          __html: `
-            window.onerror = function(message, source, lineno, colno, error) {
-              console.error('Global error caught:', { message, source, lineno, colno, error });
-              // Log to your error tracking service here
-              return false;
-            };
-            
-            window.onunhandledrejection = function(event) {
-              console.error('Unhandled promise rejection:', event.reason);
-              // Log to your error tracking service here
-            };
-          `,
-        }}
-      />
-    </>
-  );
-}
 
 export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  // Organization structured data for SEO
   const organizationJsonLd = {
     "@context": "https://schema.org",
     "@type": "Organization",
     name: "JRADIANCE",
     url: process.env.NEXT_PUBLIC_BASE_URL || "https://jradianceco.com",
     logo: `${process.env.NEXT_PUBLIC_BASE_URL || "https://jradianceco.com"}/logo-removebg.png`,
-    description: "Authentic skincare and cosmetics for the radiant Nigerian soul.",
+    description:
+      "Authentic skincare and cosmetics for the radiant Nigerian soul.",
     founder: "Philip Depaytez",
     foundingDate: "2024",
     areaServed: ["NG", "US", "GB", "ZA"],
@@ -85,29 +56,26 @@ export default function RootLayout({
 
   return (
     <html lang="en">
-      <head>
-        {/* Organization Structured Data */}
-        <script
+      <body className={bodyClasses}>
+        <Script
+          id="organization-schema"
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationJsonLd) }}
         />
-      </head>
-      <body className={`${bodyClasses}`}>
-        {/* No global payment script needed - Flutterwave loads on demand in checkout */}
 
         <ToastProvider>
           <UserProvider>
             <CartProvider>
               <WishlistProvider>
-                {/* Top Bar */}
                 <TopBar />
-
-                {/* Main content */}
+                
                 <main className="pb-20 md:pb-0">
                   <div className="mx-auto max-w-6xl px-6 py-12">{children}</div>
                 </main>
-
-                {/* Nav bar */}
+                
+                <Analytics />
+                <SpeedInsights />
+                
                 <BottomNavBar />
               </WishlistProvider>
             </CartProvider>

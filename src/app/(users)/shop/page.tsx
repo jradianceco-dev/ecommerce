@@ -2,7 +2,7 @@
  * =============================================================================
  * Shop Page - REDESIGNED
  * =============================================================================
- * 
+ *
  * Modern shop page with:
  * - Advanced filters
  * - Sort options
@@ -37,7 +37,7 @@ interface ShopPageProps {
 
 export default function ShopPage({ searchParams }: ShopPageProps) {
   const { success, error: showError } = useToast();
-  
+
   // State
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
@@ -45,7 +45,7 @@ export default function ShopPage({ searchParams }: ShopPageProps) {
   const [hasMore, setHasMore] = useState(true);
   const [page, setPage] = useState(1);
   const [totalProducts, setTotalProducts] = useState(0);
-  
+
   // Filters
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("");
@@ -56,14 +56,17 @@ export default function ShopPage({ searchParams }: ShopPageProps) {
   const BATCH_SIZE = 12;
 
   // Categories
-  const categories = useMemo(() => [
-    "Skincare",
-    "Makeup",
-    "Hair Care",
-    "Fragrance",
-    "Body Care",
-    "Tools & Accessories",
-  ], []);
+  const categories = useMemo(
+    () => [
+      "Skincare",
+      "Makeup",
+      "Hair Care",
+      "Fragrance",
+      "Body Care",
+      "Tools & Accessories",
+    ],
+    [],
+  );
 
   // Load initial products
   useEffect(() => {
@@ -87,7 +90,7 @@ export default function ShopPage({ searchParams }: ShopPageProps) {
       };
 
       const newProducts = await getProducts(filters);
-      
+
       if (reset) {
         setProducts(newProducts);
         setTotalProducts(newProducts.length);
@@ -131,13 +134,19 @@ export default function ShopPage({ searchParams }: ShopPageProps) {
   // Sort products
   const sortedProducts = useMemo(() => {
     let sorted = [...products];
-    
+
     switch (sortBy) {
       case "price-low":
-        sorted.sort((a, b) => (a.discount_price || a.price) - (b.discount_price || b.price));
+        sorted.sort(
+          (a, b) =>
+            (a.discount_price || a.price) - (b.discount_price || b.price),
+        );
         break;
       case "price-high":
-        sorted.sort((a, b) => (b.discount_price || b.price) - (a.discount_price || a.price));
+        sorted.sort(
+          (a, b) =>
+            (b.discount_price || b.price) - (a.discount_price || a.price),
+        );
         break;
       case "name":
         sorted.sort((a, b) => a.name.localeCompare(b.name));
@@ -150,24 +159,26 @@ export default function ShopPage({ searchParams }: ShopPageProps) {
         // Already sorted by created_at DESC from backend
         break;
     }
-    
+
     return sorted;
   }, [products, sortBy]);
 
-  const activeFiltersCount = [selectedCategory, searchQuery].filter(Boolean).length;
+  const activeFiltersCount = [selectedCategory, searchQuery].filter(
+    Boolean,
+  ).length;
 
   return (
     <div className="min-h-screen bg-radiance-creamBackgroundColor">
       {/* Header */}
-      <div className="bg-white border-b border-gray-100 sticky top-16 md:top-20 z-40">
-        <div className="max-w-7xl mx-auto px-4 md:px-8 py-4">
+      <div className="bg-white border-b border-gray-100 sticky top-16 md:top-20 z-40 shadow-sm">
+        <div className="max-w-7xl mx-auto px-4 md:px-6 py-4">
           <div className="flex flex-col md:flex-row md:items-center gap-4">
             {/* Title */}
             <div className="flex-1">
-              <h1 className="text-2xl md:text-3xl font-black text-gray-900">
+              <h1 className="text-xl md:text-2xl font-black text-gray-900 tracking-tight">
                 Shop All Products
               </h1>
-              <p className="text-sm text-gray-600 mt-1">
+              <p className="text-xs text-gray-600 mt-1">
                 {totalProducts} products found
               </p>
             </div>
@@ -180,35 +191,35 @@ export default function ShopPage({ searchParams }: ShopPageProps) {
                   placeholder="Search products..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full bg-gray-50 border border-gray-200 rounded-full pl-12 pr-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-radiance-goldColor focus:border-transparent"
+                  className="w-full bg-gray-50 border border-gray-200 rounded-full pl-10 pr-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-radiance-goldColor focus:border-transparent"
                 />
                 <Search
-                  size={20}
-                  className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"
+                  size={18}
+                  className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400"
                 />
                 {searchQuery && (
                   <button
                     type="button"
                     onClick={() => setSearchQuery("")}
-                    className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
                   >
-                    <X size={18} />
+                    <X size={16} />
                   </button>
                 )}
               </div>
             </form>
 
             {/* View Toggle & Filters */}
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
               {/* Filter Button (Mobile) */}
               <button
                 onClick={() => setShowFilters(!showFilters)}
-                className="md:hidden flex items-center gap-2 px-4 py-3 bg-white border border-gray-200 rounded-full text-sm font-semibold hover:bg-gray-50 transition-colors relative"
+                className="md:hidden flex items-center gap-1.5 px-3 py-2.5 bg-white border border-gray-200 rounded-full text-xs font-semibold hover:bg-gray-50 transition-colors relative"
               >
-                <SlidersHorizontal size={18} />
+                <SlidersHorizontal size={16} />
                 Filters
                 {activeFiltersCount > 0 && (
-                  <span className="absolute -top-1 -right-1 w-5 h-5 bg-radiance-goldColor text-white text-xs rounded-full flex items-center justify-center">
+                  <span className="absolute -top-1 -right-1 w-4 h-4 bg-radiance-goldColor text-white text-[10px] rounded-full flex items-center justify-center">
                     {activeFiltersCount}
                   </span>
                 )}
@@ -218,18 +229,18 @@ export default function ShopPage({ searchParams }: ShopPageProps) {
               <div className="hidden md:flex items-center gap-1 bg-white border border-gray-200 rounded-full p-1">
                 <button
                   onClick={() => setViewMode("grid")}
-                  className={`p-2 rounded-full transition-colors ${
+                  className={`p-1.5 rounded-full transition-colors ${
                     viewMode === "grid"
                       ? "bg-radiance-goldColor text-white"
                       : "text-gray-600 hover:bg-gray-100"
                   }`}
                   aria-label="Grid view"
                 >
-                  <Grid size={18} />
+                  <Grid size={16} />
                 </button>
                 <button
                   onClick={() => setViewMode("list")}
-                  className={`p-2 rounded-full transition-colors ${
+                  className={`p-1.5 rounded-full transition-colors ${
                     viewMode === "list"
                       ? "bg-radiance-goldColor text-white"
                       : "text-gray-600 hover:bg-gray-100"
@@ -298,7 +309,10 @@ export default function ShopPage({ searchParams }: ShopPageProps) {
 
       {/* Mobile Filters Drawer */}
       {showFilters && (
-        <div className="md:hidden fixed inset-0 z-50 bg-black/50" onClick={() => setShowFilters(false)}>
+        <div
+          className="md:hidden fixed inset-0 z-50 bg-black/50"
+          onClick={() => setShowFilters(false)}
+        >
           <div
             className="absolute right-0 top-0 bottom-0 w-full max-w-sm bg-white p-6 overflow-y-auto"
             onClick={(e) => e.stopPropagation()}
@@ -328,7 +342,10 @@ export default function ShopPage({ searchParams }: ShopPageProps) {
                   <span>All Categories</span>
                 </label>
                 {categories.map((cat) => (
-                  <label key={cat} className="flex items-center gap-3 cursor-pointer">
+                  <label
+                    key={cat}
+                    className="flex items-center gap-3 cursor-pointer"
+                  >
                     <input
                       type="radio"
                       name="category"
@@ -353,7 +370,10 @@ export default function ShopPage({ searchParams }: ShopPageProps) {
                   { value: "name", label: "Name: A-Z" },
                   { value: "rating", label: "Top Rated" },
                 ].map((option) => (
-                  <label key={option.value} className="flex items-center gap-3 cursor-pointer">
+                  <label
+                    key={option.value}
+                    className="flex items-center gap-3 cursor-pointer"
+                  >
                     <input
                       type="radio"
                       name="sort"
@@ -379,7 +399,7 @@ export default function ShopPage({ searchParams }: ShopPageProps) {
       )}
 
       {/* Products Grid */}
-      <div className="max-w-7xl mx-auto px-4 md:px-8 py-8">
+      <div className="max-w-7xl mx-auto px-4 md:px-8 py-15">
         {loading ? (
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
             {[...Array(8)].map((_, i) => (

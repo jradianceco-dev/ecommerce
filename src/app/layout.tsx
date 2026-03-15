@@ -10,8 +10,15 @@ import { WishlistProvider } from "@/context/WishlistContext";
 import { createBaseMetadata } from "@/utils/seo/metadata-factory";
 import { Analytics } from "@vercel/analytics/react";
 import { SpeedInsights } from "@vercel/speed-insights/next";
+import { setupGlobalErrorHandler } from "@/utils/error-tracking";
 
-const bodyClasses = "min-h-screen bg-radiance-creamBackgroundColor text-radiance-charcoalTextColor font-sans antialiased pt-20";
+// Setup global error tracking
+if (typeof window !== "undefined") {
+  setupGlobalErrorHandler();
+}
+
+const bodyClasses =
+  "min-h-screen bg-radiance-creamBackgroundColor text-radiance-charcoalTextColor font-sans antialiased pt-20";
 
 export const metadata: Metadata = createBaseMetadata({
   baseUrl: process.env.NEXT_PUBLIC_BASE_URL || "https://jradianceco.com",
@@ -60,7 +67,9 @@ export default function RootLayout({
         <Script
           id="organization-schema"
           type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationJsonLd) }}
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify(organizationJsonLd),
+          }}
         />
 
         <ToastProvider>
@@ -68,14 +77,14 @@ export default function RootLayout({
             <CartProvider>
               <WishlistProvider>
                 <TopBar />
-                
+
                 <main className="pb-20 md:pb-0">
                   <div className="mx-auto max-w-6xl px-6 py-12">{children}</div>
                 </main>
-                
+
                 <Analytics />
                 <SpeedInsights />
-                
+
                 <BottomNavBar />
               </WishlistProvider>
             </CartProvider>

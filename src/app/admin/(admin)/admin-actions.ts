@@ -19,7 +19,7 @@
 
 "use server";
 
-import { createClient } from "@/utils/supabase/server";
+import { createClient, createServiceRoleClient } from "@/utils/supabase/server";
 import { createStaticClient } from "@/utils/supabase/static-client";
 import type { UserRole, OrderStatus } from "@/types";
 import { revalidatePath } from "next/cache";
@@ -1332,57 +1332,77 @@ export async function updateOrderStatus(
  */
 export async function getActivityLogs(limit: number = 100) {
   try {
+    // Use service role client to bypass RLS
     const supabase = createServiceRoleClient();
     
-    // First, get all logs
-    const { data: logs, error } = await supabase
+    // Get all logs with simple query (no complex joins)
+    const { data: logs, error: logsError } = await supabase
       .from("admin_activity_logs")
-      .select("*")
+      .select("*, admin_id")
       .order("created_at", { ascending: false })
       .limit(limit);
 
-    if (error) throw error;
+    if (logsError) {
+      console.error("Error fetching logs:", logsError);
+      throw logsError;
+    }
+    
     if (!logs || logs.length === 0) {
       return { success: true, data: [] };
     }
 
-    // Then, fetch admin profiles separately (more reliable than joins)
-    const adminIds = [...new Set(logs.map(log => log.admin_id).filter(Boolean))];
+    // Get unique admin IDs
+    const adminIds = [...new Set(logs.map((log) => log.admin_id).filter(Boolean))];
     
-    let adminProfiles: any[] = [];
+    // Fetch admin profiles if we have IDs
+    let adminProfiles: Record<string, { email: string; full_name: string; position: string }> = {};
     if (adminIds.length > 0) {
       const { data: profiles } = await supabase
         .from("admin_staff")
         .select(`
           id,
           position,
-          profiles (
+          profiles!admin_staff_profile_id_fkey (
             email,
             full_name
           )
         `)
         .in("id", adminIds);
       
-      adminProfiles = profiles || [];
+      // Create lookup map
+      if (profiles) {
+        adminProfiles = profiles.reduce((acc, profile) => {
+          // profiles is an array from the join, get the first one
+          const profileData = Array.isArray(profile.profiles) 
+            ? profile.profiles[0] 
+            : profile.profiles;
+          
+          if (profileData) {
+            acc[profile.id] = {
+              email: profileData.email || 'Unknown',
+              full_name: profileData.full_name || 'Unknown',
+              position: profile.position || 'Unknown',
+            };
+          }
+          return acc;
+        }, {} as Record<string, { email: string; full_name: string; position: string }>);
+      }
     }
 
     // Merge logs with admin profiles
-    const transformedLogs = logs.map(log => {
-      const adminProfile = adminProfiles.find(p => p.id === log.admin_id);
-      return {
-        ...log,
-        admin_email: adminProfile?.profiles?.email || 'Unknown',
-        admin_name: adminProfile?.profiles?.full_name || 'Unknown',
-        admin_position: adminProfile?.position || 'Unknown',
-      };
-    });
+    const transformedLogs = logs.map((log) => ({
+      ...log,
+      admin_email: adminProfiles[log.admin_id]?.email || 'System',
+      admin_name: adminProfiles[log.admin_id]?.full_name || 'System',
+      admin_position: adminProfiles[log.admin_id]?.position || 'Unknown',
+    }));
     
     return { success: true, data: transformedLogs };
   } catch (error) {
     console.error("Error fetching activity logs:", error);
     return {
       success: false,
-      error: "Failed to fetch activity logs",
+      error: "Failed to fetch activity logs: " + (error instanceof Error ? error.message : 'Unknown error'),
       data: null,
     };
   }

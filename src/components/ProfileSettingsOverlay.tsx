@@ -21,6 +21,7 @@ import {
   Calendar,
   Globe,
   Save,
+  AlertTriangle,
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -62,7 +63,7 @@ export default function ProfileSettingsOverlay({
   const router = useRouter();
   const { success, error: showError } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
-  
+
   const [showEditForm, setShowEditForm] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
@@ -134,43 +135,48 @@ export default function ProfileSettingsOverlay({
     fileInputRef.current?.click();
   }, []);
 
-  const handleFileChange = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  const handleFileChange = useCallback(
+    async (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
 
-    if (!file.type.startsWith("image/")) {
-      showError("Please select an image file");
-      return;
-    }
-
-    if (file.size > 2 * 1024 * 1024) {
-      showError("Image must be less than 2MB");
-      return;
-    }
-
-    setIsUploadingAvatar(true);
-    try {
-      const uploadFormData = new FormData();
-      uploadFormData.append("avatar", file);
-
-      const result = await uploadUserAvatar(uploadFormData);
-
-      if (result.success && result.url) {
-        success("Avatar updated successfully");
-        setProfile((prev) => prev ? { ...prev, avatar_url: result.url! } : null);
-      } else {
-        showError(result.error || "Failed to upload avatar");
+      if (!file.type.startsWith("image/")) {
+        showError("Please select an image file");
+        return;
       }
-    } catch (error) {
-      console.error("Avatar upload error:", error);
-      showError("Failed to upload avatar");
-    } finally {
-      setIsUploadingAvatar(false);
-      if (fileInputRef.current) {
-        fileInputRef.current.value = "";
+
+      if (file.size > 2 * 1024 * 1024) {
+        showError("Image must be less than 2MB");
+        return;
       }
-    }
-  }, [success, showError]);
+
+      setIsUploadingAvatar(true);
+      try {
+        const uploadFormData = new FormData();
+        uploadFormData.append("avatar", file);
+
+        const result = await uploadUserAvatar(uploadFormData);
+
+        if (result.success && result.url) {
+          success("Avatar updated successfully");
+          setProfile((prev) =>
+            prev ? { ...prev, avatar_url: result.url! } : null,
+          );
+        } else {
+          showError(result.error || "Failed to upload avatar");
+        }
+      } catch (error) {
+        console.error("Avatar upload error:", error);
+        showError("Failed to upload avatar");
+      } finally {
+        setIsUploadingAvatar(false);
+        if (fileInputRef.current) {
+          fileInputRef.current.value = "";
+        }
+      }
+    },
+    [success, showError],
+  );
 
   const handleDeleteAvatar = useCallback(async () => {
     if (!confirm("Are you sure you want to delete your avatar?")) return;
@@ -179,7 +185,7 @@ export default function ProfileSettingsOverlay({
       const result = await deleteAvatar();
       if (result.success) {
         success("Avatar deleted successfully");
-        setProfile((prev) => prev ? { ...prev, avatar_url: null } : null);
+        setProfile((prev) => (prev ? { ...prev, avatar_url: null } : null));
       } else {
         showError(result.error || "Failed to delete avatar");
       }
@@ -216,7 +222,7 @@ export default function ProfileSettingsOverlay({
 
   const handlePasswordReset = useCallback(async () => {
     if (!user?.email) return;
-    
+
     if (!confirm(`Send password reset email to ${user.email}?`)) return;
 
     setIsSendingReset(true);
@@ -259,7 +265,8 @@ export default function ProfileSettingsOverlay({
 
   if (!isOpen) return null;
 
-  const isAdminUser = user && ["admin", "agent", "chief_admin"].includes(user.role);
+  const isAdminUser =
+    user && ["admin", "agent", "chief_admin"].includes(user.role);
 
   return (
     <div className="fixed inset-0 z-50 flex items-start justify-end p-4 pointer-events-none">
@@ -304,7 +311,8 @@ export default function ProfileSettingsOverlay({
                         className="h-full w-full object-cover"
                       />
                     ) : (
-                      profile?.full_name?.[0]?.toUpperCase() || user.email[0].toUpperCase()
+                      profile?.full_name?.[0]?.toUpperCase() ||
+                      user.email[0].toUpperCase()
                     )}
                   </div>
                   {isUploadingAvatar ? (
@@ -332,7 +340,9 @@ export default function ProfileSettingsOverlay({
                 {/* Name and Role */}
                 <div className="mt-4">
                   <h3 className="font-bold text-lg text-radiance-charcoalTextColor">
-                    {isLoadingProfile ? "Loading..." : (profile?.full_name || "User")}
+                    {isLoadingProfile
+                      ? "Loading..."
+                      : profile?.full_name || "User"}
                   </h3>
                   <div className="flex items-center justify-center gap-2 mt-1">
                     <span className="text-[10px] text-gray-500 uppercase font-medium">
@@ -383,69 +393,114 @@ export default function ProfileSettingsOverlay({
                 </button>
               ) : (
                 <div className="space-y-3 bg-gray-50 p-4 rounded-lg">
-                  <h4 className="text-sm font-bold text-gray-700">Edit Profile</h4>
-                  
+                  <h4 className="text-sm font-bold text-gray-700">
+                    Edit Profile
+                  </h4>
+
                   <div>
-                    <label className="block text-xs text-gray-600 mb-1">Full Name</label>
+                    <label className="block text-xs text-gray-600 mb-1">
+                      Full Name
+                    </label>
                     <div className="relative">
-                      <User size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                      <User
+                        size={14}
+                        className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+                      />
                       <input
                         type="text"
                         value={formData.full_name}
-                        onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            full_name: e.target.value,
+                          })
+                        }
                         className="w-full pl-9 pr-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-1 focus:ring-radiance-goldColor outline-none"
                       />
                     </div>
                   </div>
 
                   <div>
-                    <label className="block text-xs text-gray-600 mb-1">Phone</label>
+                    <label className="block text-xs text-gray-600 mb-1">
+                      Phone
+                    </label>
                     <div className="relative">
-                      <Phone size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                      <Phone
+                        size={14}
+                        className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+                      />
                       <input
                         type="tel"
                         value={formData.phone}
-                        onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                        onChange={(e) =>
+                          setFormData({ ...formData, phone: e.target.value })
+                        }
                         className="w-full pl-9 pr-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-1 focus:ring-radiance-goldColor outline-none"
                       />
                     </div>
                   </div>
 
                   <div>
-                    <label className="block text-xs text-gray-600 mb-1">Date of Birth</label>
+                    <label className="block text-xs text-gray-600 mb-1">
+                      Date of Birth
+                    </label>
                     <div className="relative">
-                      <Calendar size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                      <Calendar
+                        size={14}
+                        className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+                      />
                       <input
                         type="date"
                         value={formData.date_of_birth}
-                        onChange={(e) => setFormData({ ...formData, date_of_birth: e.target.value })}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            date_of_birth: e.target.value,
+                          })
+                        }
                         className="w-full pl-9 pr-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-1 focus:ring-radiance-goldColor outline-none"
                       />
                     </div>
                   </div>
 
                   <div>
-                    <label className="block text-xs text-gray-600 mb-1">Gender</label>
+                    <label className="block text-xs text-gray-600 mb-1">
+                      Gender
+                    </label>
                     <select
                       value={formData.gender}
-                      onChange={(e) => setFormData({ ...formData, gender: e.target.value })}
+                      onChange={(e) =>
+                        setFormData({ ...formData, gender: e.target.value })
+                      }
                       className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-1 focus:ring-radiance-goldColor outline-none"
                     >
                       <option value="">Select...</option>
                       <option value="male">Male</option>
                       <option value="female">Female</option>
                       <option value="other">Other</option>
-                      <option value="prefer-not-to-say">Prefer not to say</option>
+                      <option value="prefer-not-to-say">
+                        Prefer not to say
+                      </option>
                     </select>
                   </div>
 
                   <div>
-                    <label className="block text-xs text-gray-600 mb-1">Language</label>
+                    <label className="block text-xs text-gray-600 mb-1">
+                      Language
+                    </label>
                     <div className="relative">
-                      <Globe size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                      <Globe
+                        size={14}
+                        className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+                      />
                       <select
                         value={formData.preferred_language}
-                        onChange={(e) => setFormData({ ...formData, preferred_language: e.target.value })}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            preferred_language: e.target.value,
+                          })
+                        }
                         className="w-full pl-9 pr-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-1 focus:ring-radiance-goldColor outline-none"
                       >
                         <option value="en">English</option>
@@ -502,6 +557,13 @@ export default function ProfileSettingsOverlay({
                   Contact Support
                 </button>
                 <button
+                  onClick={() => router.push("/shop/report-issue")}
+                  className="w-full flex items-center gap-3 p-3 text-xs font-medium hover:bg-red-50 rounded-xl transition-colors"
+                >
+                  <AlertTriangle size={16} className="text-red-600" />
+                  Report an Issue
+                </button>
+                <button
                   onClick={handlePasswordReset}
                   disabled={isSendingReset}
                   className="w-full flex items-center gap-3 p-3 text-xs font-medium hover:bg-gray-50 rounded-xl transition-colors disabled:opacity-50"
@@ -523,7 +585,10 @@ export default function ProfileSettingsOverlay({
                     rel="noopener noreferrer"
                     className="p-2 bg-gray-50 rounded-full hover:bg-radiance-goldColor/10 transition-colors"
                   >
-                    <Instagram size={18} className="text-radiance-charcoalTextColor hover:text-radiance-goldColor" />
+                    <Instagram
+                      size={18}
+                      className="text-radiance-charcoalTextColor hover:text-radiance-goldColor"
+                    />
                   </Link>
                   <Link
                     href="https://www.facebook.com/jradianceco"
@@ -531,7 +596,10 @@ export default function ProfileSettingsOverlay({
                     rel="noopener noreferrer"
                     className="p-2 bg-gray-50 rounded-full hover:bg-radiance-goldColor/10 transition-colors"
                   >
-                    <Facebook size={18} className="text-radiance-charcoalTextColor hover:text-radiance-goldColor" />
+                    <Facebook
+                      size={18}
+                      className="text-radiance-charcoalTextColor hover:text-radiance-goldColor"
+                    />
                   </Link>
                   <Link
                     href="https://twitter.com/jradianceco"
@@ -539,7 +607,10 @@ export default function ProfileSettingsOverlay({
                     rel="noopener noreferrer"
                     className="p-2 bg-gray-50 rounded-full hover:bg-radiance-goldColor/10 transition-colors"
                   >
-                    <Twitter size={18} className="text-radiance-charcoalTextColor hover:text-radiance-goldColor" />
+                    <Twitter
+                      size={18}
+                      className="text-radiance-charcoalTextColor hover:text-radiance-goldColor"
+                    />
                   </Link>
                 </div>
               </div>
@@ -563,7 +634,8 @@ export default function ProfileSettingsOverlay({
                 Welcome to JRADIANCE
               </h3>
               <p className="text-xs text-gray-500 mb-6">
-                Join us for exclusive offers, personalized recommendations, and a beautiful shopping experience.
+                Join us for exclusive offers, personalized recommendations, and
+                a beautiful shopping experience.
               </p>
               <Link
                 href="/shop/auth"

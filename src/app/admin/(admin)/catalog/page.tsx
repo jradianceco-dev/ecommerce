@@ -113,13 +113,24 @@ export default function ProductsCatalogPage() {
     }));
   }
 
-  // Handle category change - auto-generate SKU if empty
+  // Handle category change - auto-generate SKU based on category
+  // Always updates SKU when category changes (for new products)
+  // For editing, only updates if SKU matches old category pattern
   function handleCategoryChange(category: string) {
-    setFormData((prev) => ({
-      ...prev,
-      category,
-      sku: prev.sku || generateSKUFromCategory(category),
-    }));
+    setFormData((prev) => {
+      const newSku = generateSKUFromCategory(category);
+      
+      // For new products: always use auto-generated SKU
+      // For editing: only update if current SKU matches old category pattern
+      const shouldUpdateSku = !editingProduct || 
+        prev.sku.startsWith(`JRAD-${category.substring(0, 3).toUpperCase()}`);
+      
+      return {
+        ...prev,
+        category,
+        sku: shouldUpdateSku ? newSku : prev.sku,
+      };
+    });
   }
 
   function handleEdit(product: Product) {

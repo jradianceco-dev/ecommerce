@@ -378,6 +378,84 @@ export async function deleteIssue(issueId: string): Promise<IssueActionResult> {
 }
 
 /**
+ * Clear Resolved Issues
+ *
+ * Bulk deletes all issues marked as 'solved' or 'closed'.
+ * This helps clean up the issues log while preserving active issues.
+ *
+ * @param confirmClear - Must be true to confirm deletion (safety check)
+ * @returns Result with count of deleted issues
+ *
+ * @security Admin, Chief Admin only (requires confirmation)
+ */
+export async function clearResolvedIssues(confirmClear: boolean = false): Promise<IssueActionResult & { deletedCount?: number }> {
+  try {
+    if (!confirmClear) {
+      return {
+        success: false,
+        error: "Confirmation required. Please confirm you want to delete all resolved issues.",
+      };
+    }
+
+    const supabase = await createClient();
+
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      return { success: false, error: "Not authenticated" };
+    }
+
+    // Get count of resolved issues first
+    const { count: resolvedCount } = await supabase
+      .from("issues")
+      .select("*", { count: "exact", head: true })
+      .in("status", ["solved", "closed"]);
+
+    if (!resolvedCount || resolvedCount === 0) {
+      return { 
+        success: true, 
+        message: "No resolved issues to clear",
+        deletedCount: 0,
+      };
+    }
+
+    // Delete all resolved/closed issues
+    const { error } = await supabase
+      .from("issues")
+      .delete()
+      .in("status", ["solved", "closed"]);
+
+    if (error) throw error;
+
+    // Log the action
+    await supabase.from("admin_activity_logs").insert({
+      admin_id: user.id,
+      action: "resolved_issues_cleared",
+      resource_type: "issues_bulk",
+      changes: { 
+        deleted_count: resolvedCount,
+        statuses_cleared: ["solved", "closed"],
+      },
+    });
+
+    revalidatePath("/admin/issues");
+    return { 
+      success: true, 
+      message: `Successfully cleared ${resolvedCount} resolved issue${resolvedCount > 1 ? 's' : ''}`,
+      deletedCount: resolvedCount,
+    };
+  } catch (error) {
+    console.error("Error clearing resolved issues:", error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Failed to clear resolved issues",
+    };
+  }
+}
+
+/**
  * Check Permission
  *
  * Verifies if the current user has the required role or higher.

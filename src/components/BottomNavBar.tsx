@@ -9,6 +9,7 @@ import {
   Presentation,
   ShoppingBag,
   GalleryVerticalEnd,
+  AlertTriangle,
 } from "lucide-react";
 import CartOverlay from "./CartOverlay";
 import { useCart } from "@/context/CartContext";
@@ -44,6 +45,7 @@ export default function BottomNavBar() {
     { href: "/shop", label: "Shop", icon: ShoppingBag },
     { href: "/shop/history", label: "History", icon: GalleryVerticalEnd },
     { href: "/shop/wishlist", label: "Wish", icon: Heart },
+    { href: "/shop/report-issue", label: "Report", icon: AlertTriangle },
     {
       href: "/about-us",
       label: "AboutUs",

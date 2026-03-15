@@ -8,14 +8,15 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { 
-  getAllIssues, 
-  updateIssueStatus, 
-  updateIssuePriority, 
+import {
+  getAllIssues,
+  updateIssueStatus,
+  updateIssuePriority,
   deleteIssue,
-  checkPermission 
+  clearResolvedIssues,
+  checkPermission
 } from "../issue-actions";
-import { AlertTriangle, Bug, MessageSquare, CheckCircle, Clock, AlertCircle, Plus, Trash2 } from "lucide-react";
+import { AlertTriangle, Bug, MessageSquare, CheckCircle, Clock, AlertCircle, Plus, Trash2, RotateCcw } from "lucide-react";
 
 interface Issue {
   id: string;
@@ -41,6 +42,7 @@ export default function IssuesLogPage() {
   const [priorityFilter, setPriorityFilter] = useState<"all" | "low" | "medium" | "high" | "critical">("all");
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [clearingResolved, setClearingResolved] = useState(false);
 
   useEffect(() => {
     checkPermissions();
@@ -86,6 +88,29 @@ export default function IssuesLogPage() {
     setMessage({ type: result.success ? "success" : "error", text: result.message || result.error || "" });
     if (result.success) loadIssues();
     setActionLoading(null);
+    setTimeout(() => setMessage(null), 3000);
+  }
+
+  async function handleClearResolved() {
+    const resolvedCount = issues.filter(i => i.status === 'solved' || i.status === 'closed').length;
+    
+    if (resolvedCount === 0) {
+      setMessage({ type: "error", text: "No resolved issues to clear" });
+      setTimeout(() => setMessage(null), 3000);
+      return;
+    }
+
+    if (!confirm(`Are you sure you want to delete ${resolvedCount} resolved issue${resolvedCount > 1 ? 's' : ''}? This action cannot be undone.`)) {
+      return;
+    }
+
+    setClearingResolved(true);
+    const result = await clearResolvedIssues(true);
+    setMessage({ type: result.success ? "success" : "error", text: result.message || result.error || "" });
+    if (result.success) {
+      loadIssues();
+    }
+    setClearingResolved(false);
     setTimeout(() => setMessage(null), 3000);
   }
 
@@ -138,7 +163,18 @@ export default function IssuesLogPage() {
           <h1 className="text-3xl font-bold text-radiance-charcoalTextColor">Issues Log</h1>
           <p className="text-gray-600 mt-1">Track system bugs and customer complaints</p>
         </div>
-        <AlertTriangle className="text-radiance-goldColor" size={32} />
+        <div className="flex items-center gap-3">
+          <button
+            onClick={handleClearResolved}
+            disabled={clearingResolved}
+            className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            title="Delete all resolved/closed issues"
+          >
+            <RotateCcw size={18} />
+            {clearingResolved ? 'Clearing...' : 'Clear Resolved'}
+          </button>
+          <AlertTriangle className="text-radiance-goldColor" size={32} />
+        </div>
       </div>
 
       {message && (

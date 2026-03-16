@@ -2,7 +2,7 @@
  * =============================================================================
  * Product Card Component - REDESIGNED v2
  * =============================================================================
- * 
+ *
  * Modern product card with:
  * - Fixed dimensions: 301px x 400px
  * - Vertical/Horizontal view modes
@@ -27,13 +27,12 @@ import {
   Check,
 } from "lucide-react";
 import { Product } from "@/types";
-import {
-  getProductAverageRating,
-} from "@/utils/supabase/services";
+import { getProductAverageRating } from "@/utils/supabase/services";
 import { useUser } from "@/context/UserContext";
 import { useToast } from "@/context/ToastContext";
 import { useCart } from "@/context/CartContext";
 import { useWishlist } from "@/context/WishlistContext";
+import { useCurrency } from "@/context/CurrencyContext";
 
 interface ProductCardProps {
   product: Product;
@@ -51,7 +50,12 @@ function ProductCard({
   const user = useUser();
   const { success, error: showError } = useToast();
   const { refreshCart } = useCart();
-  const { addToWishlist, removeFromWishlist, isInWishlist: checkIsInWishlist } = useWishlist();
+  const {
+    addToWishlist,
+    removeFromWishlist,
+    isInWishlist: checkIsInWishlist,
+  } = useWishlist();
+  const { formatPrice } = useCurrency();
 
   const [quantity, setQuantity] = useState(1);
   const [isWishlisted, setIsWishlisted] = useState(false);
@@ -75,8 +79,9 @@ function ProductCard({
 
     async function loadRating() {
       try {
-        const { averageRating, totalReviews } =
-          await getProductAverageRating(product.id);
+        const { averageRating, totalReviews } = await getProductAverageRating(
+          product.id,
+        );
         if (!aborted) {
           setRating({ average: averageRating, count: totalReviews });
         }
@@ -97,121 +102,150 @@ function ProductCard({
     product.discount_price && product.discount_price < product.price;
   const discountPercentage = hasDiscount
     ? Math.round(
-        ((product.price - product.discount_price!) / product.price) * 100
+        ((product.price - product.discount_price!) / product.price) * 100,
       )
     : 0;
 
+  // Get USD prices from product (stored in database)
+  const usdPrice = (product as any).usd_price || null;
+  const usdDiscountPrice = (product as any).usd_discount_price || null;
+  const exchangeRate = (product as any).exchange_rate || 0.00065;
+
   // Check if product has video
-  const hasVideo = product.attributes?.videos &&
+  const hasVideo =
+    product.attributes?.videos &&
     Array.isArray(product.attributes.videos) &&
     product.attributes.videos.length > 0;
 
   // Handle add to cart
-  const handleAddToCart = useCallback(async (e: React.MouseEvent) => {
-    e.stopPropagation();
-    e.preventDefault();
+  const handleAddToCart = useCallback(
+    async (e: React.MouseEvent) => {
+      e.stopPropagation();
+      e.preventDefault();
 
-    if (!user) {
-      showError("Please log in to add items to cart");
-      return;
-    }
-
-    setCartLoading(true);
-    try {
-      const { createClient } = await import("@/utils/supabase/client");
-      const supabase = createClient();
-
-      // Check if item already in cart
-      const { data: existingItem } = await supabase
-        .from("cart_items")
-        .select("id, quantity")
-        .eq("user_id", user.id)
-        .eq("product_id", product.id)
-        .single();
-
-      let result;
-      if (existingItem) {
-        // Update quantity
-        const { data, error } = await supabase
-          .from("cart_items")
-          .update({ quantity: existingItem.quantity + quantity, updated_at: new Date().toISOString() })
-          .eq("id", existingItem.id)
-          .select()
-          .single();
-
-        if (error) throw error;
-        result = data;
-      } else {
-        // Insert new item
-        const { data, error } = await supabase
-          .from("cart_items")
-          .insert({
-            user_id: user.id,
-            product_id: product.id,
-            quantity,
-          })
-          .select()
-          .single();
-
-        if (error) throw error;
-        result = data;
+      if (!user) {
+        showError("Please log in to add items to cart");
+        return;
       }
 
-      if (result) {
-        success(`Added ${quantity} x ${product.name} to cart!`);
-        setQuantity(1);
-        // Refresh cart to update UI
-        await refreshCart();
-      } else {
+      setCartLoading(true);
+      try {
+        const { createClient } = await import("@/utils/supabase/client");
+        const supabase = createClient();
+
+        // Check if item already in cart
+        const { data: existingItem } = await supabase
+          .from("cart_items")
+          .select("id, quantity")
+          .eq("user_id", user.id)
+          .eq("product_id", product.id)
+          .single();
+
+        let result;
+        if (existingItem) {
+          // Update quantity
+          const { data, error } = await supabase
+            .from("cart_items")
+            .update({
+              quantity: existingItem.quantity + quantity,
+              updated_at: new Date().toISOString(),
+            })
+            .eq("id", existingItem.id)
+            .select()
+            .single();
+
+          if (error) throw error;
+          result = data;
+        } else {
+          // Insert new item
+          const { data, error } = await supabase
+            .from("cart_items")
+            .insert({
+              user_id: user.id,
+              product_id: product.id,
+              quantity,
+            })
+            .select()
+            .single();
+
+          if (error) throw error;
+          result = data;
+        }
+
+        if (result) {
+          success(`Added ${quantity} x ${product.name} to cart!`);
+          setQuantity(1);
+          // Refresh cart to update UI
+          await refreshCart();
+        } else {
+          showError("Failed to add to cart");
+        }
+      } catch (error) {
+        console.error("Error adding to cart:", error);
         showError("Failed to add to cart");
+      } finally {
+        setCartLoading(false);
       }
-    } catch (error) {
-      console.error("Error adding to cart:", error);
-      showError("Failed to add to cart");
-    } finally {
-      setCartLoading(false);
-    }
-  }, [user, product.id, product.name, quantity, success, showError, refreshCart]);
+    },
+    [user, product.id, product.name, quantity, success, showError, refreshCart],
+  );
 
   // Handle wishlist toggle
-  const handleWishlistToggle = useCallback(async (e: React.MouseEvent) => {
-    e.stopPropagation();
-    e.preventDefault();
+  const handleWishlistToggle = useCallback(
+    async (e: React.MouseEvent) => {
+      e.stopPropagation();
+      e.preventDefault();
 
-    if (!user) {
-      showError("Please log in to manage wishlist");
-      return;
-    }
-
-    setWishlistLoading(true);
-    try {
-      if (isWishlisted) {
-        const successResult = await removeFromWishlist(product.id);
-        if (successResult) {
-          success("Removed from wishlist");
-        } else {
-          showError("Failed to remove from wishlist");
-        }
-      } else {
-        const successResult = await addToWishlist(product.id);
-        if (successResult) {
-          success("Added to wishlist");
-        } else {
-          showError("Failed to add to wishlist");
-        }
+      if (!user) {
+        showError("Please log in to manage wishlist");
+        return;
       }
-    } catch (error) {
-      showError("Failed to update wishlist");
-    } finally {
-      setWishlistLoading(false);
-    }
-  }, [user, product.id, isWishlisted, addToWishlist, removeFromWishlist, success, showError]);
+
+      setWishlistLoading(true);
+      try {
+        if (isWishlisted) {
+          const successResult = await removeFromWishlist(product.id);
+          if (successResult) {
+            success("Removed from wishlist");
+          } else {
+            showError("Failed to remove from wishlist");
+          }
+        } else {
+          const successResult = await addToWishlist(product.id);
+          if (successResult) {
+            success("Added to wishlist");
+          } else {
+            showError("Failed to add to wishlist");
+          }
+        }
+      } catch (error) {
+        showError("Failed to update wishlist");
+      } finally {
+        setWishlistLoading(false);
+      }
+    },
+    [
+      user,
+      product.id,
+      isWishlisted,
+      addToWishlist,
+      removeFromWishlist,
+      success,
+      showError,
+    ],
+  );
 
   // Handle quantity change
-  const handleQuantityChange = useCallback((delta: number) => {
-    const newQuantity = Math.max(1, Math.min(quantity + delta, product.stock_quantity));
-    setQuantity(newQuantity);
-  }, [quantity, product.stock_quantity]);
+  const handleQuantityChange = useCallback(
+    (delta: number) => {
+      const newQuantity = Math.max(
+        1,
+        Math.min(quantity + delta, product.stock_quantity),
+      );
+      setQuantity(newQuantity);
+    },
+    [quantity, product.stock_quantity],
+  );
 
   // Render star rating
   const renderStars = useCallback(() => {
@@ -237,11 +271,7 @@ function ProductCard({
           </div>
         )}
         {[...Array(emptyStars)].map((_, i) => (
-          <Star
-            key={`empty-${i}`}
-            size={12}
-            className="text-gray-300"
-          />
+          <Star key={`empty-${i}`} size={12} className="text-gray-300" />
         ))}
       </div>
     );
@@ -298,7 +328,9 @@ function ProductCard({
                 ? "bg-red-500 text-white"
                 : "bg-white/90 text-gray-600 hover:bg-red-50 hover:text-red-500"
             } ${wishlistLoading ? "opacity-50" : ""}`}
-            aria-label={isWishlisted ? "Remove from wishlist" : "Add to wishlist"}
+            aria-label={
+              isWishlisted ? "Remove from wishlist" : "Add to wishlist"
+            }
           >
             <Heart size={16} className={isWishlisted ? "fill-current" : ""} />
           </button>
@@ -333,20 +365,18 @@ function ProductCard({
           <div className="flex items-center gap-1.5">
             {renderStars()}
             {rating.count > 0 && (
-              <span className="text-xs text-gray-500">
-                ({rating.count})
-              </span>
+              <span className="text-xs text-gray-500">({rating.count})</span>
             )}
           </div>
 
           {/* Price */}
           <div className="flex items-baseline gap-1.5">
             <span className="text-lg font-bold text-radiance-goldColor">
-              ₦{displayPrice.toLocaleString()}
+              {formatPrice(product.price, usdPrice, exchangeRate)}
             </span>
             {hasDiscount && (
               <span className="text-xs text-gray-500 line-through">
-                ₦{product.price.toLocaleString()}
+                {formatPrice(product.price, usdPrice, exchangeRate)}
               </span>
             )}
           </div>
@@ -365,9 +395,16 @@ function ProductCard({
                   className="p-1 hover:bg-white hover:shadow-sm rounded transition-all"
                   disabled={quantity <= 1}
                 >
-                  <Minus size={12} className={quantity <= 1 ? 'text-gray-300' : 'text-gray-600'} />
+                  <Minus
+                    size={12}
+                    className={
+                      quantity <= 1 ? "text-gray-300" : "text-gray-600"
+                    }
+                  />
                 </button>
-                <span className="text-xs font-semibold w-6 text-center">{quantity}</span>
+                <span className="text-xs font-semibold w-6 text-center">
+                  {quantity}
+                </span>
                 <button
                   onClick={(e) => {
                     e.preventDefault();
@@ -377,7 +414,14 @@ function ProductCard({
                   className="p-1 hover:bg-white hover:shadow-sm rounded transition-all"
                   disabled={quantity >= product.stock_quantity}
                 >
-                  <Plus size={12} className={quantity >= product.stock_quantity ? 'text-gray-300' : 'text-gray-600'} />
+                  <Plus
+                    size={12}
+                    className={
+                      quantity >= product.stock_quantity
+                        ? "text-gray-300"
+                        : "text-gray-600"
+                    }
+                  />
                 </button>
               </div>
 
@@ -387,8 +431,8 @@ function ProductCard({
                 disabled={cartLoading}
                 className={`w-full py-2 px-3 rounded-lg font-semibold text-xs transition-all flex items-center justify-center gap-1.5 ${
                   cartLoading
-                    ? 'bg-gray-300 cursor-not-allowed'
-                    : 'bg-radiance-charcoalTextColor text-white hover:bg-radiance-goldColor shadow-sm hover:shadow-md'
+                    ? "bg-gray-300 cursor-not-allowed"
+                    : "bg-radiance-charcoalTextColor text-white hover:bg-radiance-goldColor shadow-sm hover:shadow-md"
                 }`}
               >
                 {cartLoading ? (
@@ -483,9 +527,7 @@ function ProductCard({
           <div className="flex items-center gap-1.5">
             {renderStars()}
             {rating.count > 0 && (
-              <span className="text-xs text-gray-500">
-                ({rating.count})
-              </span>
+              <span className="text-xs text-gray-500">({rating.count})</span>
             )}
           </div>
 
@@ -510,8 +552,8 @@ function ProductCard({
               disabled={cartLoading}
               className={`w-full py-2 px-3 rounded-lg font-semibold text-xs transition-all flex items-center justify-center gap-1.5 ${
                 cartLoading
-                  ? 'bg-gray-300 cursor-not-allowed'
-                  : 'bg-radiance-charcoalTextColor text-white hover:bg-radiance-goldColor shadow-sm hover:shadow-md'
+                  ? "bg-gray-300 cursor-not-allowed"
+                  : "bg-radiance-charcoalTextColor text-white hover:bg-radiance-goldColor shadow-sm hover:shadow-md"
               }`}
             >
               {cartLoading ? (

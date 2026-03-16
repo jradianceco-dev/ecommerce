@@ -3,8 +3,9 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { UserRoundPen, Shield, LayoutDashboard } from "lucide-react";
+import { UserRoundPen, Shield, LayoutDashboard, Globe } from "lucide-react";
 import ProfileSettingsOverlay from "./ProfileSettingsOverlay";
+import CurrencyToggle from "./CurrencyToggle";
 import { usePathname } from "next/navigation";
 import { useUser, useIsAdmin } from "@/context/UserContext";
 
@@ -37,6 +38,9 @@ export default function TopBar() {
 
         {/* Navigation and profile */}
         <div className="flex items-center gap-3 md:gap-4">
+          {/* Currency Toggle */}
+          <CurrencyToggle />
+
           {/* Admin dashboard link for non-admin routes */}
           {user && isAdmin && !isAdminRoute && (
             <Link

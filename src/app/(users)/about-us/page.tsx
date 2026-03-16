@@ -36,7 +36,8 @@ export const metadata: Metadata = {
   ],
   openGraph: {
     title: "About JRADIANCE | Beauty Meets Excellence",
-    description: "Your trusted partner in premium cosmetics and beauty solutions",
+    description:
+      "Your trusted partner in premium cosmetics and beauty solutions",
     type: "website",
   },
 };
@@ -49,9 +50,9 @@ export default function AboutUsPage() {
         {/* Animated Background Elements */}
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_50%,rgba(212,175,55,0.1),transparent_50%)] animate-pulse" />
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_70%_50%,rgba(212,175,55,0.08),transparent_50%)] animate-pulse delay-1000" />
-        
+
         <div className="absolute inset-0 bg-black/50" />
-        
+
         {/* Floating Particles */}
         <div className="absolute top-1/4 left-1/4 w-2 h-2 bg-radiance-goldColor/30 rounded-full animate-bounce" />
         <div className="absolute top-1/3 right-1/4 w-3 h-3 bg-radiance-goldColor/20 rounded-full animate-bounce delay-500" />
@@ -61,29 +62,34 @@ export default function AboutUsPage() {
           <div className="max-w-4xl">
             <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-sm px-4 py-2 rounded-full text-radiance-goldColor text-sm font-bold mb-6 animate-in fade-in slide-in-from-bottom-4 duration-700">
               <Sparkles size={18} />
-              <span className="tracking-wider uppercase">Welcome to JRADIANCE</span>
+              <span className="tracking-wider uppercase">
+                Welcome to JRADIANCE
+              </span>
             </div>
-            
+
             <h1 className="text-5xl md:text-7xl lg:text-8xl font-black mb-6 leading-tight animate-in fade-in slide-in-from-bottom-8 duration-1000">
               Beauty Meets{" "}
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-radiance-goldColor to-yellow-300">
                 Excellence
               </span>
             </h1>
-            
+
             <p className="text-xl md:text-2xl text-gray-200 leading-relaxed max-w-2xl mb-8 animate-in fade-in slide-in-from-bottom-12 duration-1000 delay-200">
-              Your trusted partner in premium cosmetics and beauty solutions.
-              We empower individuals to look and feel their best with authentic,
+              Your trusted partner in premium cosmetics and beauty solutions. We
+              empower individuals to look and feel their best with authentic,
               high-quality products.
             </p>
-            
+
             <div className="flex flex-wrap gap-4 animate-in fade-in slide-in-from-bottom-16 duration-1000 delay-300">
               <Link
                 href="/shop"
                 className="group bg-radiance-goldColor text-white px-8 py-4 rounded-full font-bold hover:bg-white hover:text-radiance-charcoalTextColor transition-all shadow-lg hover:shadow-xl flex items-center gap-2"
               >
                 Shop Now
-                <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" />
+                <ArrowRight
+                  size={20}
+                  className="group-hover:translate-x-1 transition-transform"
+                />
               </Link>
               <Link
                 href="#contact"
@@ -124,9 +130,9 @@ export default function AboutUsPage() {
             </h2>
             <p className="text-gray-600 leading-relaxed text-lg">
               To empower individuals with high-quality, affordable beauty
-              products that enhance natural beauty and boost confidence.
-              We believe everyone deserves to feel beautiful, and we're
-              committed to providing the products that make that possible.
+              products that enhance natural beauty and boost confidence. We
+              believe everyone deserves to feel beautiful, and we're committed
+              to providing the products that make that possible.
             </p>
           </div>
           <div className="group bg-white p-8 md:p-10 rounded-3xl shadow-lg hover:shadow-2xl transition-all duration-300 hover:-translate-y-2 border border-gray-100">
@@ -137,10 +143,10 @@ export default function AboutUsPage() {
               Our Vision
             </h2>
             <p className="text-gray-600 leading-relaxed text-lg">
-              To become Nigeria's leading beauty retailer, known for
-              exceptional products and outstanding customer service.
-              We envision a world where beauty is accessible, inclusive,
-              and celebrates diversity in all its forms.
+              To become Nigeria's leading beauty retailer, known for exceptional
+              products and outstanding customer service. We envision a world
+              where beauty is accessible, inclusive, and celebrates diversity in
+              all its forms.
             </p>
           </div>
         </div>
@@ -149,7 +155,7 @@ export default function AboutUsPage() {
       {/* Stats Section with Enhanced Design */}
       <section className="py-24 bg-gradient-to-r from-radiance-goldColor via-yellow-400 to-radiance-goldColor text-white relative overflow-hidden">
         <div className="absolute inset-0 opacity-20 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-white/20 via-transparent to-transparent" />
-        
+
         <div className="container mx-auto px-4 relative">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8 lg:gap-12">
             {[
@@ -186,7 +192,8 @@ export default function AboutUsPage() {
             Our Core Values
           </h2>
           <p className="text-gray-600 max-w-2xl mx-auto text-lg">
-            These principles guide everything we do, from product selection to customer service.
+            These principles guide everything we do, from product selection to
+            customer service.
           </p>
         </div>
         <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
@@ -194,25 +201,29 @@ export default function AboutUsPage() {
             {
               icon: <CheckCircle size={32} />,
               title: "Quality First",
-              description: "We carefully curate only the finest products that meet our strict standards.",
+              description:
+                "We carefully curate only the finest products that meet our strict standards.",
               color: "from-green-500 to-emerald-600",
             },
             {
               icon: <Users size={32} />,
               title: "Customer-Centric",
-              description: "Your satisfaction is our priority. We listen, adapt, and deliver excellence.",
+              description:
+                "Your satisfaction is our priority. We listen, adapt, and deliver excellence.",
               color: "from-blue-500 to-indigo-600",
             },
             {
               icon: <Shield size={32} />,
               title: "Authenticity",
-              description: "100% genuine products. We partner directly with trusted brands.",
+              description:
+                "100% genuine products. We partner directly with trusted brands.",
               color: "from-purple-500 to-pink-600",
             },
             {
               icon: <Zap size={32} />,
               title: "Fast Delivery",
-              description: "Quick and reliable shipping across Nigeria. Beauty at your doorstep.",
+              description:
+                "Quick and reliable shipping across Nigeria. Beauty at your doorstep.",
               color: "from-yellow-500 to-orange-600",
             },
           ].map((value, index) => (
@@ -220,13 +231,17 @@ export default function AboutUsPage() {
               key={index}
               className="group bg-white p-8 rounded-3xl shadow-sm border border-gray-100 hover:shadow-2xl transition-all duration-300 hover:-translate-y-2 text-center"
             >
-              <div className={`w-20 h-20 bg-gradient-to-br ${value.color} rounded-full flex items-center justify-center mx-auto mb-6 group-hover:scale-110 group-hover:rotate-6 transition-all shadow-lg text-white`}>
+              <div
+                className={`w-20 h-20 bg-gradient-to-br ${value.color} rounded-full flex items-center justify-center mx-auto mb-6 group-hover:scale-110 group-hover:rotate-6 transition-all shadow-lg text-white`}
+              >
                 {value.icon}
               </div>
               <h3 className="text-xl font-bold text-radiance-charcoalTextColor mb-3">
                 {value.title}
               </h3>
-              <p className="text-gray-600 leading-relaxed">{value.description}</p>
+              <p className="text-gray-600 leading-relaxed">
+                {value.description}
+              </p>
             </div>
           ))}
         </div>
@@ -245,19 +260,20 @@ export default function AboutUsPage() {
               </h2>
               <div className="space-y-6 text-gray-600 leading-relaxed text-lg">
                 <p className="border-l-4 border-radiance-goldColor pl-6">
-                  JRADIANCE was born from a simple yet powerful idea: everyone deserves
-                  access to premium beauty products that make them feel confident and beautiful.
+                  JRADIANCE was born from a simple yet powerful idea: everyone
+                  deserves access to premium beauty products that make them feel
+                  confident and beautiful.
                 </p>
                 <p>
-                  What started as a small venture has grown into one of Nigeria's most
-                  trusted beauty retailers, serving thousands of satisfied customers
-                  across the country.
+                  What started as a small venture has grown into one of
+                  Nigeria's most trusted beauty retailers, serving thousands of
+                  satisfied customers across the country.
                 </p>
                 <p>
-                  We partner directly with renowned brands worldwide to bring you
-                  authentic, high-quality products at competitive prices. Our
-                  commitment to excellence and customer satisfaction has made us
-                  a household name in the beauty industry.
+                  We partner directly with renowned brands worldwide to bring
+                  you authentic, high-quality products at competitive prices.
+                  Our commitment to excellence and customer satisfaction has
+                  made us a household name in the beauty industry.
                 </p>
               </div>
               <Link
@@ -265,7 +281,10 @@ export default function AboutUsPage() {
                 className="inline-flex items-center gap-2 mt-10 bg-radiance-goldColor text-white px-8 py-4 rounded-full font-bold hover:bg-radiance-charcoalTextColor transition-all shadow-lg hover:shadow-xl group"
               >
                 Explore Our Products
-                <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" />
+                <ArrowRight
+                  size={20}
+                  className="group-hover:translate-x-1 transition-transform"
+                />
               </Link>
             </div>
             <div className="relative h-[600px] bg-gradient-to-br from-radiance-goldColor/20 via-yellow-100 to-radiance-goldColor/10 rounded-3xl overflow-hidden shadow-2xl group">
@@ -297,7 +316,8 @@ export default function AboutUsPage() {
             Why Choose JRADIANCE?
           </h2>
           <p className="text-gray-600 max-w-2xl mx-auto text-lg">
-            We go above and beyond to ensure you have the best shopping experience.
+            We go above and beyond to ensure you have the best shopping
+            experience.
           </p>
         </div>
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -359,7 +379,8 @@ export default function AboutUsPage() {
             Ready to Discover Your Beauty?
           </h2>
           <p className="text-xl text-gray-300 mb-10 max-w-2xl mx-auto animate-in fade-in slide-in-from-bottom-8 duration-1000 delay-200">
-            Join thousands of satisfied customers who trust JRADIANCE for their beauty needs.
+            Join thousands of satisfied customers who trust JRADIANCE for their
+            beauty needs.
           </p>
           <div className="flex flex-wrap justify-center gap-4 animate-in fade-in slide-in-from-bottom-12 duration-1000 delay-300">
             <Link
@@ -367,7 +388,10 @@ export default function AboutUsPage() {
               className="group bg-radiance-goldColor text-white px-10 py-5 rounded-full font-bold hover:bg-white hover:text-radiance-charcoalTextColor transition-all shadow-lg hover:shadow-xl flex items-center gap-2"
             >
               Start Shopping
-              <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" />
+              <ArrowRight
+                size={20}
+                className="group-hover:translate-x-1 transition-transform"
+              />
             </Link>
             <Link
               href="#contact"
@@ -386,11 +410,12 @@ export default function AboutUsPage() {
             <div className="p-12 bg-gradient-to-br from-radiance-goldColor via-yellow-400 to-radiance-goldColor text-white relative overflow-hidden">
               <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2" />
               <div className="absolute bottom-0 left-0 w-32 h-32 bg-white/10 rounded-full translate-y-1/2 -translate-x-1/2" />
-              
+
               <div className="relative">
                 <h3 className="text-3xl font-bold mb-6">Get in Touch</h3>
                 <p className="mb-8 opacity-90 text-lg">
-                  Have questions? We'd love to hear from you. Send us a message and we'll respond as soon as possible.
+                  Have questions? We'd love to hear from you. Send us a message
+                  and we'll respond as soon as possible.
                 </p>
                 <div className="space-y-6">
                   <div className="flex items-center gap-4">
@@ -398,8 +423,10 @@ export default function AboutUsPage() {
                       <MessageSquare size={20} />
                     </div>
                     <div>
-                      <div className="font-bold mb-1 text-sm uppercase tracking-wider">Email</div>
-                      <div className="opacity-90">support@jradianceco.com</div>
+                      <div className="font-bold mb-1 text-sm uppercase tracking-wider">
+                        Email
+                      </div>
+                      <div className="opacity-90">info@jradianceco.com</div>
                     </div>
                   </div>
                   <div className="flex items-center gap-4">
@@ -407,7 +434,9 @@ export default function AboutUsPage() {
                       <Shield size={20} />
                     </div>
                     <div>
-                      <div className="font-bold mb-1 text-sm uppercase tracking-wider">Phone</div>
+                      <div className="font-bold mb-1 text-sm uppercase tracking-wider">
+                        Phone
+                      </div>
                       <div className="opacity-90">+234 XXX XXX XXXX</div>
                     </div>
                   </div>
@@ -416,7 +445,9 @@ export default function AboutUsPage() {
                       <Globe size={20} />
                     </div>
                     <div>
-                      <div className="font-bold mb-1 text-sm uppercase tracking-wider">Location</div>
+                      <div className="font-bold mb-1 text-sm uppercase tracking-wider">
+                        Location
+                      </div>
                       <div className="opacity-90">Nigeria</div>
                     </div>
                   </div>
@@ -424,9 +455,11 @@ export default function AboutUsPage() {
 
                 {/* Social Links */}
                 <div className="mt-10 pt-8 border-t border-white/20">
-                  <p className="text-sm font-bold uppercase tracking-wider mb-4">Follow Us</p>
+                  <p className="text-sm font-bold uppercase tracking-wider mb-4">
+                    Follow Us
+                  </p>
                   <div className="flex gap-3">
-                    {['Instagram', 'Facebook', 'Twitter'].map((social) => (
+                    {["Instagram", "Facebook", "Twitter"].map((social) => (
                       <a
                         key={social}
                         href="#"

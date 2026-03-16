@@ -2,7 +2,7 @@
  * =============================================================================
  * Product Detail Client Component - REBUILT v2
  * =============================================================================
- * 
+ *
  * Client-side interactive features with modern UI
  */
 
@@ -32,6 +32,7 @@ import { useToast } from "@/context/ToastContext";
 import { useCart } from "@/context/CartContext";
 import { useWishlist } from "@/context/WishlistContext";
 import RichViewer from "@/components/products/RichViewer";
+import ProductRecommendations from "@/components/products/ProductRecommendations";
 
 interface ProductDetailClientProps {
   product: Product;
@@ -53,7 +54,11 @@ function ProductDetailContent({
   const user = useUser();
   const { success, error: showError } = useToast();
   const { addItem } = useCart();
-  const { addToWishlist, removeFromWishlist, isInWishlist: checkIsInWishlist } = useWishlist();
+  const {
+    addToWishlist,
+    removeFromWishlist,
+    isInWishlist: checkIsInWishlist,
+  } = useWishlist();
 
   const [quantity, setQuantity] = useState(1);
   const [isWishlisted, setIsWishlisted] = useState(false);
@@ -65,7 +70,9 @@ function ProductDetailContent({
   // All media (images + videos)
   const allMedia = [
     ...(product.images || []),
-    ...(Array.isArray(product.attributes?.videos) ? product.attributes.videos : []),
+    ...(Array.isArray(product.attributes?.videos)
+      ? product.attributes.videos
+      : []),
   ];
 
   // Check if current media is video
@@ -138,7 +145,15 @@ function ProductDetailContent({
     } finally {
       setWishlistLoading(false);
     }
-  }, [user, product.id, isWishlisted, addToWishlist, removeFromWishlist, success, showError]);
+  }, [
+    user,
+    product.id,
+    isWishlisted,
+    addToWishlist,
+    removeFromWishlist,
+    success,
+    showError,
+  ]);
 
   // Handle share
   const handleShare = useCallback(async () => {
@@ -167,18 +182,28 @@ function ProductDetailContent({
   }, [product.name, success]);
 
   // Handle quantity change
-  const handleQuantityChange = useCallback((delta: number) => {
-    const newQuantity = Math.max(1, Math.min(quantity + delta, product.stock_quantity));
-    setQuantity(newQuantity);
-  }, [quantity, product.stock_quantity]);
+  const handleQuantityChange = useCallback(
+    (delta: number) => {
+      const newQuantity = Math.max(
+        1,
+        Math.min(quantity + delta, product.stock_quantity),
+      );
+      setQuantity(newQuantity);
+    },
+    [quantity, product.stock_quantity],
+  );
 
   // Handle image navigation
   const goToPreviousImage = useCallback(() => {
-    setSelectedImageIndex((prev) => (prev > 0 ? prev - 1 : allMedia.length - 1));
+    setSelectedImageIndex((prev) =>
+      prev > 0 ? prev - 1 : allMedia.length - 1,
+    );
   }, [allMedia.length]);
 
   const goToNextImage = useCallback(() => {
-    setSelectedImageIndex((prev) => (prev < allMedia.length - 1 ? prev + 1 : 0));
+    setSelectedImageIndex((prev) =>
+      prev < allMedia.length - 1 ? prev + 1 : 0,
+    );
   }, [allMedia.length]);
 
   const isOutOfStock = product.stock_quantity <= 0;
@@ -316,7 +341,9 @@ function ProductDetailContent({
                 {product.category}
               </p>
               {product.sku && (
-                <p className="text-xs text-gray-500 font-mono">SKU: {product.sku}</p>
+                <p className="text-xs text-gray-500 font-mono">
+                  SKU: {product.sku}
+                </p>
               )}
             </div>
 
@@ -369,12 +396,16 @@ function ProductDetailContent({
               ) : isLowStock ? (
                 <div className="flex items-center gap-2 text-orange-600 bg-orange-50 px-4 py-2 rounded-full">
                   <Check size={18} />
-                  <span className="text-sm font-bold">Only {product.stock_quantity} left - Order soon!</span>
+                  <span className="text-sm font-bold">
+                    Only {product.stock_quantity} left - Order soon!
+                  </span>
                 </div>
               ) : (
                 <div className="flex items-center gap-2 text-green-600 bg-green-50 px-4 py-2 rounded-full">
                   <Check size={18} />
-                  <span className="text-sm font-bold">In Stock ({product.stock_quantity} available)</span>
+                  <span className="text-sm font-bold">
+                    In Stock ({product.stock_quantity} available)
+                  </span>
                 </div>
               )}
             </div>
@@ -382,7 +413,9 @@ function ProductDetailContent({
             {/* Description */}
             {product.description && (
               <div className="space-y-3">
-                <h2 className="font-bold text-lg text-radiance-charcoalTextColor">Description</h2>
+                <h2 className="font-bold text-lg text-radiance-charcoalTextColor">
+                  Description
+                </h2>
                 <div className="prose prose-zinc prose-sm max-w-none text-gray-700">
                   <RichViewer content={product.description} />
                 </div>
@@ -390,30 +423,40 @@ function ProductDetailContent({
             )}
 
             {/* Product Attributes */}
-            {product.attributes && Object.keys(product.attributes).length > 0 && (
-              <div className="space-y-3">
-                <h2 className="font-bold text-lg text-radiance-charcoalTextColor">Product Details</h2>
-                <div className="grid grid-cols-2 gap-3">
-                  {Object.entries(product.attributes)
-                    .filter(([key]) => key !== "videos")
-                    .map(([key, value]) => (
-                      <div key={key} className="text-sm bg-white px-3 py-2 rounded-lg border border-gray-100">
-                        <span className="font-semibold capitalize text-gray-700">
-                          {key.replace(/_/g, " ")}:
-                        </span>
-                        <span className="ml-2 text-gray-600">{String(value)}</span>
-                      </div>
-                    ))}
+            {product.attributes &&
+              Object.keys(product.attributes).length > 0 && (
+                <div className="space-y-3">
+                  <h2 className="font-bold text-lg text-radiance-charcoalTextColor">
+                    Product Details
+                  </h2>
+                  <div className="grid grid-cols-2 gap-3">
+                    {Object.entries(product.attributes)
+                      .filter(([key]) => key !== "videos")
+                      .map(([key, value]) => (
+                        <div
+                          key={key}
+                          className="text-sm bg-white px-3 py-2 rounded-lg border border-gray-100"
+                        >
+                          <span className="font-semibold capitalize text-gray-700">
+                            {key.replace(/_/g, " ")}:
+                          </span>
+                          <span className="ml-2 text-gray-600">
+                            {String(value)}
+                          </span>
+                        </div>
+                      ))}
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
 
             {/* Action Buttons */}
             {!isOutOfStock && (
               <div className="space-y-4 pt-6 border-t border-gray-200">
                 {/* Quantity Selector */}
                 <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-2">Quantity</label>
+                  <label className="block text-sm font-bold text-gray-700 mb-2">
+                    Quantity
+                  </label>
                   <div className="flex items-center gap-3">
                     <button
                       onClick={() => handleQuantityChange(-1)}
@@ -422,7 +465,9 @@ function ProductDetailContent({
                     >
                       <Minus size={18} />
                     </button>
-                    <span className="text-xl font-bold w-16 text-center">{quantity}</span>
+                    <span className="text-xl font-bold w-16 text-center">
+                      {quantity}
+                    </span>
                     <button
                       onClick={() => handleQuantityChange(1)}
                       className="p-3 border-2 border-gray-200 rounded-xl hover:border-radiance-goldColor hover:bg-radiance-goldColor/10 transition-colors"
@@ -465,7 +510,10 @@ function ProductDetailContent({
                     {wishlistLoading ? (
                       <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-current"></div>
                     ) : (
-                      <Heart size={20} className={isWishlisted ? "fill-current" : ""} />
+                      <Heart
+                        size={20}
+                        className={isWishlisted ? "fill-current" : ""}
+                      />
                     )}
                   </button>
                   <button
@@ -488,21 +536,30 @@ function ProductDetailContent({
                     <div className="flex flex-col items-center gap-2">
                       <Truck size={24} className="text-radiance-goldColor" />
                       <div>
-                        <p className="text-xs font-bold text-gray-700">Fast Delivery</p>
+                        <p className="text-xs font-bold text-gray-700">
+                          Fast Delivery
+                        </p>
                         <p className="text-xs text-gray-500">Nationwide</p>
                       </div>
                     </div>
                     <div className="flex flex-col items-center gap-2">
                       <Shield size={24} className="text-radiance-goldColor" />
                       <div>
-                        <p className="text-xs font-bold text-gray-700">Secure Payment</p>
+                        <p className="text-xs font-bold text-gray-700">
+                          Secure Payment
+                        </p>
                         <p className="text-xs text-gray-500">Flutterwave</p>
                       </div>
                     </div>
                     <div className="flex flex-col items-center gap-2">
-                      <RotateCcw size={24} className="text-radiance-goldColor" />
+                      <RotateCcw
+                        size={24}
+                        className="text-radiance-goldColor"
+                      />
                       <div>
-                        <p className="text-xs font-bold text-gray-700">Easy Returns</p>
+                        <p className="text-xs font-bold text-gray-700">
+                          Easy Returns
+                        </p>
                         <p className="text-xs text-gray-500">7 Days</p>
                       </div>
                     </div>
@@ -513,6 +570,13 @@ function ProductDetailContent({
           </section>
         </div>
       </article>
+
+      {/* Product Recommendations */}
+      <ProductRecommendations
+        currentProductId={product.id}
+        currentCategory={product.category}
+        limit={4}
+      />
     </div>
   );
 }
@@ -522,11 +586,13 @@ function ProductDetailContent({
  */
 export default function ProductDetailClient(props: ProductDetailClientProps) {
   return (
-    <Suspense fallback={
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-radiance-goldColor"></div>
-      </div>
-    }>
+    <Suspense
+      fallback={
+        <div className="min-h-screen flex items-center justify-center">
+          <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-radiance-goldColor"></div>
+        </div>
+      }
+    >
       <ProductDetailContent {...props} />
     </Suspense>
   );

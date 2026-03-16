@@ -11,6 +11,7 @@ import { createBaseMetadata } from "@/utils/seo/metadata-factory";
 import { Analytics } from "@vercel/analytics/react";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { setupGlobalErrorHandler } from "@/utils/error-tracking";
+import { CurrencyProvider } from "@/context/CurrencyContext";
 
 // Setup global error tracking
 if (typeof window !== "undefined") {
@@ -74,20 +75,24 @@ export default function RootLayout({
 
         <ToastProvider>
           <UserProvider>
-            <CartProvider>
-              <WishlistProvider>
-                <TopBar />
+            <CurrencyProvider>
+              <CartProvider>
+                <WishlistProvider>
+                  <TopBar />
 
-                <main className="pb-20 md:pb-0">
-                  <div className="mx-auto max-w-6xl px-6 py-12">{children}</div>
-                </main>
+                  <main className="pb-20 md:pb-0">
+                    <div className="mx-auto max-w-6xl px-6 py-12">
+                      {children}
+                    </div>
+                  </main>
 
-                <Analytics />
-                <SpeedInsights />
+                  <Analytics />
+                  <SpeedInsights />
 
-                <BottomNavBar />
-              </WishlistProvider>
-            </CartProvider>
+                  <BottomNavBar />
+                </WishlistProvider>
+              </CartProvider>
+            </CurrencyProvider>
           </UserProvider>
         </ToastProvider>
       </body>

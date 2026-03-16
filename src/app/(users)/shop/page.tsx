@@ -48,12 +48,22 @@ export default function ShopPage({ searchParams }: ShopPageProps) {
 
   // Filters
   const [searchQuery, setSearchQuery] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("");
   const [sortBy, setSortBy] = useState("newest");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [showFilters, setShowFilters] = useState(false);
 
   const BATCH_SIZE = 12;
+
+  // Debounce search (300ms delay)
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchQuery);
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
 
   // Categories
   const categories = useMemo(
@@ -71,7 +81,7 @@ export default function ShopPage({ searchParams }: ShopPageProps) {
   // Load initial products
   useEffect(() => {
     loadProducts(1, true);
-  }, [selectedCategory, searchQuery, sortBy]);
+  }, [selectedCategory, debouncedSearch, sortBy]);
 
   async function loadProducts(pageNum: number, reset = false) {
     if (reset) {

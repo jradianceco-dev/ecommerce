@@ -46,7 +46,7 @@ export default function AboutUsPage() {
   return (
     <div className="min-h-screen bg-radiance-creamBackgroundColor">
       {/* Hero Section with Enhanced Visuals */}
-      <section className="relative h-[80vh] bg-gradient-to-br from-radiance-charcoalTextColor via-gray-900 to-radiance-charcoalTextColor overflow-hidden">
+      <section className="relative h-[80vh] bg-linear-to-br from-radiance-charcoalTextColor via-gray-900 to-radiance-charcoalTextColor overflow-hidden">
         {/* Animated Background Elements */}
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_50%,rgba(212,175,55,0.1),transparent_50%)] animate-pulse" />
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_70%_50%,rgba(212,175,55,0.08),transparent_50%)] animate-pulse delay-1000" />
@@ -69,7 +69,7 @@ export default function AboutUsPage() {
 
             <h1 className="text-5xl md:text-7xl lg:text-8xl font-black mb-6 leading-tight animate-in fade-in slide-in-from-bottom-8 duration-1000">
               Beauty Meets{" "}
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-radiance-goldColor to-yellow-300">
+              <span className="text-transparent bg-clip-text bg-linear-to-r from-radiance-goldColor to-yellow-300">
                 Excellence
               </span>
             </h1>
@@ -122,7 +122,7 @@ export default function AboutUsPage() {
       <section className="py-24 container mx-auto px-4">
         <div className="grid md:grid-cols-2 gap-8 lg:gap-12">
           <div className="group bg-white p-8 md:p-10 rounded-3xl shadow-lg hover:shadow-2xl transition-all duration-300 hover:-translate-y-2 border border-gray-100">
-            <div className="w-16 h-16 bg-gradient-to-br from-radiance-goldColor to-yellow-400 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform shadow-lg">
+            <div className="w-16 h-16 bg-linear-to-br from-radiance-goldColor to-yellow-400 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform shadow-lg">
               <Heart className="text-white" size={32} />
             </div>
             <h2 className="text-3xl font-bold text-radiance-charcoalTextColor mb-4">
@@ -136,7 +136,7 @@ export default function AboutUsPage() {
             </p>
           </div>
           <div className="group bg-white p-8 md:p-10 rounded-3xl shadow-lg hover:shadow-2xl transition-all duration-300 hover:-translate-y-2 border border-gray-100">
-            <div className="w-16 h-16 bg-gradient-to-br from-radiance-goldColor to-yellow-400 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform shadow-lg">
+            <div className="w-16 h-16 bg-linear-to-br from-radiance-goldColor to-yellow-400 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform shadow-lg">
               <Award className="text-white" size={32} />
             </div>
             <h2 className="text-3xl font-bold text-radiance-charcoalTextColor mb-4">
@@ -153,8 +153,8 @@ export default function AboutUsPage() {
       </section>
 
       {/* Stats Section with Enhanced Design */}
-      <section className="py-24 bg-gradient-to-r from-radiance-goldColor via-yellow-400 to-radiance-goldColor text-white relative overflow-hidden">
-        <div className="absolute inset-0 opacity-20 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-white/20 via-transparent to-transparent" />
+      <section className="py-24 bg-linear-to-r from-radiance-goldColor via-yellow-400 to-radiance-goldColor text-white relative overflow-hidden">
+        <div className="absolute inset-0 opacity-20 bg-[radial-gradient(circle_at_center,var(--tw-gradient-stops))] from-white/20 via-transparent to-transparent" />
 
         <div className="container mx-auto px-4 relative">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8 lg:gap-12">
@@ -232,7 +232,7 @@ export default function AboutUsPage() {
               className="group bg-white p-8 rounded-3xl shadow-sm border border-gray-100 hover:shadow-2xl transition-all duration-300 hover:-translate-y-2 text-center"
             >
               <div
-                className={`w-20 h-20 bg-gradient-to-br ${value.color} rounded-full flex items-center justify-center mx-auto mb-6 group-hover:scale-110 group-hover:rotate-6 transition-all shadow-lg text-white`}
+                className={`w-20 h-20 bg-linear-to-br ${value.color} rounded-full flex items-center justify-center mx-auto mb-6 group-hover:scale-110 group-hover:rotate-6 transition-all shadow-lg text-white`}
               >
                 {value.icon}
               </div>
@@ -287,8 +287,8 @@ export default function AboutUsPage() {
                 />
               </Link>
             </div>
-            <div className="relative h-[600px] bg-gradient-to-br from-radiance-goldColor/20 via-yellow-100 to-radiance-goldColor/10 rounded-3xl overflow-hidden shadow-2xl group">
-              <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100 group-hover:scale-105 transition-transform duration-500">
+            <div className="relative h-150 bg-linear-to-br from-radiance-goldColor/20 via-yellow-100 to-radiance-goldColor/10 rounded-3xl overflow-hidden shadow-2xl group">
+              <div className="absolute inset-0 flex items-center justify-center bg-linear-to-br from-gray-50 to-gray-100 group-hover:scale-105 transition-transform duration-500">
                 <div className="text-center p-12">
                   <div className="w-24 h-24 bg-radiance-goldColor/20 rounded-full flex items-center justify-center mx-auto mb-6 animate-pulse">
                     <Sparkles className="text-radiance-goldColor" size={48} />
@@ -307,7 +307,7 @@ export default function AboutUsPage() {
       </section>
 
       {/* Why Choose Us Section */}
-      <section className="py-24 bg-gradient-to-b from-gray-50 to-white container mx-auto px-4">
+      <section className="py-24 bg-linear-to-b from-gray-50 to-white container mx-auto px-4">
         <div className="text-center mb-16">
           <div className="inline-block bg-radiance-goldColor/10 text-radiance-goldColor px-4 py-2 rounded-full text-sm font-bold mb-4">
             The JRADIANCE Advantage
@@ -372,7 +372,7 @@ export default function AboutUsPage() {
       </section>
 
       {/* CTA Section */}
-      <section className="py-24 bg-gradient-to-br from-radiance-charcoalTextColor via-gray-900 to-radiance-charcoalTextColor text-white relative overflow-hidden">
+      <section className="py-24 bg-linear-to-br from-radiance-charcoalTextColor via-gray-900 to-radiance-charcoalTextColor text-white relative overflow-hidden">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(212,175,55,0.1),transparent_70%)]" />
         <div className="container mx-auto px-4 text-center relative">
           <h2 className="text-4xl md:text-6xl font-black mb-6 animate-in fade-in zoom-in duration-700">
@@ -407,7 +407,7 @@ export default function AboutUsPage() {
       <section id="contact" className="py-24 container mx-auto px-4">
         <div className="max-w-6xl mx-auto bg-white rounded-3xl shadow-2xl overflow-hidden">
           <div className="grid md:grid-cols-2">
-            <div className="p-12 bg-gradient-to-br from-radiance-goldColor via-yellow-400 to-radiance-goldColor text-white relative overflow-hidden">
+            <div className="p-12 bg-linear-to-br from-radiance-goldColor via-yellow-400 to-radiance-goldColor text-white relative overflow-hidden">
               <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2" />
               <div className="absolute bottom-0 left-0 w-32 h-32 bg-white/10 rounded-full translate-y-1/2 -translate-x-1/2" />
 
@@ -508,7 +508,7 @@ export default function AboutUsPage() {
                 </div>
                 <button
                   type="submit"
-                  className="w-full bg-gradient-to-r from-radiance-goldColor to-yellow-400 text-white py-4 rounded-xl font-bold hover:from-radiance-goldColor hover:to-radiance-goldColor transition-all shadow-lg hover:shadow-xl"
+                  className="w-full bg-linear-to-r from-radiance-goldColor to-yellow-400 text-white py-4 rounded-xl font-bold hover:from-radiance-goldColor hover:to-radiance-goldColor transition-all shadow-lg hover:shadow-xl"
                 >
                   Send Message
                 </button>

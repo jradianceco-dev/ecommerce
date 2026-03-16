@@ -1,0 +1,586 @@
+# JRADIANCE E-Commerce Platform
+## System Architecture Document
+
+**Document Version:** 1.0.0  
+**Last Updated:** 2026-03-15  
+**Classification:** Technical & Confidential
+
+---
+
+## Table of Contents
+
+1. [Architecture Overview](#architecture-overview)
+2. [System Context](#system-context)
+3. [Architecture Goals](#architecture-goals)
+4. [Technology Stack](#technology-stack)
+5. [System Decomposition](#system-decomposition)
+6. [Deployment Architecture](#deployment-architecture)
+7. [Data Architecture](#data-architecture)
+8. [Security Architecture](#security-architecture)
+9. [Integration Architecture](#integration-architecture)
+10. [Quality Attributes](#quality-attributes)
+11. [Architecture Decisions](#architecture-decisions)
+12. [Diagrams](#diagrams)
+
+---
+
+## Architecture Overview
+
+### Executive Summary
+
+The JRADIANCE E-Commerce platform is built on a modern, cloud-native architecture leveraging Next.js 15 with App Router, Supabase for backend services, and Flutterwave for payment processing. The system follows a layered architecture pattern with clear separation of concerns.
+
+### Architecture Style
+
+**Primary Pattern:** Layered Architecture (N-Tier)
+
+```
+┌─────────────────────────────────────────┐
+│         Presentation Layer              │
+│    (Next.js Pages & Components)         │
+└─────────────────────────────────────────┘
+                    │
+                    ▼
+┌─────────────────────────────────────────┐
+│         Application Layer               │
+│   (Context Providers & State Mgmt)      │
+└─────────────────────────────────────────┘
+                    │
+                    ▼
+┌─────────────────────────────────────────┐
+│           Business Layer                │
+│    (Server Actions & API Routes)        │
+└─────────────────────────────────────────┘
+                    │
+                    ▼
+┌─────────────────────────────────────────┐
+│           Data Layer                    │
+│      (Supabase PostgreSQL + Auth)       │
+└─────────────────────────────────────────┘
+```
+
+---
+
+## System Context
+
+### Business Context
+
+```
+┌──────────────────────────────────────────────────────────────┐
+│                      JRADIANCE E-Commerce                     │
+│                                                               │
+│  ┌─────────────┐         ┌─────────────┐         ┌─────────┐│
+│  │  Customers  │────────▶│   Platform  │◀────────│  Admins ││
+│  │  (Shoppers) │         │   System    │         │ (Staff) ││
+│  └─────────────┘         └─────────────┘         └─────────┘│
+│                                                               │
+│  External Systems:                                            │
+│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐          │
+│  │ Flutterwave │  │   Vercel    │  │  Supabase   │          │
+│  │  (Payment)  │  │ (Hosting)   │  │ (Database)  │          │
+│  └─────────────┘  └─────────────┘  └─────────────┘          │
+└──────────────────────────────────────────────────────────────┘
+```
+
+### Technical Context
+
+```
+┌──────────────────────────────────────────────────────────────┐
+│                    User Devices                               │
+│  ┌──────────┐  ┌──────────┐  ┌──────────┐                  │
+│  │  Mobile  │  │ Desktop  │  │ Tablet   │                  │
+│  │ Browser  │  │ Browser  │  │ Browser  │                  │
+│  └────┬─────┘  └────┬─────┘  └────┬─────┘                  │
+│       │             │             │                         │
+│       └─────────────┴─────────────┘                         │
+│                     │                                        │
+│                     ▼                                        │
+│       ┌─────────────────────────┐                           │
+│       │   Vercel Edge Network   │                           │
+│       │      (CDN + SSL)        │                           │
+│       └───────────┬─────────────┘                           │
+│                   │                                          │
+│                   ▼                                          │
+│       ┌─────────────────────────┐                           │
+│       │   Next.js Application   │                           │
+│       │    (Serverless Func)    │                           │
+│       └───────────┬─────────────┘                           │
+│                   │                                          │
+│       ┌───────────┴─────────────┐                           │
+│       ▼                         ▼                           │
+│ ┌───────────┐           ┌───────────┐                      │
+│ │ Supabase  │           │Flutterwave│                      │
+│ │ Database  │           │  Payment  │                      │
+│ └───────────┘           └───────────┘                      │
+└──────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## Architecture Goals
+
+### Primary Goals
+
+| Goal | Priority | Status |
+|------|----------|--------|
+| **Scalability** | High | ✅ Achieved |
+| **Security** | Critical | ✅ Achieved |
+| **Performance** | High | ✅ Achieved |
+| **Maintainability** | High | ✅ Achieved |
+| **Cost-Effectiveness** | Medium | ✅ Achieved |
+
+### Quality Attributes
+
+| Attribute | Target | Measurement |
+|-----------|--------|-------------|
+| **Availability** | 99.9% uptime | Vercel status |
+| **Latency** | < 500ms API | Response time |
+| **Throughput** | 1000 req/sec | Load testing |
+| **Recoverability** | < 4 hours RTO | Disaster recovery |
+| **Security** | Zero critical vulns | Security audits |
+
+---
+
+## Technology Stack
+
+### Frontend Technologies
+
+| Technology | Version | Purpose | Rationale |
+|------------|---------|---------|-----------|
+| **Next.js** | 15.5.10 | React Framework | SSR, SSG, API routes |
+| **TypeScript** | 5.0 | Type Safety | Error prevention |
+| **Tailwind CSS** | 4.0 | Styling | Utility-first, fast |
+| **Lucide Icons** | 0.562.0 | Icons | Lightweight, modern |
+
+### Backend Technologies
+
+| Technology | Version | Purpose | Rationale |
+|------------|---------|---------|-----------|
+| **Supabase** | 2.93.3 | Database + Auth | PostgreSQL, RLS, Real-time |
+| **Next.js API** | - | Server Logic | Serverless, scalable |
+| **Server Actions** | - | Mutations | Type-safe, simple |
+
+### Infrastructure
+
+| Service | Purpose | Tier | Cost |
+|---------|---------|------|------|
+| **Vercel** | Hosting + CDN | Pro | $20/month |
+| **Supabase** | Database + Auth | Pro | $25/month |
+| **Flutterwave** | Payment Processing | Standard | 1.4% + ₦100 |
+
+---
+
+## System Decomposition
+
+### Module Structure
+
+```
+ecommerce/
+├── Presentation Module (src/app)
+│   ├── Customer Pages ((users)/)
+│   ├── Admin Pages (admin/)
+│   └── API Routes (api/)
+│
+├── Business Logic Module (src/)
+│   ├── Components (components/)
+│   ├── Context Providers (context/)
+│   └── Utilities (utils/)
+│
+├── Data Access Module (src/utils/supabase/)
+│   ├── Clients (client.ts, server.ts)
+│   └── Services (services.ts)
+│
+└── Shared Module (src/types/)
+    ├── Domain Types (index.ts)
+    └── API Types (flutterwave.ts)
+```
+
+### Component Hierarchy
+
+```
+App (layout.tsx)
+├── CurrencyProvider
+│   └── UserProvider
+│       ├── CartProvider
+│       │   └── WishlistProvider
+│       └── ToastProvider
+│
+├── TopBar
+├── Main Content
+│   ├── Pages
+│   │   ├── Shop
+│   │   ├── Product Details
+│   │   ├── Checkout
+│   │   └── ...
+│   └── Components
+│       ├── ProductCard
+│       ├── CartOverlay
+│       └── ...
+└── BottomNavBar
+```
+
+---
+
+## Deployment Architecture
+
+### Production Environment
+
+```
+┌──────────────────────────────────────────────────────────────┐
+│                      Vercel Platform                         │
+│                                                               │
+│  ┌──────────────────────────────────────────────────────┐   │
+│  │              Edge Network (CDN)                       │   │
+│  │  ┌──────────┐  ┌──────────┐  ┌──────────┐          │   │
+│  │  │   US     │  │   EU     │  │  Africa  │          │   │
+│  │  │  Edge    │  │  Edge    │  │  Edge    │          │   │
+│  │  └──────────┘  └──────────┘  └──────────┘          │   │
+│  └──────────────────────────────────────────────────────┘   │
+│                           │                                   │
+│  ┌────────────────────────┴──────────────────────────────┐   │
+│  │              Serverless Functions                      │   │
+│  │  ┌──────────┐  ┌──────────┐  ┌──────────┐          │   │
+│  │  │   API    │  │  Server  │  │   ISR    │          │   │
+│  │  │  Routes  │  │ Actions  │  │  Pages   │          │   │
+│  │  └──────────┘  └──────────┘  └──────────┘          │   │
+│  └──────────────────────────────────────────────────────┘   │
+└──────────────────────────────────────────────────────────────┘
+                           │
+                           ▼
+┌──────────────────────────────────────────────────────────────┐
+│                     Supabase Cloud                           │
+│  ┌──────────┐  ┌──────────┐  ┌──────────┐                  │
+│  │PostgreSQL│  │   Auth   │  │ Storage  │                  │
+│  │Database  │  │  Service │  │  (S3)    │                  │
+│  └──────────┘  └──────────┘  └──────────┘                  │
+└──────────────────────────────────────────────────────────────┘
+```
+
+### Environment Configuration
+
+| Environment | URL | Purpose | Database |
+|-------------|-----|---------|----------|
+| **Development** | localhost:3000 | Local dev | Supabase Dev |
+| **Staging** | staging.jradianceco.com | Testing | Supabase Staging |
+| **Production** | jradiancceco.com | Live | Supabase Production |
+
+---
+
+## Data Architecture
+
+### Database Schema
+
+```
+┌─────────────┐     ┌─────────────┐     ┌─────────────┐
+│  profiles   │────<│ cart_items  │>────│  products   │
+└─────────────┘     └─────────────┘     └─────────────┘
+      │                                       │
+      │                                       │
+      ▼                                       ▼
+┌─────────────┐                       ┌─────────────┐
+│   orders    │                       │order_items  │
+└─────────────┘                       └─────────────┘
+      │                                       │
+      │                                       │
+      ▼                                       ▼
+┌─────────────┐                       ┌─────────────┐
+│admin_staff  │                       │   issues    │
+└─────────────┘                       └─────────────┘
+```
+
+### Data Flow
+
+```
+User Action → Component → Context → Server Action → Supabase
+     │            │           │           │             │
+     │            │           │           │             ▼
+     │            │           │           │        PostgreSQL
+     │            │           │           │        (with RLS)
+     │            │           │           │
+     │            │           │           ▼
+     │            │           │      Validation
+     │            │           │
+     │            │           ▼
+     │            │      State Update
+     │            │
+     │            ▼
+     │        UI Render
+     │
+     ▼
+  User Sees Result
+```
+
+### Data Storage Strategy
+
+| Data Type | Storage | Retention | Backup |
+|-----------|---------|-----------|--------|
+| **User Data** | Supabase Auth | Indefinite | Daily |
+| **Products** | PostgreSQL | Indefinite | Daily |
+| **Orders** | PostgreSQL | 7 years | Daily |
+| **Images** | Supabase Storage | Indefinite | Daily |
+| **Logs** | PostgreSQL | 1 year | Weekly |
+| **Sessions** | Supabase Auth | 30 days | N/A |
+
+---
+
+## Security Architecture
+
+### Security Layers
+
+```
+┌─────────────────────────────────────────┐
+│         Perimeter Security              │
+│  - HTTPS/TLS 1.3                        │
+│  - DDoS Protection (Vercel)             │
+│  - WAF (Web Application Firewall)       │
+└─────────────────────────────────────────┘
+              │
+              ▼
+┌─────────────────────────────────────────┐
+│         Application Security            │
+│  - Authentication (Supabase Auth)       │
+│  - Authorization (RBAC + RLS)           │
+│  - Input Validation                     │
+│  - XSS Protection                       │
+│  - CSRF Protection                      │
+└─────────────────────────────────────────┘
+              │
+              ▼
+┌─────────────────────────────────────────┐
+│           Data Security                 │
+│  - Encryption at Rest (AES-256)         │
+│  - Encryption in Transit (TLS)          │
+│  - Row Level Security (RLS)             │
+│  - Parameterized Queries                │
+└─────────────────────────────────────────┘
+```
+
+### Authentication Flow
+
+```
+┌─────────┐     ┌─────────┐     ┌─────────┐     ┌─────────┐
+│  User   │────▶│ Supabase│────▶│   JWT   │────▶│  App    │
+│  Login  │     │  Auth   │     │  Token  │     │ Session │
+└─────────┘     └─────────┘     └─────────┘     └─────────┘
+                     │                                  │
+                     │                                  ▼
+                     │                          ┌─────────────┐
+                     │                          │  RLS Policy │
+                     │                          │  Enforcement│
+                     └─────────────────────────▶└─────────────┘
+```
+
+### Authorization Matrix
+
+| Resource | Customer | Agent | Admin | Chief Admin |
+|----------|----------|-------|-------|-------------|
+| **View Products** | ✅ | ✅ | ✅ | ✅ |
+| **Create Products** | ❌ | ❌ | ✅ | ✅ |
+| **Update Products** | ❌ | ❌ | ✅ | ✅ |
+| **Delete Products** | ❌ | ❌ | ❌ | ✅ |
+| **View Orders** | Own | ✅ | ✅ | ✅ |
+| **Update Orders** | ❌ | ✅ | ✅ | ✅ |
+| **View Users** | ❌ | ❌ | ✅ | ✅ |
+| **Manage Roles** | ❌ | ❌ | ❌ | ✅ |
+| **View Audit Logs** | ❌ | ❌ | ✅ | ✅ |
+
+---
+
+## Integration Architecture
+
+### External Integrations
+
+```
+┌──────────────────────────────────────────────────────────────┐
+│                    JRADIANCE Platform                        │
+│                                                               │
+│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐         │
+│  │   Supabase  │  │ Flutterwave │  │   Vercel    │         │
+│  │   (REST)    │  │   (REST)    │  │  Analytics  │         │
+│  └──────┬──────┘  └──────┬──────┘  └──────┬──────┘         │
+│         │                │                │                 │
+│         ▼                ▼                ▼                 │
+│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐         │
+│  │   Database  │  │  Payments   │  │ Monitoring  │         │
+│  │   Queries   │  │ Processing  │  │   & Logs    │         │
+│  └─────────────┘  └─────────────┘  └─────────────┘         │
+└──────────────────────────────────────────────────────────────┘
+```
+
+### API Integration Patterns
+
+**1. Synchronous (Request-Response)**
+```typescript
+// Example: Product fetch
+const products = await supabase
+  .from('products')
+  .select('*')
+  .eq('is_active', true);
+```
+
+**2. Asynchronous (Event-Driven)**
+```typescript
+// Example: Payment webhook
+export async function POST(req: Request) {
+  const event = await req.json();
+  await updateOrderStatus(event.data.order_id, 'paid');
+}
+```
+
+---
+
+## Quality Attributes
+
+### Performance
+
+| Metric | Target | Strategy |
+|--------|--------|----------|
+| Page Load | < 3s | SSG, ISR, CDN |
+| API Response | < 500ms | Database indexes |
+| Image Load | < 1s | Optimization, lazy load |
+| Time to Interactive | < 5s | Code splitting |
+
+### Scalability
+
+| Component | Scaling Strategy |
+|-----------|-----------------|
+| **Frontend** | Vercel auto-scaling |
+| **API** | Serverless functions |
+| **Database** | Supabase connection pooling |
+| **Storage** | Supabase Storage (S3) |
+
+### Reliability
+
+| Aspect | Strategy |
+|--------|----------|
+| **Uptime** | Vercel SLA 99.9% |
+| **Backup** | Supabase daily backups |
+| **Recovery** | Point-in-time recovery |
+| **Monitoring** | Vercel Analytics + Supabase logs |
+
+---
+
+## Architecture Decisions
+
+### Key Decisions
+
+| Decision | Option Chosen | Alternatives | Rationale |
+|----------|--------------|--------------|-----------|
+| **Framework** | Next.js 15 | Nuxt, Remix | SSR, Vercel integration |
+| **Database** | Supabase | Firebase, AWS RDS | PostgreSQL, RLS, Real-time |
+| **Payment** | Flutterwave | Paystack, Stripe | Better African coverage |
+| **Hosting** | Vercel | AWS, Netlify | Next.js optimized |
+| **Styling** | Tailwind CSS | Material-UI, Chakra | Utility-first, fast |
+| **State** | Context API | Redux, Zustand | Simplicity, built-in |
+
+### Trade-offs
+
+| Decision | Pros | Cons | Mitigation |
+|----------|------|------|------------|
+| **Serverless** | Auto-scaling, cost-effective | Cold starts | Keep functions warm |
+| **Monorepo** | Single codebase | Large bundle | Code splitting |
+| **TypeScript** | Type safety | Development speed | Better tooling |
+
+---
+
+## Diagrams
+
+### Component Diagram
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    Presentation Layer                        │
+│  ┌───────────┐  ┌───────────┐  ┌───────────┐              │
+│  │   Pages   │  │Components │  │  Layouts  │              │
+│  └───────────┘  └───────────┘  └───────────┘              │
+└─────────────────────────────────────────────────────────────┘
+                            │
+                            ▼
+┌─────────────────────────────────────────────────────────────┐
+│                    Application Layer                         │
+│  ┌───────────┐  ┌───────────┐  ┌───────────┐              │
+│  │  Context  │  │   Hooks   │  │ Providers │              │
+│  └───────────┘  └───────────┘  └───────────┘              │
+└─────────────────────────────────────────────────────────────┘
+                            │
+                            ▼
+┌─────────────────────────────────────────────────────────────┐
+│                     Business Layer                           │
+│  ┌───────────┐  ┌───────────┐  ┌───────────┐              │
+│  │  Server   │  │   API     │  │Services   │              │
+│  │  Actions  │  │  Routes   │  │           │              │
+│  └───────────┘  └───────────┘  └───────────┘              │
+└─────────────────────────────────────────────────────────────┘
+                            │
+                            ▼
+┌─────────────────────────────────────────────────────────────┐
+│                      Data Layer                              │
+│  ┌───────────┐  ┌───────────┐  ┌───────────┐              │
+│  │ Supabase  │  │  Storage  │  │   Auth    │              │
+│  └───────────┘  └───────────┘  └───────────┘              │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### Sequence Diagram: Checkout Flow
+
+```
+Customer        Frontend        Backend        Supabase      Flutterwave
+   │               │               │               │               │
+   │──Add to Cart─▶│               │               │               │
+   │               │──Update Cart─▶│               │               │
+   │               │               │──Upsert──────▶│               │
+   │               │               │◀─Success──────│               │
+   │◀─Success──────│               │               │               │
+   │               │               │               │               │
+   │──Checkout────▶│               │               │               │
+   │               │──Create Order─▶│               │               │
+   │               │               │──Insert──────▶│               │
+   │               │               │◀─Order ID─────│               │
+   │               │◀─Order Created│               │               │
+   │               │               │               │               │
+   │               │──Init Payment─▶│               │               │
+   │               │               │──Verify──────▶│───Charge────▶│
+   │               │               │               │◀─Success─────│
+   │◀─Payment UI───│               │               │               │
+   │──Complete────▶│               │               │               │
+   │               │──Verify──────▶│               │               │
+   │               │               │──Update──────▶│               │
+   │               │◀─Success──────│               │               │
+   │◀─Confirmation─│               │               │               │
+```
+
+---
+
+## Appendix
+
+### Glossary
+
+| Term | Definition |
+|------|------------|
+| **SSG** | Static Site Generation |
+| **SSR** | Server-Side Rendering |
+| **ISR** | Incremental Static Regeneration |
+| **RLS** | Row Level Security |
+| **RBAC** | Role-Based Access Control |
+| **CDN** | Content Delivery Network |
+| **JWT** | JSON Web Token |
+
+### References
+
+- Next.js Architecture: https://nextjs.org/docs/architecture
+- Supabase Documentation: https://supabase.com/docs
+- Vercel Platform: https://vercel.com/docs
+- Flutterwave API: https://developer.flutterwave.com
+
+---
+
+**Document Approval**
+
+| Role | Name | Date | Signature |
+|------|------|------|-----------|
+| **Architect** | Oluwaseye Ayooluwa Philip | Ayooluwa | |
+| **Tech Lead** | Oluwaseye Ayooluwa Philip | Ayooluwa | |
+| **CTO** | Oluwaseye Ayooluwa Philip  | Ayooluwa | |
+
+**Last Updated:** 2026-03-15  
+**Next Review:** 2026-09-15

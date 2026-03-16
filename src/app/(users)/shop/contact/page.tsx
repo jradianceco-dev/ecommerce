@@ -406,19 +406,19 @@ export default function ContactPage() {
             </h3>
             <ul className="space-y-2 text-sm text-green-800">
               <li className="flex items-start gap-2">
-                <CheckCircle size={16} className="mt-0.5 flex-shrink-0" />
+                <CheckCircle size={16} className="mt-0.5 shrink-0" />
                 <span>Response within 24-48 hours</span>
               </li>
               <li className="flex items-start gap-2">
-                <CheckCircle size={16} className="mt-0.5 flex-shrink-0" />
+                <CheckCircle size={16} className="mt-0.5 shrink-0" />
                 <span>Knowledgeable support team</span>
               </li>
               <li className="flex items-start gap-2">
-                <CheckCircle size={16} className="mt-0.5 flex-shrink-0" />
+                <CheckCircle size={16} className="mt-0.5 shrink-0" />
                 <span>Personalized assistance</span>
               </li>
               <li className="flex items-start gap-2">
-                <CheckCircle size={16} className="mt-0.5 flex-shrink-0" />
+                <CheckCircle size={16} className="mt-0.5 shrink-0" />
                 <span>Follow-up until resolved</span>
               </li>
             </ul>

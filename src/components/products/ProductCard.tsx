@@ -284,7 +284,7 @@ function ProductCard({
   if (viewMode === "vertical") {
     return (
       <div
-        className={`group bg-white rounded-xl shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden border border-gray-100 w-full max-w-[301px] ${className}`}
+        className={`group bg-white rounded-xl shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden border border-gray-100 w-full max-w-75.25 ${className}`}
       >
         {/* Image Section */}
         <div className="relative w-full aspect-square bg-gray-100">
@@ -356,7 +356,7 @@ function ProductCard({
 
           {/* Product Name */}
           <Link href={`/products/${product.slug}`}>
-            <h3 className="font-semibold text-sm text-gray-900 line-clamp-2 hover:text-radiance-goldColor transition-colors min-h-[2.5rem]">
+            <h3 className="font-semibold text-sm text-gray-900 line-clamp-2 hover:text-radiance-goldColor transition-colors min-h-10">
               {product.name}
             </h3>
           </Link>
@@ -469,7 +469,7 @@ function ProductCard({
       style={{ width: "301px", minHeight: "400px" }}
     >
       {/* Image Section - Left */}
-      <div className="relative w-full h-40 bg-gray-100 flex-shrink-0">
+      <div className="relative w-full h-40 bg-gray-100 shrink-0">
         <Link href={`/products/${product.slug}`} className="block">
           {product.images && product.images.length > 0 ? (
             <Image

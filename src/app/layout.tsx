@@ -80,11 +80,7 @@ export default function RootLayout({
                 <WishlistProvider>
                   <TopBar />
 
-                  <main className="pb-20 md:pb-0">
-                    <div className="mx-auto max-w-6xl px-6 py-12">
-                      {children}
-                    </div>
-                  </main>
+                  <main className="pb-20 md:pb-0">{children}</main>
 
                   <Analytics />
                   <SpeedInsights />

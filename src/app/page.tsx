@@ -137,7 +137,7 @@ export default function LandingPage() {
           </div>
 
           {/* Content layer */}
-          <div className="relative z-10 max-w-7xl mx-auto px-4 md:px-6 w-full">
+          <div className="relative z-10 max-w-7xl mx-auto px-4 md:px-24 py-15 w-full">
             <div className="max-w-2xl">
               {/* Badge */}
               <div className="inline-flex items-center gap-2 bg-white/80 backdrop-blur-sm px-5 py-2.5 rounded-full text-radiance-goldColor text-sm font-semibold mb-6 shadow-sm">
@@ -214,7 +214,7 @@ export default function LandingPage() {
 
         {/* Features Section */}
         <section
-          className="py-16 px-4 bg-white border-y border-gray-100"
+          className="py-16 px-24 bg-white border-y border-gray-100"
           aria-label="Shopping features"
         >
           <div className="max-w-7xl mx-auto">
@@ -232,7 +232,7 @@ export default function LandingPage() {
               {features.map((feature, index) => (
                 <div
                   key={index}
-                  className="text-center group p-6 rounded-2xl hover:bg-radiance-goldColor/50 transition-all duration-300"
+                  className="text-center group p-6 rounded-2xl hover:bg-radiance-goldColor/5 transition-all duration-300"
                 >
                   <div className="inline-flex items-center justify-center w-14 h-14 bg-linear-to-br from-radiance-goldColor to-yellow-400 rounded-2xl mb-4 group-hover:scale-110 transition-transform shadow-md">
                     <feature.icon className="text-white" size={28} />
@@ -248,7 +248,7 @@ export default function LandingPage() {
         </section>
 
         {/* Categories Section - Image Cards */}
-        <section className="py-20 px-4">
+        <section className="py-20 px-24">
           <div className="max-w-7xl mx-auto">
             <div className="text-center mb-12">
               <h2 className="text-4xl md:text-5xl font-black text-radiance-charcoalTextColor mb-3">
@@ -291,7 +291,7 @@ export default function LandingPage() {
         </section>
 
         {/* Trending Products */}
-        <section className="py-20 px-4 bg-white">
+        <section className="py-20 px-24 bg-white">
           <div className="max-w-7xl mx-auto">
             <div className="flex items-center justify-between mb-12">
               <div>
@@ -347,7 +347,7 @@ export default function LandingPage() {
 
         {/* SEO Content Section - Organic Skincare & Body Care */}
         <section
-          className="py-16 px-4 bg-white"
+          className="py-16 px-24 bg-white"
           aria-label="About our organic skincare products"
         >
           <div className="max-w-4xl mx-auto text-center">
@@ -435,7 +435,7 @@ export default function LandingPage() {
         </section>
 
         {/* Brand Values - Clean Light Design */}
-        <section className="py-20 px-4 bg-linear-to-b from-white to-radiance-creamBackgroundColor">
+        <section className="py-20 px-24 bg-linear-to-b from-white to-radiance-creamBackgroundColor">
           <div className="max-w-7xl mx-auto">
             <div className="text-center mb-16">
               <h2 className="text-4xl md:text-5xl font-black text-radiance-charcoalTextColor mb-4">
@@ -491,7 +491,7 @@ export default function LandingPage() {
         </section>
 
         {/* Newsletter - Soft Gradient */}
-        <section className="py-20 px-4 bg-linear-to-r from-radiance-goldColor/20 to-yellow-400/20">
+        <section className="py-20 px-24 bg-linear-to-r from-radiance-goldColor/20 to-yellow-400/20">
           <div className="max-w-4xl mx-auto text-center">
             <div className="bg-white rounded-3xl p-8 md:p-12 shadow-lg">
               <h2 className="text-3xl md:text-4xl font-black text-radiance-charcoalTextColor mb-4">
@@ -522,7 +522,7 @@ export default function LandingPage() {
         </section>
 
         {/* Footer CTA */}
-        <section className="py-20 px-4 bg-white">
+        <section className="py-20 px-24 bg-white">
           <div className="max-w-4xl mx-auto text-center">
             <h2 className="text-4xl md:text-5xl font-black text-radiance-charcoalTextColor mb-6">
               Ready to Glow?

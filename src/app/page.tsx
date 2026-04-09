@@ -66,25 +66,25 @@ export default function LandingPage() {
     {
       name: "Skincare",
       icon: "✨",
-      image: "/beauty-face-model.jpg",
+      image: "/skincare.jpg",
       gradient: "from-pink-400/80 to-rose-400/80",
     },
     {
       name: "Makeup",
       icon: "💄",
-      image: "/beauty-model.jpg",
+      image: "/make-up-brushes-lipstick-broken-face-powder-dark-background.jpg",
       gradient: "from-purple-400/80 to-pink-400/80",
     },
     {
       name: "Hair Care",
       icon: "💇",
-      image: "/WhatsApp-Image-1.jpeg",
+      image: "/hair-care.jpg",
       gradient: "from-blue-400/80 to-cyan-400/80",
     },
     {
       name: "Fragrance",
       icon: "🌸",
-      image: "/WhatsApp-Image-2.jpeg",
+      image: "/fragrance.jpg",
       gradient: "from-amber-400/80 to-orange-400/80",
     },
   ];

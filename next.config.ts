@@ -1,9 +1,15 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // Server Actions configuration (Increased limit for product uploads)
+  serverActions: {
+    bodySizeLimit: "5mb",
+  },
+
   // Environment variables for SEO
   env: {
-    NEXT_PUBLIC_BASE_URL: process.env.NEXT_PUBLIC_BASE_URL || "https://jradianceco.com",
+    NEXT_PUBLIC_BASE_URL:
+      process.env.NEXT_PUBLIC_BASE_URL || "https://jradianceco.com",
   },
 
   // Image optimization configuration

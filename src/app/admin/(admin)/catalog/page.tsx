@@ -14,21 +14,74 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { createProduct, updateProduct, deleteProduct, toggleProductStatus, checkPermission, uploadProductMedia } from "../admin-actions";
-import { Package, Plus, Edit, Trash2, ToggleLeft, Image as ImageIcon, X, Upload, FileVideo, Loader2, DollarSign } from "lucide-react";
+import {
+  createProduct,
+  updateProduct,
+  deleteProduct,
+  toggleProductStatus,
+  checkPermission,
+  uploadProductMedia,
+} from "../admin-actions";
+import {
+  Package,
+  Plus,
+  Edit,
+  Trash2,
+  ToggleLeft,
+  Image as ImageIcon,
+  X,
+  Upload,
+  FileVideo,
+  Loader2,
+  DollarSign,
+} from "lucide-react";
 import type { Product } from "@/types";
 import { useToast } from "@/context/ToastContext";
+import RichTextEditor from "@/components/admin/RichTextEditor";
 
 // Category options with icons and colors
 const CATEGORY_OPTIONS = [
-  { name: "Skincare", icon: "✨", color: "bg-pink-100 border-pink-300 text-pink-700 hover:bg-pink-200" },
-  { name: "Makeup", icon: "💄", color: "bg-purple-100 border-purple-300 text-purple-700 hover:bg-purple-200" },
-  { name: "Hair Care", icon: "💇", color: "bg-blue-100 border-blue-300 text-blue-700 hover:bg-blue-200" },
-  { name: "Fragrance", icon: "🌸", color: "bg-amber-100 border-amber-300 text-amber-700 hover:bg-amber-200" },
-  { name: "Body Care", icon: "🧴", color: "bg-green-100 border-green-300 text-green-700 hover:bg-green-200" },
-  { name: "Tools & Accessories", icon: "💅", color: "bg-rose-100 border-rose-300 text-rose-700 hover:bg-rose-200" },
-  { name: "Men's Care", icon: "👨", color: "bg-slate-100 border-slate-300 text-slate-700 hover:bg-slate-200" },
-  { name: "General", icon: "📦", color: "bg-gray-100 border-gray-300 text-gray-700 hover:bg-gray-200" },
+  {
+    name: "Skincare",
+    icon: "✨",
+    color: "bg-pink-100 border-pink-300 text-pink-700 hover:bg-pink-200",
+  },
+  {
+    name: "Makeup",
+    icon: "💄",
+    color:
+      "bg-purple-100 border-purple-300 text-purple-700 hover:bg-purple-200",
+  },
+  {
+    name: "Hair Care",
+    icon: "💇",
+    color: "bg-blue-100 border-blue-300 text-blue-700 hover:bg-blue-200",
+  },
+  {
+    name: "Fragrance",
+    icon: "🌸",
+    color: "bg-amber-100 border-amber-300 text-amber-700 hover:bg-amber-200",
+  },
+  {
+    name: "Body Care",
+    icon: "🧴",
+    color: "bg-green-100 border-green-300 text-green-700 hover:bg-green-200",
+  },
+  {
+    name: "Tools & Accessories",
+    icon: "💅",
+    color: "bg-rose-100 border-rose-300 text-rose-700 hover:bg-rose-200",
+  },
+  {
+    name: "Men's Care",
+    icon: "👨",
+    color: "bg-slate-100 border-slate-300 text-slate-700 hover:bg-slate-200",
+  },
+  {
+    name: "General",
+    icon: "📦",
+    color: "bg-gray-100 border-gray-300 text-gray-700 hover:bg-gray-200",
+  },
 ];
 
 export default function ProductsCatalogPage() {
@@ -119,12 +172,13 @@ export default function ProductsCatalogPage() {
   function handleCategoryChange(category: string) {
     setFormData((prev) => {
       const newSku = generateSKUFromCategory(category);
-      
+
       // For new products: always use auto-generated SKU
       // For editing: only update if current SKU matches old category pattern
-      const shouldUpdateSku = !editingProduct || 
+      const shouldUpdateSku =
+        !editingProduct ||
         prev.sku.startsWith(`JRAD-${category.substring(0, 3).toUpperCase()}`);
-      
+
       return {
         ...prev,
         category,
@@ -136,19 +190,19 @@ export default function ProductsCatalogPage() {
   function handleEdit(product: Product) {
     setEditingProduct(product);
     setFormData({
-      name: product.name ?? '',
-      slug: product.slug ?? '',
-      description: product.description ?? '',
-      category: product.category ?? '',
-      price: product.price?.toString() ?? '',
-      discount_price: product.discount_price?.toString() ?? '',
-      stock_quantity: product.stock_quantity?.toString() ?? '0',
-      sku: product.sku ?? '',
+      name: product.name ?? "",
+      slug: product.slug ?? "",
+      description: product.description ?? "",
+      category: product.category ?? "",
+      price: product.price?.toString() ?? "",
+      discount_price: product.discount_price?.toString() ?? "",
+      stock_quantity: product.stock_quantity?.toString() ?? "0",
+      sku: product.sku ?? "",
       // Multi-currency fields
-      currency: (product as any).currency ?? 'NGN',
-      usd_price: (product as any).usd_price?.toString() ?? '',
-      usd_discount_price: (product as any).usd_discount_price?.toString() ?? '',
-      exchange_rate: (product as any).exchange_rate?.toString() ?? '1.0',
+      currency: (product as any).currency ?? "NGN",
+      usd_price: (product as any).usd_price?.toString() ?? "",
+      usd_discount_price: (product as any).usd_discount_price?.toString() ?? "",
+      exchange_rate: (product as any).exchange_rate?.toString() ?? "1.0",
     });
     setUploadedImages(product.images ?? []);
     setSelectedFiles([]);
@@ -191,14 +245,20 @@ export default function ProductsCatalogPage() {
         const uploadFormData = new FormData();
         selectedFiles.forEach((file) => uploadFormData.append("files", file));
 
-        const uploadResult = await uploadProductMedia(uploadFormData, "products");
+        const uploadResult = await uploadProductMedia(
+          uploadFormData,
+          "products",
+        );
 
         if (!uploadResult.success) {
           throw new Error(uploadResult.error || "Failed to upload media");
         }
 
         // Add uploaded URLs to images array
-        finalImages = [...finalImages, ...uploadResult.results!.map((r) => r.url)];
+        finalImages = [
+          ...finalImages,
+          ...uploadResult.results!.map((r) => r.url),
+        ];
       }
 
       // Validate required fields
@@ -220,7 +280,9 @@ export default function ProductsCatalogPage() {
         showError("Valid stock quantity is required");
         return;
       }
-      const discountPrice = formData.discount_price ? parseFloat(formData.discount_price) : null;
+      const discountPrice = formData.discount_price
+        ? parseFloat(formData.discount_price)
+        : null;
       if (discountPrice !== null && discountPrice >= price) {
         showError("Discount price must be less than original price");
         return;
@@ -240,8 +302,12 @@ export default function ProductsCatalogPage() {
         // Multi-currency fields
         currency: formData.currency,
         usd_price: formData.usd_price ? parseFloat(formData.usd_price) : null,
-        usd_discount_price: formData.usd_discount_price ? parseFloat(formData.usd_discount_price) : null,
-        exchange_rate: formData.exchange_rate ? parseFloat(formData.exchange_rate) : 1.0,
+        usd_discount_price: formData.usd_discount_price
+          ? parseFloat(formData.usd_discount_price)
+          : null,
+        exchange_rate: formData.exchange_rate
+          ? parseFloat(formData.exchange_rate)
+          : 1.0,
       };
 
       let result;
@@ -312,7 +378,9 @@ export default function ProductsCatalogPage() {
     return (
       <div className="text-center py-12">
         <h2 className="text-xl font-bold text-red-600">Access Denied</h2>
-        <p className="text-gray-600 mt-2">You don&apos;t have permission to manage products.</p>
+        <p className="text-gray-600 mt-2">
+          You don&apos;t have permission to manage products.
+        </p>
       </div>
     );
   }
@@ -321,8 +389,12 @@ export default function ProductsCatalogPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-radiance-charcoalTextColor">Products Catalog</h1>
-          <p className="text-gray-600 mt-1">Manage all products in your store</p>
+          <h1 className="text-3xl font-bold text-radiance-charcoalTextColor">
+            Products Catalog
+          </h1>
+          <p className="text-gray-600 mt-1">
+            Manage all products in your store
+          </p>
         </div>
         <button
           onClick={handleCreate}
@@ -335,7 +407,10 @@ export default function ProductsCatalogPage() {
 
       {loading ? (
         <div className="text-center py-12">
-          <Loader2 size={48} className="animate-spin mx-auto text-radiance-goldColor" />
+          <Loader2
+            size={48}
+            className="animate-spin mx-auto text-radiance-goldColor"
+          />
         </div>
       ) : (
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
@@ -343,12 +418,24 @@ export default function ProductsCatalogPage() {
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50 sticky top-0 z-10">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase whitespace-nowrap">Product</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase whitespace-nowrap">Category</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase whitespace-nowrap">Price</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase whitespace-nowrap">Stock</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase whitespace-nowrap">Status</th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase whitespace-nowrap">Actions</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase whitespace-nowrap">
+                    Product
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase whitespace-nowrap">
+                    Category
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase whitespace-nowrap">
+                    Price
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase whitespace-nowrap">
+                    Stock
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase whitespace-nowrap">
+                    Status
+                  </th>
+                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase whitespace-nowrap">
+                    Actions
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
@@ -357,28 +444,49 @@ export default function ProductsCatalogPage() {
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
                         {product.images?.[0] ? (
-                          <img src={product.images[0]} alt={product.name} className="w-12 h-12 object-cover rounded-lg" />
+                          <img
+                            src={product.images[0]}
+                            alt={product.name}
+                            className="w-12 h-12 object-cover rounded-lg"
+                          />
                         ) : (
                           <div className="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center">
                             <ImageIcon size={20} className="text-gray-400" />
                           </div>
                         )}
                         <div>
-                          <p className="font-medium text-gray-900">{product.name}</p>
-                          <p className="text-xs text-gray-500">{product.sku || "No SKU"}</p>
+                          <p className="font-medium text-gray-900">
+                            {product.name}
+                          </p>
+                          <p className="text-xs text-gray-500">
+                            {product.sku || "No SKU"}
+                          </p>
                         </div>
                       </div>
                     </td>
-                    <td className="px-6 py-4 text-sm text-gray-600">{product.category}</td>
+                    <td className="px-6 py-4 text-sm text-gray-600">
+                      {product.category}
+                    </td>
                     <td className="px-6 py-4">
-                      <div className="text-sm font-medium text-gray-900">₦{(product.discount_price || product.price).toLocaleString()}</div>
+                      <div className="text-sm font-medium text-gray-900">
+                        ₦
+                        {(
+                          product.discount_price || product.price
+                        ).toLocaleString()}
+                      </div>
                       {product.discount_price && (
-                        <div className="text-xs text-gray-500 line-through">₦{product.price.toLocaleString()}</div>
+                        <div className="text-xs text-gray-500 line-through">
+                          ₦{product.price.toLocaleString()}
+                        </div>
                       )}
                     </td>
-                    <td className="px-6 py-4 text-sm text-gray-600">{product.stock_quantity}</td>
+                    <td className="px-6 py-4 text-sm text-gray-600">
+                      {product.stock_quantity}
+                    </td>
                     <td className="px-6 py-4">
-                      <span className={`px-2 py-1 rounded-full text-xs ${product.is_active ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"}`}>
+                      <span
+                        className={`px-2 py-1 rounded-full text-xs ${product.is_active ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"}`}
+                      >
                         {product.is_active ? "Active" : "Inactive"}
                       </span>
                     </td>
@@ -422,16 +530,26 @@ export default function ProductsCatalogPage() {
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 overflow-y-auto">
           <div className="bg-white rounded-2xl max-w-2xl w-full my-8 p-6 relative">
             <div className="flex items-center justify-between mb-6">
-              <h2 className="text-2xl font-bold">{editingProduct ? "Edit Product" : "Create Product"}</h2>
-              <button onClick={() => setShowModal(false)} className="p-2 hover:bg-gray-100 rounded-full">
+              <h2 className="text-2xl font-bold">
+                {editingProduct ? "Edit Product" : "Create Product"}
+              </h2>
+              <button
+                onClick={() => setShowModal(false)}
+                className="p-2 hover:bg-gray-100 rounded-full"
+              >
                 <Plus size={24} className="rotate-45" />
               </button>
             </div>
 
-            <form onSubmit={handleSubmit} className="space-y-4 max-h-[70vh] overflow-y-auto pr-2">
+            <form
+              onSubmit={handleSubmit}
+              className="space-y-4 max-h-[70vh] overflow-y-auto pr-2"
+            >
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Name <span className="text-red-500">*</span></label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Name <span className="text-red-500">*</span>
+                  </label>
                   <input
                     type="text"
                     value={formData.name}
@@ -442,11 +560,18 @@ export default function ProductsCatalogPage() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Slug <span className="text-xs text-gray-500">(auto-generated)</span></label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Slug{" "}
+                    <span className="text-xs text-gray-500">
+                      (auto-generated)
+                    </span>
+                  </label>
                   <input
                     type="text"
                     value={formData.slug}
-                    onChange={(e) => setFormData({ ...formData, slug: e.target.value })}
+                    onChange={(e) =>
+                      setFormData({ ...formData, slug: e.target.value })
+                    }
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-radiance-goldColor focus:border-transparent"
                     disabled={uploading || actionLoading === "submit"}
                   />
@@ -454,19 +579,22 @@ export default function ProductsCatalogPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
-                <textarea
-                  value={formData.description}
-                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-radiance-goldColor focus:border-transparent"
-                  rows={4}
-                  disabled={uploading || actionLoading === "submit"}
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Description
+                </label>
+                <RichTextEditor
+                  content={formData.description}
+                  onChange={(html) =>
+                    setFormData({ ...formData, description: html })
+                  }
                 />
               </div>
 
               {/* Category Selection */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-3">Category <span className="text-red-500">*</span></label>
+                <label className="block text-sm font-medium text-gray-700 mb-3">
+                  Category <span className="text-red-500">*</span>
+                </label>
                 <div className="grid grid-cols-4 gap-3">
                   {CATEGORY_OPTIONS.map((category) => (
                     <button
@@ -481,7 +609,9 @@ export default function ProductsCatalogPage() {
                       disabled={uploading || actionLoading === "submit"}
                     >
                       <span className="text-2xl">{category.icon}</span>
-                      <span className="text-xs font-semibold text-center leading-tight">{category.name}</span>
+                      <span className="text-xs font-semibold text-center leading-tight">
+                        {category.name}
+                      </span>
                     </button>
                   ))}
                 </div>
@@ -489,11 +619,18 @@ export default function ProductsCatalogPage() {
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">SKU <span className="text-xs text-gray-500">(auto-generated)</span></label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    SKU{" "}
+                    <span className="text-xs text-gray-500">
+                      (auto-generated)
+                    </span>
+                  </label>
                   <input
                     type="text"
                     value={formData.sku}
-                    onChange={(e) => setFormData({ ...formData, sku: e.target.value })}
+                    onChange={(e) =>
+                      setFormData({ ...formData, sku: e.target.value })
+                    }
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-radiance-goldColor focus:border-transparent"
                     disabled={uploading || actionLoading === "submit"}
                   />
@@ -502,37 +639,55 @@ export default function ProductsCatalogPage() {
 
               <div className="grid grid-cols-3 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Price (₦) <span className="text-red-500">*</span></label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Price (₦) <span className="text-red-500">*</span>
+                  </label>
                   <input
                     type="number"
                     step="0.01"
                     min="0"
                     value={formData.price}
-                    onChange={(e) => setFormData({ ...formData, price: e.target.value })}
+                    onChange={(e) =>
+                      setFormData({ ...formData, price: e.target.value })
+                    }
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-radiance-goldColor focus:border-transparent"
                     required
                     disabled={uploading || actionLoading === "submit"}
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Discount Price (₦)</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Discount Price (₦)
+                  </label>
                   <input
                     type="number"
                     step="0.01"
                     min="0"
                     value={formData.discount_price}
-                    onChange={(e) => setFormData({ ...formData, discount_price: e.target.value })}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        discount_price: e.target.value,
+                      })
+                    }
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-radiance-goldColor focus:border-transparent"
                     disabled={uploading || actionLoading === "submit"}
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Stock Quantity <span className="text-red-500">*</span></label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Stock Quantity <span className="text-red-500">*</span>
+                  </label>
                   <input
                     type="number"
                     min="0"
                     value={formData.stock_quantity}
-                    onChange={(e) => setFormData({ ...formData, stock_quantity: e.target.value })}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        stock_quantity: e.target.value,
+                      })
+                    }
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-radiance-goldColor focus:border-transparent"
                     required
                     disabled={uploading || actionLoading === "submit"}
@@ -548,26 +703,37 @@ export default function ProductsCatalogPage() {
                 </h3>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Price ($)</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Price ($)
+                    </label>
                     <input
                       type="number"
                       step="0.01"
                       min="0"
                       value={formData.usd_price}
-                      onChange={(e) => setFormData({ ...formData, usd_price: e.target.value })}
+                      onChange={(e) =>
+                        setFormData({ ...formData, usd_price: e.target.value })
+                      }
                       className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-radiance-goldColor focus:border-transparent"
                       placeholder="Enter USD price"
                       disabled={uploading || actionLoading === "submit"}
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Discount Price ($)</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Discount Price ($)
+                    </label>
                     <input
                       type="number"
                       step="0.01"
                       min="0"
                       value={formData.usd_discount_price}
-                      onChange={(e) => setFormData({ ...formData, usd_discount_price: e.target.value })}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          usd_discount_price: e.target.value,
+                        })
+                      }
                       className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-radiance-goldColor focus:border-transparent"
                       placeholder="Enter USD discount"
                       disabled={uploading || actionLoading === "submit"}
@@ -575,13 +741,16 @@ export default function ProductsCatalogPage() {
                   </div>
                 </div>
                 <p className="text-xs text-blue-700 mt-2">
-                  💡 Set USD prices manually for full control, or use the exchange rate for auto-conversion
+                  💡 Set USD prices manually for full control, or use the
+                  exchange rate for auto-conversion
                 </p>
               </div>
 
               {/* Media Upload Section */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Product Images/Videos</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Product Images/Videos
+                </label>
 
                 {/* Upload Area */}
                 <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-radiance-goldColor transition-colors">
@@ -600,25 +769,40 @@ export default function ProductsCatalogPage() {
                   >
                     <Upload size={32} className="text-gray-400" />
                     <div className="text-sm text-gray-600">
-                      <span className="font-semibold text-radiance-goldColor">Click to upload</span> or drag and drop
+                      <span className="font-semibold text-radiance-goldColor">
+                        Click to upload
+                      </span>{" "}
+                      or drag and drop
                     </div>
-                    <p className="text-xs text-gray-500">Images (JPG, PNG, GIF, WEBP) or Videos (MP4, WEBM) - Max 5MB (images), 50MB (videos)</p>
+                    <p className="text-xs text-gray-500">
+                      Images (JPG, PNG, GIF, WEBP) or Videos (MP4, WEBM) - Max
+                      5MB (images), 50MB (videos)
+                    </p>
                   </label>
                 </div>
 
                 {/* Uploaded Images Preview */}
                 {uploadedImages.length > 0 && (
                   <div className="mt-4">
-                    <p className="text-xs font-medium text-gray-600 mb-2">Uploaded Media:</p>
+                    <p className="text-xs font-medium text-gray-600 mb-2">
+                      Uploaded Media:
+                    </p>
                     <div className="grid grid-cols-4 gap-2">
                       {uploadedImages.map((url, index) => (
-                        <div key={index} className="relative group aspect-square rounded-lg overflow-hidden border border-gray-200">
+                        <div
+                          key={index}
+                          className="relative group aspect-square rounded-lg overflow-hidden border border-gray-200"
+                        >
                           {url.match(/\.(mp4|webm|mov)$/i) ? (
                             <div className="w-full h-full flex items-center justify-center bg-gray-100">
                               <FileVideo size={32} className="text-gray-400" />
                             </div>
                           ) : (
-                            <img src={url} alt={`Product ${index + 1}`} className="w-full h-full object-cover" />
+                            <img
+                              src={url}
+                              alt={`Product ${index + 1}`}
+                              className="w-full h-full object-cover"
+                            />
                           )}
                           <button
                             type="button"
@@ -637,10 +821,15 @@ export default function ProductsCatalogPage() {
                 {/* Files Pending Upload */}
                 {selectedFiles.length > 0 && (
                   <div className="mt-4">
-                    <p className="text-xs font-medium text-gray-600 mb-2">Files to upload ({selectedFiles.length}):</p>
+                    <p className="text-xs font-medium text-gray-600 mb-2">
+                      Files to upload ({selectedFiles.length}):
+                    </p>
                     <div className="grid grid-cols-4 gap-2">
                       {selectedFiles.map((file, index) => (
-                        <div key={index} className="relative group aspect-square rounded-lg overflow-hidden border border-gray-200 bg-gray-50">
+                        <div
+                          key={index}
+                          className="relative group aspect-square rounded-lg overflow-hidden border border-gray-200 bg-gray-50"
+                        >
                           {file.type.startsWith("video/") ? (
                             <div className="w-full h-full flex items-center justify-center">
                               <FileVideo size={32} className="text-gray-400" />
@@ -694,8 +883,10 @@ export default function ProductsCatalogPage() {
                       <Loader2 size={18} className="animate-spin" />
                       Saving...
                     </>
+                  ) : editingProduct ? (
+                    "Update Product"
                   ) : (
-                    editingProduct ? "Update Product" : "Create Product"
+                    "Create Product"
                   )}
                 </button>
               </div>

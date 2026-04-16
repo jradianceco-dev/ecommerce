@@ -31,7 +31,7 @@ import { useUser } from "@/context/UserContext";
 import { useToast } from "@/context/ToastContext";
 import { useCart } from "@/context/CartContext";
 import { useWishlist } from "@/context/WishlistContext";
-import RichViewer from "@/components/products/RichViewer";
+import RichTextViewer from "@/components/products/RichTextViewer";
 import ProductRecommendations from "@/components/products/ProductRecommendations";
 
 interface ProductDetailClientProps {
@@ -416,9 +416,7 @@ function ProductDetailContent({
                 <h2 className="font-bold text-lg text-radiance-charcoalTextColor">
                   Description
                 </h2>
-                <div className="prose prose-zinc prose-sm max-w-none text-gray-700">
-                  <RichViewer content={product.description} />
-                </div>
+                <RichTextViewer content={product.description} />
               </div>
             )}
 

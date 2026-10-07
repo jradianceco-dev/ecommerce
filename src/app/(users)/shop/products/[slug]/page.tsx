@@ -59,6 +59,7 @@ export async function generateMetadata({
 
     return createProductMetadata({
       name: product.name,
+      slug: product.slug,
       description: product.description,
       price: product.discount_price || product.price,
       currency: "NGN",
@@ -143,7 +144,7 @@ export default async function ProductPage({ params }: ProductPageProps) {
       { name: "Home", url: "/", position: 1 },
       { name: "Shop", url: "/shop", position: 2 },
       { name: product.category, url: `/shop?category=${encodeURIComponent(product.category)}`, position: 3 },
-      { name: product.name, url: `/products/${slug}`, position: 4 },
+      { name: product.name, url: `/shop/products/${slug}`, position: 4 },
     ];
 
     return (

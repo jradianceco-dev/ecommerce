@@ -163,6 +163,7 @@ export function createBaseMetadata(config: SEOConfig = defaultSEOConfig): Metada
  */
 export interface ProductMetadataOptions {
   name: string;
+  slug?: string;
   description?: string | null;
   price: number;
   currency?: string;
@@ -177,14 +178,23 @@ export function createProductMetadata(
   config: SEOConfig = defaultSEOConfig
 ): Metadata {
   const { baseUrl, siteName } = config;
-  const { name, description, price, currency = "NGN", image, inStock = true, category, brand = siteName } = options;
+  const cleanBaseUrl = baseUrl.replace(/\/$/, "");
+  const { name, slug, description, price, currency = "NGN", image, inStock = true, category, brand = siteName } = options;
 
-  const productUrl = `${baseUrl}/products/${name.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`;
-  const imageUrl = image || `${baseUrl}/og-image.jpg`;
+  const productSlug = slug || name.toLowerCase().replace(/[^a-z0-9]+/g, "-");
+  const productUrl = `${cleanBaseUrl}/shop/products/${productSlug}`;
+  
+  const rawImage = image || `${cleanBaseUrl}/og-image.jpg`;
+  const imageUrl = rawImage.startsWith("http://") || rawImage.startsWith("https://")
+    ? rawImage
+    : `${cleanBaseUrl}${rawImage.startsWith("/") ? "" : "/"}${rawImage}`;
 
   return {
     title: name,
     description: description || `Buy ${name} at ${siteName}`,
+    alternates: {
+      canonical: productUrl,
+    },
     keywords: [
       name,
       category || "cosmetics",

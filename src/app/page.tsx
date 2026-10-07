@@ -314,7 +314,7 @@ export default function LandingPage() {
             </div>
 
             {loading ? (
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-6">
                 {[...Array(8)].map((_, i) => (
                   <div
                     key={i}
@@ -324,7 +324,7 @@ export default function LandingPage() {
               </div>
             ) : (
               <>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-6">
                   {trendingProducts.map((product) => (
                     <ProductCard
                       key={product.id}
@@ -411,7 +411,7 @@ export default function LandingPage() {
             </div>
 
             {loading ? (
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-6">
                 {[...Array(8)].map((_, i) => (
                   <div
                     key={i}
@@ -420,7 +420,7 @@ export default function LandingPage() {
                 ))}
               </div>
             ) : (
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-6">
                 {bestSellers.map((product) => (
                   <ProductCard
                     key={product.id}

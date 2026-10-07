@@ -328,9 +328,9 @@ export default function ProductFeeds({
         {/* Products Grid */}
         {products.length > 0 ? (
           <div
-            className={`grid gap-6 md:gap-8 ${
+            className={`grid gap-3 sm:gap-6 md:gap-8 ${
               viewMode === "grid"
-                ? "grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 justify-items-center"
+                ? "grid-cols-2 md:grid-cols-3 lg:grid-cols-4 justify-items-center"
                 : "grid-cols-1"
             }`}
           >

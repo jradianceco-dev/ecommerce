@@ -222,7 +222,7 @@ function ProductCard({
   if (viewMode === "vertical") {
     return (
       <div
-        className={`group luxury-card relative flex flex-col justify-between overflow-hidden bg-white ${className}`}
+        className={`group luxury-card relative flex flex-col justify-between overflow-hidden bg-white w-full ${className}`}
       >
         {/* Image Showcase */}
         <div className="relative w-full aspect-square bg-[#FDFBF7] overflow-hidden">
@@ -299,34 +299,34 @@ function ProductCard({
         </div>
 
         {/* Content Section */}
-        <div className="p-4 flex flex-col justify-between flex-1 gap-2.5">
-          <div className="space-y-1">
-            <span className="text-[11px] uppercase tracking-wider font-semibold text-radiance-goldColor block truncate">
+        <div className="p-3 sm:p-4 flex flex-col justify-between flex-1 gap-2 sm:gap-2.5">
+          <div className="space-y-0.5 sm:space-y-1">
+            <span className="text-[10px] sm:text-[11px] uppercase tracking-wider font-semibold text-radiance-goldColor block truncate">
               {product.category}
             </span>
 
             <Link href={productLink}>
-              <h3 className="font-serif font-bold text-sm text-radiance-charcoalTextColor line-clamp-2 hover:text-radiance-goldColor transition-colors">
+              <h3 className="font-serif font-bold text-xs sm:text-sm text-radiance-charcoalTextColor line-clamp-2 hover:text-radiance-goldColor transition-colors leading-snug">
                 {product.name}
               </h3>
             </Link>
 
             {/* Rating */}
-            <div className="flex items-center gap-1.5 pt-0.5">
+            <div className="flex items-center gap-1 sm:gap-1.5 pt-0.5">
               {renderStars()}
               {rating.count > 0 && (
-                <span className="text-[11px] text-gray-400">({rating.count})</span>
+                <span className="text-[10px] sm:text-[11px] text-gray-400">({rating.count})</span>
               )}
             </div>
           </div>
 
           {/* Pricing Display */}
-          <div className="flex items-baseline gap-2 pt-1 border-t border-gray-100">
-            <span className="text-base font-bold text-radiance-charcoalTextColor">
+          <div className="flex items-baseline gap-1.5 sm:gap-2 pt-1 border-t border-gray-100">
+            <span className="text-sm sm:text-base font-bold text-radiance-charcoalTextColor">
               {formatPrice(displayPrice, usdDiscountPrice || usdPrice)}
             </span>
             {hasDiscount && (
-              <span className="text-xs text-gray-400 line-through">
+              <span className="text-[10px] sm:text-xs text-gray-400 line-through">
                 {formatPrice(product.price, usdPrice)}
               </span>
             )}
@@ -334,10 +334,10 @@ function ProductCard({
 
           {/* Quick Add To Bag Action */}
           {showQuickAdd && !isOutOfStock && (
-            <div className="space-y-2 pt-1">
-              <div className="flex items-center gap-1.5">
+            <div className="space-y-1.5 sm:space-y-2 pt-0.5 sm:pt-1">
+              <div className="flex items-center gap-1 sm:gap-1.5">
                 {/* Quantity Stepper */}
-                <div className="flex items-center bg-gray-50 border border-gray-200 rounded-lg p-0.5">
+                <div className="flex items-center bg-gray-50 border border-gray-200 rounded-lg p-0.5 shrink-0">
                   <button
                     type="button"
                     onClick={(e) => {
@@ -346,11 +346,12 @@ function ProductCard({
                       handleQuantityChange(-1);
                     }}
                     disabled={quantity <= 1}
-                    className="p-1 text-gray-500 hover:text-gray-900 disabled:opacity-30 cursor-pointer"
+                    className="p-0.5 sm:p-1 text-gray-500 hover:text-gray-900 disabled:opacity-30 cursor-pointer"
                   >
-                    <Minus size={13} />
+                    <Minus size={11} className="sm:hidden" />
+                    <Minus size={13} className="hidden sm:block" />
                   </button>
-                  <span className="text-xs font-semibold px-2 min-w-5 text-center">
+                  <span className="text-[10px] sm:text-xs font-semibold px-1 sm:px-2 min-w-4 sm:min-w-5 text-center">
                     {quantity}
                   </span>
                   <button
@@ -361,9 +362,10 @@ function ProductCard({
                       handleQuantityChange(1);
                     }}
                     disabled={quantity >= product.stock_quantity}
-                    className="p-1 text-gray-500 hover:text-gray-900 disabled:opacity-30 cursor-pointer"
+                    className="p-0.5 sm:p-1 text-gray-500 hover:text-gray-900 disabled:opacity-30 cursor-pointer"
                   >
-                    <Plus size={13} />
+                    <Plus size={11} className="sm:hidden" />
+                    <Plus size={13} className="hidden sm:block" />
                   </button>
                 </div>
 
@@ -372,14 +374,14 @@ function ProductCard({
                   type="button"
                   onClick={handleAddToCart}
                   disabled={cartLoading}
-                  className="flex-1 py-2 px-3 bg-radiance-charcoalTextColor hover:bg-radiance-goldColor text-white text-xs font-bold rounded-lg transition-all duration-300 flex items-center justify-center gap-1.5 shadow-sm hover:shadow cursor-pointer disabled:opacity-50"
+                  className="flex-1 py-1.5 sm:py-2 px-2 sm:px-3 bg-radiance-charcoalTextColor hover:bg-radiance-goldColor text-white text-[11px] sm:text-xs font-semibold sm:font-bold rounded-lg transition-all duration-300 flex items-center justify-center gap-1 sm:gap-1.5 shadow-xs hover:shadow cursor-pointer disabled:opacity-50 min-w-0"
                 >
                   {cartLoading ? (
-                    <Loader2 size={13} className="animate-spin" />
+                    <Loader2 size={12} className="animate-spin" />
                   ) : (
                     <>
-                      <ShoppingCart size={13} />
-                      <span>Add to Bag</span>
+                      <ShoppingCart size={12} className="shrink-0 sm:w-[13px] sm:h-[13px]" />
+                      <span className="truncate">Add to Bag</span>
                     </>
                   )}
                 </button>
@@ -467,13 +469,13 @@ function ProductCard({
             type="button"
             onClick={handleAddToCart}
             disabled={cartLoading}
-            className="w-full py-1.5 px-3 bg-radiance-charcoalTextColor hover:bg-radiance-goldColor text-white text-xs font-semibold rounded-lg transition-all flex items-center justify-center gap-1.5"
+            className="w-full py-1.5 sm:py-2 px-2.5 sm:px-3 bg-radiance-charcoalTextColor hover:bg-radiance-goldColor text-white text-[11px] sm:text-xs font-semibold rounded-lg transition-all flex items-center justify-center gap-1.5"
           >
             {cartLoading ? (
-              <Loader2 size={13} className="animate-spin" />
+              <Loader2 size={12} className="animate-spin" />
             ) : (
               <>
-                <ShoppingCart size={13} />
+                <ShoppingCart size={12} className="sm:w-[13px] sm:h-[13px]" />
                 <span>Add to Bag</span>
               </>
             )}

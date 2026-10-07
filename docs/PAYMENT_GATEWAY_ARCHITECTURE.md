@@ -141,21 +141,23 @@ ngrok http 3000
 When customers abandon checkout sessions without completing payment, stock is temporarily held for 15 minutes. To release expired stock back into available inventory:
 
 ### A. Vercel Cron Configuration (`vercel.json`)
-Add a scheduled job to `vercel.json`:
+To comply with Vercel Hobby / Free tier limits (which allows 1 cron job running at most once per day), the scheduled job in `vercel.json` runs daily at midnight UTC:
 ```json
 {
   "crons": [
     {
       "path": "/api/cron/release-expired-reservations",
-      "schedule": "*/10 * * * *"
+      "schedule": "0 0 * * *"
     }
   ]
 }
 ```
+*Note: Stock availability is already real-time in queries because `reserve_stock_for_checkout` filters by `expires_at > now()`. The daily cron performs housekeeping by transitioning database rows from `reserved` to `released`.*
+
 Vercel automatically sends `Authorization: Bearer <CRON_SECRET>` when `CRON_SECRET` is set in Vercel project environment variables.
 
 ### B. Supabase / External Webhook Invocation
-Alternatively, call the endpoint every 10-15 minutes using GitHub Actions, Supabase `pg_cron`, or Cloudflare Workers:
+Alternatively, call the endpoint via an external trigger, GitHub Actions, or Supabase `pg_cron`:
 ```bash
 curl -X POST https://jradianceco.com/api/cron/release-expired-reservations \
   -H "Authorization: Bearer <CRON_SECRET>"

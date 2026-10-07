@@ -13,7 +13,7 @@ import {
  * Base URL for the site - uses environment variable
  */
 const getBaseUrl = (): string => {
-  return process.env.NEXT_PUBLIC_BASE_URL || "https://jradianceco.com";
+  return (process.env.NEXT_PUBLIC_BASE_URL || "https://jradianceco.com").replace(/\/$/, "");
 };
 
 /**
@@ -53,7 +53,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const products = await getAllProductSlugs();
   
   const productRoutes: MetadataRoute.Sitemap = products.map((product) => ({
-    url: `${baseUrl}/products/${product.slug}`,
+    url: `${baseUrl}/shop/products/${product.slug}`,
     lastModified: new Date(product.updated_at),
     changeFrequency: "weekly" as const,
     priority: 0.8,

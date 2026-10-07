@@ -145,9 +145,9 @@ export default function ContactPage() {
     },
     {
       icon: Phone,
-      title: "Phone",
-      value: "+234 XXX XXX XXXX",
-      description: "Mon-Fri, 9am-6pm WAT",
+      title: "Phone Support",
+      value: "Helpline Launching Soon",
+      description: "Direct email support available 24/7",
     },
     {
       icon: MapPin,

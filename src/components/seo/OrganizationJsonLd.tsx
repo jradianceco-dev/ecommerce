@@ -37,18 +37,22 @@ export default function OrganizationJsonLd({ baseUrl }: OrganizationJsonLdProps)
           {
             "@type": "Country",
             name: "Nigeria",
+            identifier: "NG",
           },
           {
             "@type": "Country",
             name: "United States",
+            identifier: "US",
           },
           {
             "@type": "Country",
             name: "United Kingdom",
+            identifier: "GB",
           },
           {
-            "@type": "Country",
-            name: "South Africa",
+            "@type": "AdministrativeArea",
+            name: "Europe",
+            alternateName: "European Union",
           },
         ],
         brand: {
@@ -65,12 +69,11 @@ export default function OrganizationJsonLd({ baseUrl }: OrganizationJsonLdProps)
           "@type": "ContactPoint",
           contactType: "customer service",
           availableLanguage: ["English"],
-          areaServed: ["NG", "US", "GB", "ZA"],
+          areaServed: ["NG", "US", "GB", "EU"],
+          email: "info@jradianceco.com",
         },
         sameAs: [
-          "https://www.facebook.com/jradianceco",
-          "https://www.instagram.com/jradianceco",
-          "https://twitter.com/jradianceco",
+          "https://www.instagram.com/jradiancecosmetics/",
         ],
       },
       {
@@ -80,17 +83,24 @@ export default function OrganizationJsonLd({ baseUrl }: OrganizationJsonLdProps)
         alternateName: ["Jradiance", "Jradianceco", "JRADIANCE Store"],
         image: `${siteUrl}/logo-removebg.png`,
         url: siteUrl,
-        telephone: "+234-XXX-XXX-XXXX",
-        priceRange: "₦₦",
-        description: "Premium organic skincare and cosmetics store offering authentic beauty products for body care, skin care, makeup, and fragrances.",
+        priceRange: "₦5,000 - ₦1,000,000 / $5 - $650",
+        description: "Premium organic skincare and cosmetics store offering authentic beauty products for body care, skin care, makeup, and fragrances with worldwide shipping.",
         areaServed: [
-          {
-            "@type": "City",
-            name: "Lagos",
-          },
           {
             "@type": "Country",
             name: "Nigeria",
+          },
+          {
+            "@type": "Country",
+            name: "United States",
+          },
+          {
+            "@type": "Country",
+            name: "United Kingdom",
+          },
+          {
+            "@type": "AdministrativeArea",
+            name: "Europe",
           },
         ],
         brand: {
@@ -103,8 +113,8 @@ export default function OrganizationJsonLd({ baseUrl }: OrganizationJsonLdProps)
           opens: "09:00",
           closes: "21:00",
         },
-        paymentAccepted: ["Cash", "Credit Card", "Debit Card", "Bank Transfer"],
-        currenciesAccepted: "NGN",
+        paymentAccepted: ["Cash", "Credit Card", "Debit Card", "Bank Transfer", "Stripe", "Paystack"],
+        currenciesAccepted: "NGN, USD",
       },
       {
         "@type": "WebSite",

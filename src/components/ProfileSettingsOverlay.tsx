@@ -580,37 +580,19 @@ export default function ProfileSettingsOverlay({
                 </p>
                 <div className="flex justify-center gap-4">
                   <Link
-                    href="https://www.instagram.com/jradiancecosmetics/?hl=de"
+                    href="https://www.instagram.com/jradiancecosmetics/"
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="p-2 bg-gray-50 rounded-full hover:bg-radiance-goldColor/10 transition-colors"
+                    className="flex items-center gap-2 px-4 py-2 bg-gray-50 rounded-full hover:bg-radiance-goldColor/10 transition-colors group"
+                    aria-label="Follow JRADIANCE on Instagram"
                   >
                     <Instagram
                       size={18}
-                      className="text-radiance-charcoalTextColor hover:text-radiance-goldColor"
+                      className="text-radiance-charcoalTextColor group-hover:text-radiance-goldColor transition-colors"
                     />
-                  </Link>
-                  <Link
-                    href="https://www.facebook.com/jradianceco"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="p-2 bg-gray-50 rounded-full hover:bg-radiance-goldColor/10 transition-colors"
-                  >
-                    <Facebook
-                      size={18}
-                      className="text-radiance-charcoalTextColor hover:text-radiance-goldColor"
-                    />
-                  </Link>
-                  <Link
-                    href="https://twitter.com/jradianceco"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="p-2 bg-gray-50 rounded-full hover:bg-radiance-goldColor/10 transition-colors"
-                  >
-                    <Twitter
-                      size={18}
-                      className="text-radiance-charcoalTextColor hover:text-radiance-goldColor"
-                    />
+                    <span className="text-xs font-semibold text-gray-700 group-hover:text-radiance-goldColor transition-colors">
+                      @jradiancecosmetics
+                    </span>
                   </Link>
                 </div>
               </div>

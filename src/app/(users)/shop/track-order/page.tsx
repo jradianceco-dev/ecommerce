@@ -313,7 +313,7 @@ export default function TrackOrderPage() {
               </div>
               <div className="flex items-center gap-3 text-green-800">
                 <Phone size={18} />
-                <span className="text-sm">+234 XXX XXX XXXX</span>
+                <span className="text-sm">Helpline Launching Soon</span>
               </div>
             </div>
           </div>

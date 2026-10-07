@@ -90,10 +90,10 @@ export default function HomepageSEO({ baseUrl }: HomepageSEOProps) {
       },
       {
         "@type": "Question",
-        name: "Does JRADIANCE deliver in Nigeria?",
+        name: "Does JRADIANCE ship internationally?",
         acceptedAnswer: {
           "@type": "Answer",
-          text: "Yes, JRADIANCE delivers nationwide across Nigeria. We offer free delivery on orders over ₦50,000.",
+          text: "Yes, JRADIANCE delivers nationwide across Nigeria as well as internationally to the United States and Europe. We offer multi-currency checkout in Naira (₦) and US Dollars ($) with free delivery on eligible orders.",
         },
       },
       {

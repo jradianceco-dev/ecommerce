@@ -19,14 +19,14 @@ if (typeof window !== "undefined") {
 }
 
 const bodyClasses =
-  "min-h-screen bg-radiance-creamBackgroundColor text-radiance-charcoalTextColor font-sans antialiased pt-20";
+  "min-h-screen bg-radiance-creamBackgroundColor text-radiance-charcoalTextColor font-sans antialiased pt-20 pb-24 md:pb-12";
 
 export const metadata: Metadata = createBaseMetadata({
   baseUrl: process.env.NEXT_PUBLIC_BASE_URL || "https://jradianceco.com",
   siteName: "JRADIANCE",
   defaultTitle: "JRADIANCE | Premium Cosmetics & Skincare",
   defaultDescription:
-    "Authentic skincare and cosmetics for the radiant Nigerian soul.",
+    "Authentic organic skincare and cosmetics with worldwide delivery across Nigeria, the United States, and Europe.",
   locale: "en_NG",
 });
 
@@ -42,10 +42,10 @@ export default function RootLayout({
     url: process.env.NEXT_PUBLIC_BASE_URL || "https://jradianceco.com",
     logo: `${process.env.NEXT_PUBLIC_BASE_URL || "https://jradianceco.com"}/logo-removebg.png`,
     description:
-      "Authentic skincare and cosmetics for the radiant Nigerian soul.",
+      "Premium organic skincare, body care, and luxury cosmetics with worldwide delivery across Nigeria, the United States, and Europe.",
     founder: "Philip Depaytez",
     foundingDate: "2024",
-    areaServed: ["NG", "US", "GB", "ZA"],
+    areaServed: ["NG", "US", "GB", "EU"],
     brand: {
       "@type": "Brand",
       name: "JRADIANCE",
@@ -54,11 +54,11 @@ export default function RootLayout({
       "@type": "ContactPoint",
       contactType: "customer service",
       availableLanguage: ["English"],
+      email: "info@jradianceco.com",
+      areaServed: ["NG", "US", "GB", "EU"],
     },
     sameAs: [
-      "https://www.facebook.com/jradianceco",
-      "https://www.instagram.com/jradianceco",
-      "https://twitter.com/jradianceco",
+      "https://www.instagram.com/jradiancecosmetics/",
     ],
   };
 

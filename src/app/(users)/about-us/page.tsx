@@ -20,6 +20,8 @@ import {
   Zap,
   Globe,
   ArrowRight,
+  Instagram,
+  Mail,
 } from "lucide-react";
 
 export const metadata: Metadata = {
@@ -431,13 +433,14 @@ export default function AboutUsPage() {
                   </div>
                   <div className="flex items-center gap-4">
                     <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center">
-                      <Shield size={20} />
+                      <Mail size={20} />
                     </div>
                     <div>
                       <div className="font-bold mb-1 text-sm uppercase tracking-wider">
-                        Phone
+                        Customer Support
                       </div>
-                      <div className="opacity-90">+234 XXX XXX XXXX</div>
+                      <div className="opacity-90 text-sm">support@jradianceco.com</div>
+                      <div className="text-[11px] opacity-75">Direct phone line launching soon</div>
                     </div>
                   </div>
                   <div className="flex items-center gap-4">
@@ -446,9 +449,9 @@ export default function AboutUsPage() {
                     </div>
                     <div>
                       <div className="font-bold mb-1 text-sm uppercase tracking-wider">
-                        Location
+                        Markets Served
                       </div>
-                      <div className="opacity-90">Nigeria</div>
+                      <div className="opacity-90">Nigeria, USA &amp; Europe</div>
                     </div>
                   </div>
                 </div>
@@ -456,20 +459,19 @@ export default function AboutUsPage() {
                 {/* Social Links */}
                 <div className="mt-10 pt-8 border-t border-white/20">
                   <p className="text-sm font-bold uppercase tracking-wider mb-4">
-                    Follow Us
+                    Follow Our Journey
                   </p>
-                  <div className="flex gap-3">
-                    {["Instagram", "Facebook", "Twitter"].map((social) => (
-                      <a
-                        key={social}
-                        href="#"
-                        className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center hover:bg-white/30 transition-colors"
-                        aria-label={social}
-                      >
-                        <span className="sr-only">{social}</span>
-                        <Globe size={18} />
-                      </a>
-                    ))}
+                  <div className="flex flex-wrap gap-3">
+                    <a
+                      href="https://www.instagram.com/jradiancecosmetics/"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-2 px-4 py-2 bg-white/20 rounded-full hover:bg-white/30 transition-colors"
+                      aria-label="Follow JRADIANCE on Instagram"
+                    >
+                      <Instagram size={18} />
+                      <span className="text-xs font-semibold">@jradiancecosmetics</span>
+                    </a>
                   </div>
                 </div>
               </div>

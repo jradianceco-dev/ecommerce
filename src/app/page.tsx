@@ -137,27 +137,27 @@ export default function LandingPage() {
           </div>
 
           {/* Content layer */}
-          <div className="relative z-10 max-w-7xl mx-auto px-4 md:px-24 py-15 w-full">
+          <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 md:px-12 lg:px-20 py-10 md:py-16 w-full">
             <div className="max-w-2xl">
               {/* Badge */}
-              <div className="inline-flex items-center gap-2 bg-white/80 backdrop-blur-sm px-5 py-2.5 rounded-full text-radiance-goldColor text-sm font-semibold mb-6 shadow-sm">
+              <div className="inline-flex items-center gap-2 bg-white/80 backdrop-blur-sm px-4 sm:px-5 py-2 sm:py-2.5 rounded-full text-radiance-goldColor text-xs sm:text-sm font-semibold mb-4 sm:mb-6 shadow-sm">
                 <Award size={16} />
                 <span>JRadiance Organic Beauty & Skincare</span>
               </div>
 
               {/* Main Heading - H1 for SEO */}
-              <h1 className="text-5xl md:text-6xl lg:text-4xl font-black text-radiance-charcoalTextColor mb-6 leading-tight">
+              <h1 className="text-3xl sm:text-5xl md:text-6xl font-black text-radiance-charcoalTextColor mb-4 sm:mb-6 leading-tight">
                 Natural Radiance
-                <span className="text-6xl block text-radiance-goldColor">
+                <span className="text-4xl sm:text-6xl block text-radiance-goldColor mt-1">
                   JRadiance
                 </span>
               </h1>
 
               {/* Subtitle with keywords */}
-              <p className="text-lg md:text-xl text-gray-600 mb-8 max-w-xl">
-                Shop premium organic skincare products, body care products, and
-                cosmetics at JRADIANCE. Authentic beauty products for radiant
-                Nigerian skin.
+              <p className="text-base sm:text-lg md:text-xl text-gray-600 mb-6 sm:mb-8 max-w-xl">
+                Shop premium organic skincare products, body care essentials, and
+                luxury cosmetics at JRADIANCE. Worldwide delivery to Nigeria, the
+                United States, and Europe.
               </p>
 
               {/* CTA Buttons */}
@@ -214,7 +214,7 @@ export default function LandingPage() {
 
         {/* Features Section */}
         <section
-          className="py-16 px-24 bg-white border-y border-gray-100"
+          className="py-12 sm:py-16 px-4 sm:px-6 lg:px-8 xl:px-20 bg-white border-y border-gray-100"
           aria-label="Shopping features"
         >
           <div className="max-w-7xl mx-auto">
@@ -224,23 +224,25 @@ export default function LandingPage() {
                 Products
               </h2>
               <p>
-                Free delivery, secure payment, authentic cosmetics and skincare
-                products in Nigeria
+                Worldwide delivery, secure payment, authentic cosmetics and skincare
+                products in Nigeria, USA, and Europe
               </p>
             </div>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
               {features.map((feature, index) => (
                 <div
                   key={index}
-                  className="text-center group p-6 rounded-2xl hover:bg-radiance-goldColor/5 transition-all duration-300"
+                  className="text-center group p-3.5 sm:p-5 md:p-6 rounded-2xl bg-[#FDFBF7]/60 hover:bg-radiance-goldColor/5 border border-amber-50 sm:border-transparent transition-all duration-300"
                 >
-                  <div className="inline-flex items-center justify-center w-14 h-14 bg-linear-to-br from-radiance-goldColor to-yellow-400 rounded-2xl mb-4 group-hover:scale-110 transition-transform shadow-md">
-                    <feature.icon className="text-white" size={28} />
+                  <div className="inline-flex items-center justify-center w-11 h-11 sm:w-14 sm:h-14 bg-linear-to-br from-radiance-goldColor to-yellow-400 rounded-xl sm:rounded-2xl mb-3 sm:mb-4 group-hover:scale-110 transition-transform shadow-md">
+                    <feature.icon className="text-white w-5 h-5 sm:w-7 sm:h-7" />
                   </div>
-                  <h3 className="font-bold text-base text-gray-900 mb-1">
+                  <h3 className="font-bold text-xs sm:text-base text-gray-900 mb-1">
                     {feature.title}
                   </h3>
-                  <p className="text-sm text-gray-500">{feature.description}</p>
+                  <p className="text-[11px] sm:text-sm text-gray-500 line-clamp-2 sm:line-clamp-none leading-snug">
+                    {feature.description}
+                  </p>
                 </div>
               ))}
             </div>
@@ -248,10 +250,10 @@ export default function LandingPage() {
         </section>
 
         {/* Categories Section - Image Cards */}
-        <section className="py-20 px-24">
+        <section className="py-12 sm:py-16 md:py-20 px-4 sm:px-6 lg:px-8 xl:px-20">
           <div className="max-w-7xl mx-auto">
-            <div className="text-center mb-12">
-              <h2 className="text-4xl md:text-5xl font-black text-radiance-charcoalTextColor mb-3">
+            <div className="text-center mb-8 sm:mb-12">
+              <h2 className="text-3xl sm:text-4xl md:text-5xl font-black text-radiance-charcoalTextColor mb-2 sm:mb-3">
                 Shop by Category
               </h2>
               <p className="text-lg text-gray-600">
@@ -291,11 +293,11 @@ export default function LandingPage() {
         </section>
 
         {/* Trending Products */}
-        <section className="py-20 px-24 bg-white">
+        <section className="py-12 sm:py-16 md:py-20 px-4 sm:px-6 lg:px-8 xl:px-20 bg-white">
           <div className="max-w-7xl mx-auto">
-            <div className="flex items-center justify-between mb-12">
+            <div className="flex items-center justify-between mb-8 sm:mb-12">
               <div>
-                <h2 className="text-4xl md:text-5xl font-black text-radiance-charcoalTextColor mb-2">
+                <h2 className="text-3xl sm:text-4xl md:text-5xl font-black text-radiance-charcoalTextColor mb-2">
                   Trending Now 🔥
                 </h2>
                 <p className="text-lg text-gray-600">
@@ -347,29 +349,26 @@ export default function LandingPage() {
 
         {/* SEO Content Section - Organic Skincare & Body Care */}
         <section
-          className="py-16 px-24 bg-white"
+          className="py-12 sm:py-16 px-4 sm:px-6 lg:px-8 xl:px-20 bg-white"
           aria-label="About our organic skincare products"
         >
           <div className="max-w-4xl mx-auto text-center">
-            <h2 className="text-3xl md:text-4xl font-black text-radiance-charcoalTextColor mb-6">
-              Premium Organic Skincare & Body Care Products in Nigeria
+            <h2 className="text-2xl sm:text-3xl md:text-4xl font-black text-radiance-charcoalTextColor mb-4 sm:mb-6">
+              Premium Organic Skincare & Luxury Cosmetics | Worldwide Shipping
             </h2>
-            <div className="text-lg text-gray-600 space-y-4">
+            <div className="text-base sm:text-lg text-gray-600 space-y-4 text-left sm:text-center leading-relaxed">
               <p>
-                Welcome to <strong>JRADIANCE</strong>, your trusted source for
+                Welcome to <strong>JRADIANCE</strong>, your international destination for
                 authentic <strong>organic skincare products</strong> and{" "}
-                <strong>body care products</strong> in Nigeria. We offer a wide
-                range of premium cosmetics, including natural skincare, makeup,
-                fragrances, and beauty products designed for radiant African
-                skin.
+                <strong>body care products</strong>. We offer a curated
+                selection of premium cosmetics, including natural skincare, makeup,
+                and fragrances crafted for radiant skin globally across Nigeria, the United States, and Europe.
               </p>
               <p>
-                Our collection features the best{" "}
-                <strong>organic body care products</strong>, from luxurious body
-                butters and lotions to gentle facial cleansers and moisturizers.
-                Whether you're looking for affordable skincare or premium
-                cosmetics, JRADIANCE delivers quality beauty products
-                nationwide.
+                Our collection features the finest{" "}
+                <strong>organic body care products</strong>, from nourishing body
+                butters and hydrating lotions to gentle facial cleansers and serums.
+                Whether you're shopping from Lagos, London, or New York, JRADIANCE delivers quality beauty products with seamless multi-currency checkout in Naira (₦) and US Dollars ($).
               </p>
               <p>
                 Shop with confidence at <strong>jradianceco.com</strong> -
@@ -435,10 +434,10 @@ export default function LandingPage() {
         </section>
 
         {/* Brand Values - Clean Light Design */}
-        <section className="py-20 px-24 bg-linear-to-b from-white to-radiance-creamBackgroundColor">
+        <section className="py-12 sm:py-16 md:py-20 px-4 sm:px-6 lg:px-8 xl:px-20 bg-linear-to-b from-white to-radiance-creamBackgroundColor">
           <div className="max-w-7xl mx-auto">
-            <div className="text-center mb-16">
-              <h2 className="text-4xl md:text-5xl font-black text-radiance-charcoalTextColor mb-4">
+            <div className="text-center mb-10 sm:mb-16">
+              <h2 className="text-3xl sm:text-4xl md:text-5xl font-black text-radiance-charcoalTextColor mb-3 sm:mb-4">
                 Why Choose JRADIANCE?
               </h2>
               <p className="text-xl text-gray-600">
@@ -491,10 +490,10 @@ export default function LandingPage() {
         </section>
 
         {/* Newsletter - Soft Gradient */}
-        <section className="py-20 px-24 bg-linear-to-r from-radiance-goldColor/20 to-yellow-400/20">
+        <section className="py-12 sm:py-16 md:py-20 px-4 sm:px-6 lg:px-8 xl:px-20 bg-linear-to-r from-radiance-goldColor/20 to-yellow-400/20">
           <div className="max-w-4xl mx-auto text-center">
-            <div className="bg-white rounded-3xl p-8 md:p-12 shadow-lg">
-              <h2 className="text-3xl md:text-4xl font-black text-radiance-charcoalTextColor mb-4">
+            <div className="bg-white rounded-3xl p-6 sm:p-8 md:p-12 shadow-lg">
+              <h2 className="text-2xl sm:text-3xl md:text-4xl font-black text-radiance-charcoalTextColor mb-3 sm:mb-4">
                 Get 10% Off Your First Order
               </h2>
               <p className="text-lg text-gray-600 mb-8">
@@ -522,9 +521,9 @@ export default function LandingPage() {
         </section>
 
         {/* Footer CTA */}
-        <section className="py-20 px-24 bg-white">
+        <section className="py-12 sm:py-16 md:py-20 px-4 sm:px-6 lg:px-8 xl:px-20 bg-white">
           <div className="max-w-4xl mx-auto text-center">
-            <h2 className="text-4xl md:text-5xl font-black text-radiance-charcoalTextColor mb-6">
+            <h2 className="text-3xl sm:text-4xl md:text-5xl font-black text-radiance-charcoalTextColor mb-4 sm:mb-6">
               Ready to Glow?
             </h2>
             <p className="text-xl text-gray-600 mb-8">

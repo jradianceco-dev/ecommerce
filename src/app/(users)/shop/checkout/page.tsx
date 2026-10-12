@@ -53,8 +53,14 @@ export default function CheckoutPage() {
   } = useCart();
 
   const [step, setStep] = useState<"delivery" | "payment">("delivery");
+  // Paystack availability flag (defaults to false until provider approval is finalized)
+  const isPaystackAvailable = process.env.NEXT_PUBLIC_PAYSTACK_LIVE === "true";
   const [selectedGateway, setSelectedGateway] = useState<"paystack" | "stripe">(() => {
-    return currency === "USD" ? "stripe" : "paystack";
+    // Maintains regional preference for NGN/Africa, conditionally falling back to Stripe if Paystack is unavailable
+    if (currency === "NGN" && isPaystackAvailable) {
+      return "paystack";
+    }
+    return "stripe";
   });
 
   const [isInitializingPayment, setIsInitializingPayment] = useState(false);
@@ -406,27 +412,41 @@ export default function CheckoutPage() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
                   {/* Option 1: Paystack */}
                   <div
-                    onClick={() => setSelectedGateway("paystack")}
-                    className={`p-4 rounded-xl border-2 transition-all cursor-pointer flex flex-col justify-between ${
-                      selectedGateway === "paystack"
-                        ? "border-radiance-goldColor bg-amber-50/20 shadow-xs"
-                        : "border-gray-200 hover:border-gray-300 bg-white"
+                    onClick={() => {
+                      if (isPaystackAvailable) {
+                        setSelectedGateway("paystack");
+                      }
+                    }}
+                    className={`p-4 rounded-xl border-2 transition-all flex flex-col justify-between ${
+                      !isPaystackAvailable
+                        ? "border-gray-200 bg-gray-50/70 opacity-80 cursor-not-allowed"
+                        : selectedGateway === "paystack"
+                        ? "border-radiance-goldColor bg-amber-50/20 shadow-xs cursor-pointer"
+                        : "border-gray-200 hover:border-gray-300 bg-white cursor-pointer"
                     }`}
                   >
                     <div>
                       <div className="flex items-center justify-between mb-2">
                         <span className="font-bold text-gray-900 text-sm flex items-center gap-1.5">
                           Paystack
-                          <span className="text-[10px] bg-emerald-100 text-emerald-800 font-bold px-1.5 py-0.5 rounded-full">
-                            NGN Instant
+                          <span
+                            className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${
+                              !isPaystackAvailable
+                                ? "bg-amber-100 text-amber-800"
+                                : "bg-emerald-100 text-emerald-800"
+                            }`}
+                          >
+                            {!isPaystackAvailable ? "Coming Soon" : "NGN Instant"}
                           </span>
                         </span>
-                        {selectedGateway === "paystack" && (
+                        {isPaystackAvailable && selectedGateway === "paystack" && (
                           <CheckCircle2 size={18} className="text-radiance-goldColor" />
                         )}
                       </div>
                       <p className="text-xs text-gray-500 leading-relaxed mb-3">
-                        Ideal for Nigerian Naira cards, Bank Transfers, USSD, and Mobile Money.
+                        {!isPaystackAvailable
+                          ? "Paystack integration is Coming Soon! Please use Stripe below to complete your checkout securely with your card."
+                          : "Ideal for Nigerian Naira cards, Bank Transfers, USSD, and Mobile Money."}
                       </p>
                     </div>
                     <div className="flex items-center gap-1.5 text-[11px] font-semibold text-gray-400">
@@ -464,6 +484,17 @@ export default function CheckoutPage() {
                     </div>
                   </div>
                 </div>
+
+                {!isPaystackAvailable && (
+                  <div className="mt-3 p-3.5 bg-amber-50/90 border border-amber-200 rounded-xl flex items-start gap-2.5 text-xs text-amber-900 leading-relaxed">
+                    <AlertCircle size={16} className="text-amber-600 shrink-0 mt-0.5" />
+                    <div>
+                      <span className="font-bold">Paying from Nigeria or with Naira cards?</span> Paystack is currently{" "}
+                      <span className="font-semibold px-1.5 py-0.2 bg-amber-200/60 rounded text-amber-950">Coming Soon</span>. You can safely complete your purchase using{" "}
+                      <span className="font-bold text-gray-900">Stripe</span> above with any Nigerian Mastercard, Visa, or Verve card, Apple Pay, or Google Pay.
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Submit CTA */}

@@ -611,61 +611,74 @@ export async function checkPermission(
 }
 
 /**
- * Delete Order (Admin Only - Hard Delete)
+ * Delete Order (Super Director Only - Hard Delete)
  * 
- * Single Responsibility: Deletes an order and all its items permanently
- * This follows SRP - only handles order deletion
+ * Single Responsibility: Deletes an order and all its related records permanently.
+ * Only accessible by Super Director (chief_admin).
  * 
  * @param orderId - ID of order to delete
  * @param adminUserId - ID of admin performing the deletion
  * @returns Success/error status
  * 
- * @security Chief Admin and Admin only (NOT Agent)
- * @warning This is a HARD DELETE - data cannot be recovered
+ * @security Super Director (chief_admin) only
+ * @warning This is a permanent database deletion
  */
 export async function deleteOrder(orderId: string, adminUserId: string) {
   try {
-    const supabase = await createClient();
+    const authClient = await createClient();
 
-    // Verify user is admin or chief_admin (NOT agent) - OCP: Extension without modification
-    const { data: profile } = await supabase
+    // Verify authenticated caller is specifically the Super Director (chief_admin)
+    const { data: profile } = await authClient
       .from("profiles")
       .select("role")
       .eq("id", adminUserId)
       .single();
 
-    if (!profile || !['admin', 'chief_admin'].includes(profile.role)) {
+    if (!profile || profile.role !== "chief_admin") {
       return { 
         success: false, 
-        error: "Only admins can delete orders" 
+        error: "Access denied: Only a Super Director can permanently delete an order" 
       };
     }
 
-    // Get order details for audit before deletion - DIP: Depends on abstraction (supabase client)
-    const { data: order } = await supabase
+    // Use service role client so deletion bypasses RLS and cleanly purges all related foreign records
+    const serviceClient = createServiceRoleClient();
+
+    // Get order details for audit trail before deletion
+    const { data: order } = await serviceClient
       .from("orders")
       .select("order_number, total_amount")
       .eq("id", orderId)
       .single();
 
-    // Delete order items first (foreign key constraint) - ISP: Only uses needed columns
-    const { error: itemsError } = await supabase
+    // 1. Delete associated stock reservations
+    const { error: reservationsError } = await serviceClient
+      .from("stock_reservations")
+      .delete()
+      .eq("order_id", orderId);
+
+    if (reservationsError) {
+      console.warn("Warning deleting stock reservations:", reservationsError);
+    }
+
+    // 2. Delete order items
+    const { error: itemsError } = await serviceClient
       .from("order_items")
       .delete()
       .eq("order_id", orderId);
 
     if (itemsError) throw itemsError;
 
-    // Delete order - CQS: This is a command (modifies state)
-    const { error: orderError } = await supabase
+    // 3. Delete order
+    const { error: orderError } = await serviceClient
       .from("orders")
       .delete()
       .eq("id", orderId);
 
     if (orderError) throw orderError;
 
-    // Log the deletion for audit trail - DRY: Reuses existing logging pattern
-    await supabase.from("admin_activity_logs").insert({
+    // 4. Log permanent deletion into audit trail
+    await serviceClient.from("admin_activity_logs").insert({
       admin_id: adminUserId,
       action: "order_deleted",
       resource_type: "orders",
@@ -673,16 +686,15 @@ export async function deleteOrder(orderId: string, adminUserId: string) {
       changes: {
         order_number: order?.order_number,
         total_amount: order?.total_amount,
-        reason: "Admin hard delete",
+        reason: "Super Director permanent delete",
       },
     });
 
-    // Revalidate to update UI - KISS: Simple and direct
     revalidatePath("/admin/orders");
 
     return { 
       success: true, 
-      message: "Order permanently deleted" 
+      message: "Order permanently deleted from database" 
     };
   } catch (error) {
     console.error("Error deleting order:", error);

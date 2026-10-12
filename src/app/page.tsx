@@ -514,7 +514,14 @@ export default function LandingPage() {
                 </button>
               </form>
               <p className="text-sm text-gray-500 mt-4">
-                By subscribing, you agree to our Terms & Privacy Policy
+                By subscribing, you agree to our{" "}
+                <Link href="/terms" className="underline hover:text-radiance-goldColor transition">
+                  Terms of Service
+                </Link>{" "}
+                &{" "}
+                <Link href="/privacy" className="underline hover:text-radiance-goldColor transition">
+                  Privacy Policy
+                </Link>
               </p>
             </div>
           </div>

@@ -12,6 +12,8 @@ import { Analytics } from "@vercel/analytics/react";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { setupGlobalErrorHandler } from "@/utils/error-tracking";
 import { CurrencyProvider } from "@/context/CurrencyContext";
+import Footer from "@/components/layout/Footer";
+import CookieConsentBanner from "@/components/legal/CookieConsentBanner";
 
 // Setup global error tracking
 if (typeof window !== "undefined") {
@@ -81,6 +83,9 @@ export default function RootLayout({
                   <TopBar />
 
                   <main className="pb-20 md:pb-0">{children}</main>
+
+                  <Footer />
+                  <CookieConsentBanner />
 
                   <Analytics />
                   <SpeedInsights />

@@ -37,6 +37,8 @@
     "@vercel/speed-insights": "^2.0.0",
     "axios": "^1.13.6",
     "ftp": "^0.3.10",
+    "jspdf": "^4.2.1",
+    "jspdf-autotable": "^5.0.8",
     "lucide-react": "^0.562.0",
     "next": "15.5.10",
     "prosemirror-model": "^1.25.4",

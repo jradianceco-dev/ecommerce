@@ -9,8 +9,9 @@
 
 import { useState, useEffect } from "react";
 import { getSalesStats } from "../admin-actions";
-import { DollarSign, ShoppingCart, CheckCircle, TrendingUp, AlertTriangle } from "lucide-react";
+import { DollarSign, ShoppingCart, CheckCircle, TrendingUp, AlertTriangle, FileDown } from "lucide-react";
 import { useAdmin } from "@/context/AdminContext";
+import { generateAccountStatementPDF } from "@/utils/pdf/generateAccountStatement";
 
 export default function SalesLogPage() {
   const adminContext = useAdmin();
@@ -42,6 +43,54 @@ export default function SalesLogPage() {
       setStats(result.data);
     }
     setLoading(false);
+  }
+
+  function handleExportStatement() {
+    if (!stats) return;
+
+    const completedOrders = stats.completedOrders || 0;
+    const totalOrders = stats.totalOrders || 0;
+    const pendingOrders = Math.max(0, totalOrders - completedOrders);
+    const totalRevenue = stats.totalRevenue || 0;
+    const netBalance = totalRevenue;
+
+    const recentTransactions = (stats.orders || []).slice(0, 30).map((o: any) => ({
+      orderNumber: o.order_number,
+      date: new Date(o.created_at).toLocaleDateString(),
+      customer: o.profiles?.full_name || o.profiles?.email || "Customer",
+      amount: o.total_amount || 0,
+      status: o.status || "completed",
+      paymentStatus: o.payment_status || "completed",
+      gateway: "Stripe/Global",
+    }));
+
+    generateAccountStatementPDF({
+      statementDate: new Date().toLocaleDateString("en-US", {
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      }),
+      period: `Sales Period: ${period.toUpperCase()}`,
+      generatedBy: adminContext?.admin.email || "Administrator",
+      accountSummary: {
+        totalRevenue,
+        completedRevenue: totalRevenue,
+        pendingRevenue: 0,
+        refundedRevenue: 0,
+        netBalance,
+        totalOrders,
+        completedOrders,
+        pendingOrders,
+        cancelledOrders: 0,
+      },
+      gatewayBreakdown: {
+        stripeVolume: totalRevenue,
+        paystackVolume: 0,
+      },
+      recentTransactions,
+    });
   }
 
   if (!loading && hasAccess === false) {
@@ -76,25 +125,38 @@ export default function SalesLogPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold text-radiance-charcoalTextColor">Sales Log</h1>
           <p className="text-gray-600 mt-1">Track sales performance and revenue</p>
         </div>
-        <div className="flex gap-2">
-          {(["day", "week", "month", "all"] as const).map((p) => (
-            <button
-              key={p}
-              onClick={() => setPeriod(p)}
-              className={`px-4 py-2 rounded-lg text-sm font-medium ${
-                period === p
-                  ? "bg-radiance-goldColor text-white"
-                  : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-              }`}
-            >
-              {p.charAt(0).toUpperCase() + p.slice(1)}
-            </button>
-          ))}
+
+        <div className="flex items-center gap-3 flex-wrap">
+          <button
+            onClick={handleExportStatement}
+            disabled={!stats}
+            className="inline-flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 text-gray-700 hover:text-radiance-goldColor hover:border-radiance-goldColor rounded-lg text-sm font-semibold transition shadow-xs cursor-pointer disabled:opacity-50"
+            title="Download formatted account balance and revenue statement in PDF"
+          >
+            <FileDown size={16} />
+            <span>Export Statement (PDF)</span>
+          </button>
+
+          <div className="flex gap-1.5">
+            {(["day", "week", "month", "all"] as const).map((p) => (
+              <button
+                key={p}
+                onClick={() => setPeriod(p)}
+                className={`px-3.5 py-2 rounded-lg text-sm font-medium transition cursor-pointer ${
+                  period === p
+                    ? "bg-radiance-goldColor text-white font-bold"
+                    : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                }`}
+              >
+                {p.charAt(0).toUpperCase() + p.slice(1)}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 

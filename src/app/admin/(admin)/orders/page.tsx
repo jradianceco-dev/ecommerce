@@ -27,8 +27,12 @@ import {
   TrendingUp,
   User,
   AlertTriangle,
+  FileDown,
+  Database,
 } from "lucide-react";
 import { useAdmin } from "@/context/AdminContext";
+import { generateAccountStatementPDF } from "@/utils/pdf/generateAccountStatement";
+import DatabasePurgeModal from "@/components/admin/DatabasePurgeModal";
 
 type OrderStatus =
   | "pending"
@@ -118,26 +122,94 @@ export default function OrdersManagerPage() {
   const [userRole, setUserRole] = useState<string>(() => adminContext?.admin.role || "");
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [cancelReason, setCancelReason] = useState("");
+  const [showPurgeModal, setShowPurgeModal] = useState(false);
+
+  function handleExportFinancialStatement() {
+    if (!orders || orders.length === 0) {
+      setMessage({ type: "error", text: "No order data available to export" });
+      return;
+    }
+
+    const totalRevenue = orders.reduce((sum, o) => sum + (o.total_amount || 0), 0);
+    const completedRevenue = orders
+      .filter((o) => o.payment_status === "completed")
+      .reduce((sum, o) => sum + (o.total_amount || 0), 0);
+    const pendingRevenue = orders
+      .filter((o) => o.payment_status === "pending")
+      .reduce((sum, o) => sum + (o.total_amount || 0), 0);
+    const refundedRevenue = orders
+      .filter((o) => o.payment_status === "refunded" || o.status === "returned")
+      .reduce((sum, o) => sum + (o.total_amount || 0), 0);
+    const netBalance = completedRevenue - refundedRevenue;
+
+    const completedOrders = orders.filter((o) => o.status === "delivered" || o.payment_status === "completed").length;
+    const pendingOrders = orders.filter((o) => o.status === "pending").length;
+    const cancelledOrders = orders.filter((o) => o.status === "cancelled").length;
+
+    const stripeVolume = completedRevenue;
+    const paystackVolume = 0;
+
+    const recentTransactions = orders.slice(0, 30).map((o) => ({
+      orderNumber: o.order_number,
+      date: new Date(o.created_at).toLocaleDateString(),
+      customer: o.profiles?.full_name || o.profiles?.email || "Customer",
+      amount: o.total_amount,
+      status: o.status,
+      paymentStatus: o.payment_status,
+      gateway: "Stripe/Global",
+    }));
+
+    generateAccountStatementPDF({
+      statementDate: new Date().toLocaleDateString("en-US", {
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      }),
+      period: "All-Time Comprehensive",
+      generatedBy: adminContext?.admin.email || "Administrator",
+      accountSummary: {
+        totalRevenue,
+        completedRevenue,
+        pendingRevenue,
+        refundedRevenue,
+        netBalance,
+        totalOrders: orders.length,
+        completedOrders,
+        pendingOrders,
+        cancelledOrders,
+      },
+      gatewayBreakdown: {
+        stripeVolume,
+        paystackVolume,
+      },
+      recentTransactions,
+    });
+
+    setMessage({ type: "success", text: "Financial statement PDF downloaded successfully" });
+    setTimeout(() => setMessage(null), 3000);
+  }
 
   useEffect(() => {
     if (!adminContext) return;
 
     if (adminContext.isAgent) {
       setUserRole(adminContext.admin.role);
-      loadOrders();
+      loadOrders(true);
       loadStats();
     } else {
       setLoading(false);
     }
   }, [adminContext]);
 
-  async function loadOrders() {
-    setLoading(true);
+  async function loadOrders(showSkeleton = false) {
+    if (showSkeleton) setLoading(true);
     const result = await getAllOrders();
     if (result.success && result.data) {
       setOrders(result.data);
     }
-    setLoading(false);
+    if (showSkeleton) setLoading(false);
   }
 
   async function loadStats() {
@@ -149,13 +221,26 @@ export default function OrdersManagerPage() {
 
   async function handleStatusChange(orderId: string, newStatus: OrderStatus) {
     setActionLoading(orderId);
+    // Optimistic UI update: instantly reflect status in local state
+    const previousOrders = [...orders];
+    setOrders((prev) =>
+      prev.map((o) => (o.id === orderId ? { ...o, status: newStatus } : o))
+    );
+
     const result = await updateOrderStatus(orderId, newStatus);
-    setMessage({
-      type: result.success ? "success" : "error",
-      text: result.message || result.error || "",
-    });
-    if (result.success) {
-      loadOrders();
+    if (!result.success) {
+      // Revert upon failure
+      setOrders(previousOrders);
+      setMessage({
+        type: "error",
+        text: result.error || "Failed to update order status",
+      });
+    } else {
+      setMessage({
+        type: "success",
+        text: result.message || "Order status updated",
+      });
+      loadOrders(false);
       loadStats();
     }
     setActionLoading(null);
@@ -163,25 +248,29 @@ export default function OrdersManagerPage() {
   }
 
   async function handleCancelOrder(orderId: string) {
-    if (!cancelReason.trim()) {
+    setActionLoading(orderId);
+    // Optimistic UI update
+    const previousOrders = [...orders];
+    setOrders((prev) =>
+      prev.map((o) => (o.id === orderId ? { ...o, status: "cancelled" } : o))
+    );
+
+    const result = await cancelOrder(orderId, cancelReason.trim() || undefined);
+    if (!result.success) {
+      setOrders(previousOrders);
       setMessage({
         type: "error",
-        text: "Please provide a cancellation reason",
+        text: result.error || "Failed to cancel order",
       });
-      return;
-    }
-
-    setActionLoading(orderId);
-    const result = await cancelOrder(orderId, cancelReason);
-    setMessage({
-      type: result.success ? "success" : "error",
-      text: result.message || result.error || "",
-    });
-    if (result.success) {
+    } else {
+      setMessage({
+        type: "success",
+        text: result.message || "Order cancelled successfully",
+      });
       setShowCancelModal(false);
       setCancelReason("");
       setSelectedOrder(null);
-      loadOrders();
+      loadOrders(false);
       loadStats();
     }
     setActionLoading(null);
@@ -189,7 +278,6 @@ export default function OrdersManagerPage() {
   }
 
   async function handleDeleteOrder(orderId: string) {
-    // SRP: Only handles order deletion
     if (deleteConfirmText !== "DELETE") {
       setMessage({ type: "error", text: "Please type DELETE to confirm" });
       return;
@@ -206,13 +294,18 @@ export default function OrdersManagerPage() {
 
     setActionLoading(orderId);
     const result = await deleteOrder(orderId, user.id);
-    setMessage({ type: result.success ? "success" : "error", text: result.message || result.error || "" });
+    setMessage({ 
+      type: result.success ? "success" : "error", 
+      text: result.message || result.error || "" 
+    });
     
     if (result.success) {
+      // Optimistic removal from table
+      setOrders((prev) => prev.filter((o) => o.id !== orderId));
       setShowDeleteModal(false);
       setDeleteConfirmText("");
       setSelectedOrder(null);
-      loadOrders();
+      loadOrders(false);
       loadStats();
     }
     setActionLoading(null);
@@ -312,7 +405,7 @@ export default function OrdersManagerPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold text-radiance-charcoalTextColor">
             Orders Manager
@@ -321,7 +414,28 @@ export default function OrdersManagerPage() {
             Track and manage all customer orders
           </p>
         </div>
-        <ShoppingBag className="text-radiance-goldColor" size={32} />
+
+        <div className="flex items-center gap-2.5 flex-wrap">
+          <button
+            onClick={handleExportFinancialStatement}
+            className="inline-flex items-center gap-2 px-4 py-2.5 bg-white border border-gray-200 text-gray-700 hover:text-radiance-goldColor hover:border-radiance-goldColor rounded-xl font-semibold text-xs transition shadow-xs cursor-pointer"
+            title="Download formatted account balance and revenue statement in PDF"
+          >
+            <FileDown size={15} />
+            <span>Export Statement (PDF)</span>
+          </button>
+
+          {userRole === "chief_admin" && (
+            <button
+              onClick={() => setShowPurgeModal(true)}
+              className="inline-flex items-center gap-2 px-4 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-xl font-bold text-xs transition shadow-sm cursor-pointer"
+              title="Super Director: Clean up database storage and archive"
+            >
+              <Database size={15} />
+              <span>Clean Up Database</span>
+            </button>
+          )}
+        </div>
       </div>
 
       {message && (
@@ -511,15 +625,15 @@ export default function OrdersManagerPage() {
                         >
                           View Details
                         </button>
-                        {/* Delete Button - Admin/Chief Admin Only (LSP: Substitutable roles) */}
-                        {(userRole === 'admin' || userRole === 'chief_admin') && (
+                        {/* Delete Button - Super Director Only */}
+                        {userRole === 'chief_admin' && (
                           <button
                             onClick={() => {
                               setSelectedOrder(order);
                               setShowDeleteModal(true);
                             }}
                             className="text-red-600 hover:text-red-900 text-sm font-medium"
-                            title="Permanently delete order (Admin only)"
+                            title="Permanently delete order (Super Director only)"
                           >
                             Delete
                           </button>
@@ -545,18 +659,6 @@ export default function OrdersManagerPage() {
                           <option value="cancelled">Cancelled</option>
                           <option value="returned">Returned</option>
                         </select>
-                        {order.status !== "cancelled" &&
-                          order.status !== "returned" && (
-                            <button
-                              onClick={() => {
-                                setSelectedOrder(order);
-                                setShowCancelModal(true);
-                              }}
-                              className="text-red-600 hover:text-red-900 text-sm font-medium"
-                            >
-                              Cancel
-                            </button>
-                          )}
                       </div>
                     </td>
                   </tr>
@@ -1055,14 +1157,14 @@ export default function OrdersManagerPage() {
             </p>
             <div className="mb-4">
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Cancellation Reason
+                Cancellation Reason (Optional)
               </label>
               <textarea
                 value={cancelReason}
                 onChange={(e) => setCancelReason(e.target.value)}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-radiance-goldColor"
                 rows={3}
-                placeholder="Please provide a reason for cancellation..."
+                placeholder="Optional reason for cancellation..."
               />
             </div>
             <div className="flex gap-3">
@@ -1078,9 +1180,7 @@ export default function OrdersManagerPage() {
               </button>
               <button
                 onClick={() => handleCancelOrder(selectedOrder.id)}
-                disabled={
-                  actionLoading === selectedOrder.id || !cancelReason.trim()
-                }
+                disabled={actionLoading === selectedOrder.id}
                 className="flex-1 px-6 py-3 bg-red-600 text-white rounded-xl font-medium hover:bg-red-700 transition-colors disabled:opacity-50"
               >
                 {actionLoading === selectedOrder.id
@@ -1091,6 +1191,17 @@ export default function OrdersManagerPage() {
           </div>
         </div>
       )}
+
+      {/* Super Director Database Storage Purge Console */}
+      <DatabasePurgeModal
+        isOpen={showPurgeModal}
+        onClose={() => setShowPurgeModal(false)}
+        superDirectorEmail={adminContext?.admin.email}
+        onPurgeSuccess={() => {
+          loadOrders(false);
+          loadStats();
+        }}
+      />
     </div>
   );
 }
